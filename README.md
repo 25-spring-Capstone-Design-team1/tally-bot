@@ -6,6 +6,7 @@
 
 ## 프로젝트 구조 🏗️
 
+```text
 ai-engine/
 ├── .github/              # GitHub 관련 설정 파일
 │   └── workflows/        # CI/CD 파이프라인 설정(AWS 연동 등 필요시 구축)
@@ -35,6 +36,7 @@ ai-engine/
 │   └── llm/              # LLM(대규모 언어 모델) 관련 설정
 │
 └── README.md             # 프로젝트 설명
+```
 
 ## 주요 컴포넌트 설명 🔍
 
