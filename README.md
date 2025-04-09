@@ -2,6 +2,13 @@
 
 이 프로젝트는 다음 세 가지 주요 컴포넌트로 구성되어 있습니다:
 
+## Architecture
+<p align="center">
+  <img src="./.drawio/tally-bot.drawio.png" alt="시스템 구성도">
+  <br>
+  <em>Tally-Bot 프로젝트 전체 아키텍처 구성도</em>
+</p>
+
 ## 컴포넌트
 
 ### [AI Core Service](./ai-core-service/README.md)
