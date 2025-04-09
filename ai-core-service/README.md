@@ -7,7 +7,7 @@
 ## 프로젝트 구조 🏗️
 
 ```text
-ai-engine/
+ai-core-service/
 ├── .github/              # GitHub 관련 설정 파일
 │   └── workflows/        # CI/CD 파이프라인 설정(AWS 연동 등 필요시 구축)
 │
