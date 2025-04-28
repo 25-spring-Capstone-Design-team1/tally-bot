@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%; /* White */
+    --foreground: 215 25% 15%; /* Slightly darker blue/gray for text */
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 15%;
+    --primary: 215 73% 58%; /* Main Blue - slightly adjusted #4A90E2 */
+    --primary-foreground: 0 0% 100%; /* White */
+    --secondary: 215 70% 94%; /* Lighter Blue for secondary elements */
+    --secondary-foreground: 215 73% 50%; /* Darker Blue for text on secondary */
+    --muted: 215 30% 96%; /* Very Light Blue/Gray */
+    --muted-foreground: 215 20% 55%; /* Muted Blue/Gray */
+    --accent: 45 95% 55%; /* Brighter Yellow - adjusted #F8C81E */
+    --accent-foreground: 215 40% 10%; /* Dark Blue/Black for contrast on Yellow */
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 215 40% 90%; /* Softer Blue/Gray border */
+    --input: 215 40% 92%; /* Slightly darker input background */
+    --ring: 215 73% 58%; /* Blue for focus rings */
+    --chart-1: 215 73% 58%; /* Primary Blue */
+    --chart-2: 45 95% 55%; /* Accent Yellow */
+    --chart-3: 215 50% 75%; /* Lighter Blue */
+    --chart-4: 45 75% 70%; /* Lighter Yellow */
+    --chart-5: 215 30% 85%; /* Lightest Blue/Gray */
+    --radius: 0.6rem; /* Slightly increased radius */
+  }
+
+  .dark {
+    --background: 215 30% 12%; /* Dark Blue */
+    --foreground: 0 0% 98%; /* White */
+    --card: 215 30% 15%; /* Slightly lighter dark blue */
+    --card-foreground: 0 0% 98%;
+    --popover: 215 30% 12%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 215 73% 62%; /* Blue #4A90E2 */
+    --primary-foreground: 0 0% 100%; /* White */
+    --secondary: 215 30% 25%; /* Darker Blue */
+    --secondary-foreground: 0 0% 98%; /* White */
+    --muted: 215 30% 22%; /* Darker Blue */
+    --muted-foreground: 215 20% 70%; /* Lighter Blue/Gray */
+    --accent: 45 95% 55%; /* Yellow */
+    --accent-foreground: 215 40% 10%; /* Dark Blue/Black */
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 215 30% 35%; /* Darker Blue/Gray border */
+    --input: 215 30% 30%; /* Darker Blue/Gray input */
+    --ring: 215 73% 62%; /* Blue */
+    --chart-1: 215 73% 62%; /* Primary Blue */
+    --chart-2: 45 95% 55%; /* Accent Yellow */
+    --chart-3: 215 50% 70%; /* Lighter Blue */
+    --chart-4: 45 75% 65%; /* Lighter Yellow */
+    --chart-5: 215 30% 75%; /* Lightest Blue/Gray */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
