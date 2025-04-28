@@ -5,4 +5,4 @@
 
 ### v1 (author : 남궁재우)
 *   [v1](/client-frontend/v1/README.md)
-*   ![메인 화면](./img/screenshots/tally-bot_sample_main.png)
+*   ![메인 화면](/client-frontend/v1/img/screenshots/tally-bot_sample_main.png)
