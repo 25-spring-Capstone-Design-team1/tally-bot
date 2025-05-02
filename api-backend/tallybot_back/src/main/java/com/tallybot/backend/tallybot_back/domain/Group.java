@@ -10,7 +10,7 @@ import lombok.*;
 public class Group {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // 채팅방 구별용 ID
+    private Long groupId; // 채팅방 구별용 ID
 
     private String groupName; // 채팅방명
 }
