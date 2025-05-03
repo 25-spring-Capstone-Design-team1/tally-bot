@@ -14,14 +14,14 @@ public class Settlement {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // 결제내역 식별 ID
+    private Long settlementId; // 결제내역 식별 ID
 
     private String place;     // 결제 장소
     private String item;      // 정산 항목
     private int amount;       // 정산 금액
 
-    private Double ratio;     // 비율 정산 (nullable 가능)
-    private Integer constant; // 고정 금액 정산 (nullable 가능)
+    private Double ratio;     // 비율 정산
+    private Integer constant; // 고정 금액 정산
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_id")

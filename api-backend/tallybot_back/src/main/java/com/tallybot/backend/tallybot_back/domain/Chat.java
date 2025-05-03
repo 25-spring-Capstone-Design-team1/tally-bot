@@ -15,17 +15,20 @@ public class Chat {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long chatId;
 
     @ManyToOne
+    @JsonProperty("방id")
     @JoinColumn(name = "group_id") // 외래 키로 연결, db 컬럼명으로 수정하기
     private Group group;
 
     @JsonProperty("시간")
     private LocalDateTime timestamp;
 
+    @ManyToOne
     @JsonProperty("닉네임")
-    private String nickname;
+    @JoinColumn(name = "member_id")
+    private Member member;
 
     @JsonProperty("말")
     private String message;
