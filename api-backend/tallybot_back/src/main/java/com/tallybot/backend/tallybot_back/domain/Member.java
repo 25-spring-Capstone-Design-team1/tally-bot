@@ -19,6 +19,6 @@ public class Member {
     private String nickname; // 사용자 닉네임
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "group_id") // 외래키 컬럼 이름 지정
-    private Group group; // 어떤 채팅방에 속해있는지
+    @JoinColumn(name = "group_id") // db 컬럼명으로 수정하기
+    private Group group;
 }
