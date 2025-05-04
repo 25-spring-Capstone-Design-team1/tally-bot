@@ -21,7 +21,4 @@ public class Member {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_id") // 외래키 컬럼 이름 지정
     private Group group; // 어떤 채팅방에 속해있는지
-
-    @OneToMany(mappedBy = "participantKey.member")
-    private List<Participant> participants; // 정산 대상자
 }

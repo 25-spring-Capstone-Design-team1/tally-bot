@@ -48,8 +48,7 @@ public class SettlementsDto {
         for(int i = 0; i < settlementDto.getParticipants().size(); i++) {
             String name = settlementDto.getParticipants().get(i);
             Participant participant = new Participant();
-            participant.setParticipantKey(new Participant.ParticipantKey(null, new Member(
-                    null, settlementDto.getParticipants().get(i), group, null)));
+            participant.setParticipantKey(new Participant.ParticipantKey(null, new Member(null, name, group)));
             participant.setConstant(constants.get(name));
             participant.setRatio(new Ratio(ratios.get(name), sum));
             participants.add(participant);
