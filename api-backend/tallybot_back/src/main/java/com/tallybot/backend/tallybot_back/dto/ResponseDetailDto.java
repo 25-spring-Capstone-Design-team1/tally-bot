@@ -7,7 +7,7 @@ import java.util.List;
 
 @Getter
 @AllArgsConstructor
-public class ResponseDto {
+public class ResponseDetailDto {
     private String url;
     private List<ResponseDetail> details;
 }

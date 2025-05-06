@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.Set;
 
 @Entity
 @Getter
@@ -30,7 +30,9 @@ public class Settlement {
     private Member payer; // 결제자
 
     @OneToMany(mappedBy = "participantKey.settlement")
-    private List<Participant> participants; // 정산 대상자
+    private Set<Participant> participants; // 정산 대상자
 
-    private LocalDateTime timestamp; // 정산의 첫 message를 기준으로 상정
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "calculate_id")
+    private Calculate calculate;
 }

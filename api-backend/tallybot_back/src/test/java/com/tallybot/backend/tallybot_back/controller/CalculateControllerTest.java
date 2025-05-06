@@ -2,7 +2,7 @@ package com.tallybot.backend.tallybot_back.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tallybot.backend.tallybot_back.dto.CalculateDto;
-import com.tallybot.backend.tallybot_back.dto.ResponseDto;
+import com.tallybot.backend.tallybot_back.dto.ResponseDetailDto;
 import com.tallybot.backend.tallybot_back.service.CalculateService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -56,7 +56,7 @@ class CalculateControllerTest {
     void getCalculateResultTest() throws Exception {
         // given
         Long calculateId = 42L;
-        ResponseDto fakeResponse = new ResponseDto("https://tallybot.me/calculate/42", List.of());
+        ResponseDetailDto fakeResponse = new ResponseDetailDto("https://tallybot.me/calculate/42", List.of());
 
         when(calculateService.resultReturn(calculateId)).thenReturn(fakeResponse);
 

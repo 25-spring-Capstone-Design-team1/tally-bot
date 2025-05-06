@@ -3,7 +3,7 @@ package com.tallybot.backend.tallybot_back.service;
 import com.tallybot.backend.tallybot_back.domain.*;
 import com.tallybot.backend.tallybot_back.dto.CalculateDto;
 import com.tallybot.backend.tallybot_back.dto.ResponseDetail;
-import com.tallybot.backend.tallybot_back.dto.ResponseDto;
+import com.tallybot.backend.tallybot_back.dto.ResponseDetailDto;
 import com.tallybot.backend.tallybot_back.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -100,7 +100,7 @@ class CalculateServiceTest {
                 .thenReturn(List.of(detail));
 
         // when
-        ResponseDto response = calculateService.resultReturn(100L);
+        ResponseDetailDto response = calculateService.resultReturn(100L);
 
         // then
         assertThat(response.getUrl()).isEqualTo("https://tallybot.me/calculate/100");

@@ -9,7 +9,7 @@ public class Ratio {
     private int numerator;
     private int denominator;
 
-    private static int gcd(int a, int b) {
+    public static int gcd(int a, int b) {
         if (b == 0) {
             return a;
         }
@@ -59,37 +59,51 @@ public class Ratio {
         return mul(r, inv(s));
     }
 
-    public void neg() {
+    public Ratio neg() {
         this.numerator = -this.numerator;
+        return this;
     }
 
-    public void inv() {
+    public Ratio inv() {
         var tmp = inv(this);
         this.numerator = tmp.numerator;
         this.denominator = tmp.denominator;
+        return this;
     }
 
-    public void add(Ratio r) {
+    public Ratio add(Ratio r) {
         var tmp = add(this, r);
         this.numerator = tmp.numerator;
         this.denominator = tmp.denominator;
+        return this;
     }
 
-    public void sub(Ratio r) {
+    public Ratio sub(Ratio r) {
         var tmp = sub(this, r);
         this.numerator = tmp.numerator;
         this.denominator = tmp.denominator;
+        return this;
     }
 
-    public void mul(Ratio r) {
+    public Ratio mul(Ratio r) {
         var tmp = mul(this, r);
         this.numerator = tmp.numerator;
         this.denominator = tmp.denominator;
+        return this;
     }
 
-    public void div(Ratio r) {
+    public Ratio div(Ratio r) {
         var tmp = div(this, r);
         this.numerator = tmp.numerator;
         this.denominator = tmp.denominator;
+        return this;
+    }
+
+    public double toDouble() {
+        return (double)numerator / denominator;
+    }
+
+    public int toInt() {
+        return numerator / denominator;
     }
 }

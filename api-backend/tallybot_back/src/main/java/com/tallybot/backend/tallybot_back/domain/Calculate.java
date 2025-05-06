@@ -4,6 +4,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Entity
 @Getter
@@ -19,14 +20,14 @@ public class Calculate{
     private LocalDateTime startTime;
     private LocalDateTime endTime;
 
-    @Enumerated(EnumType.STRING)
     private CalculateStatus status; // PENDING, COMPLETED
 
     @ManyToOne
     @JoinColumn(name = "group_id")
     private Group group;
 
-
+    @OneToMany(mappedBy = "calculate")
+    private Set<Settlement> settlements;
 }
 
 
