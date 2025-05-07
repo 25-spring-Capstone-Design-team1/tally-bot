@@ -28,6 +28,11 @@ public class Settlement {
     private Group group; // 소속 채팅방
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "calculate_id")
+    private Calculate calculate;
+
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "payer_id")
     private Member payer; // 결제자
 

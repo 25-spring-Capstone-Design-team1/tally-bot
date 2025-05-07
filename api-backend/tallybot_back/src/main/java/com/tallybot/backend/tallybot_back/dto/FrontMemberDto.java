@@ -3,11 +3,9 @@ package com.tallybot.backend.tallybot_back.dto;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-import java.util.List;
-
 @Getter
 @AllArgsConstructor
-public class ResponseDto {
-    private String url;
-    private List<ResponseDetail> details;
+public class FrontMemberDto {
+    private Long memberId;
+    private String nickname;
 }

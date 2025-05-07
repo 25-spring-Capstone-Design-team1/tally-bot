@@ -1,9 +1,9 @@
 package com.tallybot.backend.tallybot_back.service;
 
 import com.tallybot.backend.tallybot_back.domain.*;
-import com.tallybot.backend.tallybot_back.dto.CalculateDto;
-import com.tallybot.backend.tallybot_back.dto.ResponseDetail;
-import com.tallybot.backend.tallybot_back.dto.ResponseDto;
+import com.tallybot.backend.tallybot_back.dto.BotCalculateDto;
+import com.tallybot.backend.tallybot_back.dto.BotResponseDetail;
+import com.tallybot.backend.tallybot_back.dto.BotResponseDto;
 import com.tallybot.backend.tallybot_back.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -40,7 +40,7 @@ class CalculateServiceTest {
         group.setGroupId(1L);
         group.setGroupName("여행");
 
-        CalculateDto dto = new CalculateDto();
+        BotCalculateDto dto = new BotCalculateDto();
         dto.setGroupId(1L);
         dto.setStartTime(LocalDateTime.of(2024, 5, 1, 10, 0));
         dto.setEndTime(LocalDateTime.of(2024, 5, 1, 11, 0));
@@ -100,12 +100,12 @@ class CalculateServiceTest {
                 .thenReturn(List.of(detail));
 
         // when
-        ResponseDto response = calculateService.resultReturn(100L);
+        BotResponseDto response = calculateService.resultReturn(100L);
 
         // then
         assertThat(response.getUrl()).isEqualTo("https://tallybot.me/calculate/100");
         assertThat(response.getDetails()).hasSize(1);
-        ResponseDetail d = response.getDetails().get(0);
+        BotResponseDetail d = response.getDetails().get(0);
         assertThat(d.getPayerNickname()).isEqualTo("철수");
         assertThat(d.getPayeeNickname()).isEqualTo("영희");
         assertThat(d.getAmount()).isEqualTo(3000);

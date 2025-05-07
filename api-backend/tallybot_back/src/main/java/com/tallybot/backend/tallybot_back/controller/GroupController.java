@@ -14,8 +14,8 @@ public class GroupController {
     private final GroupService groupService;
 
     @PostMapping("/create")
-    public ResponseEntity<String> createGroup(@RequestBody GroupCreateRequest request) {
-        groupService.createGroupWithMembers(request);
-        return ResponseEntity.ok("그룹 생성 완료");
+    public ResponseEntity<Long> createGroup(@RequestBody GroupCreateRequest request) {
+        Long groupId = groupService.createGroupWithMembers(request);
+        return ResponseEntity.ok(groupId);
     }
 }

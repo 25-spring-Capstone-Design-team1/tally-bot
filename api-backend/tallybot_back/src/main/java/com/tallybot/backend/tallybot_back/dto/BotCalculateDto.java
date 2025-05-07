@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 
 @Getter
 @Setter
-public class CalculateDto {
+public class BotCalculateDto {
     private Long groupId;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

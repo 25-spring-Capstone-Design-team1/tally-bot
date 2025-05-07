@@ -1,10 +1,11 @@
 package com.tallybot.backend.tallybot_back.service;
 
 import com.tallybot.backend.tallybot_back.domain.*;
-import com.tallybot.backend.tallybot_back.dto.CalculateDto;
-import com.tallybot.backend.tallybot_back.dto.ResponseDetail;
-import com.tallybot.backend.tallybot_back.dto.ResponseDto;
+import com.tallybot.backend.tallybot_back.dto.BotCalculateDto;
+import com.tallybot.backend.tallybot_back.dto.BotResponseDetail;
+import com.tallybot.backend.tallybot_back.dto.BotResponseDto;
 import com.tallybot.backend.tallybot_back.repository.*;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -18,8 +19,9 @@ public class CalculateService {
     private final ChatRepository chatRepository;
     private final GPTService gptService;
     private final CalculateDetailRepository calculateDetailRepository;
+    private final SettlementRepository settlementRepository;
 
-    public Long startCalculate(CalculateDto request) {
+    public Long startCalculate(BotCalculateDto request) {
         Group group = groupRepository.findById(request.getGroupId())
                 .orElseThrow(() -> new IllegalArgumentException("그룹 없음"));
 
@@ -49,14 +51,14 @@ public class CalculateService {
         return calculate.getCalculateId();
     }
 
-    public ResponseDto resultReturn(Long calculateId) {
+    public BotResponseDto resultReturn(Long calculateId) {
         Calculate calculate = calculateRepository.findById(calculateId)
                 .orElseThrow(() -> new IllegalArgumentException("정산 없음"));
 
         List<CalculateDetail> details = calculateDetailRepository.findByCalculate(calculate);
 
-        List<ResponseDetail> detailResponses = details.stream().map(detail ->
-                new ResponseDetail(
+        List<BotResponseDetail> detailResponses = details.stream().map(detail ->
+                new BotResponseDetail(
                         detail.getPayer().getNickname(),
                         detail.getPayee().getNickname(),
                         detail.getAmount()
@@ -65,8 +67,28 @@ public class CalculateService {
 
         String url = "https://tallybot.me/calculate/" + calculateId;
 
-        return new ResponseDto(url, detailResponses);
+        return new BotResponseDto(url, detailResponses);
     }
+
+    @Transactional
+    public void recalculate(Long calculateId) {
+        Calculate calculate = calculateRepository.findById(calculateId)
+                .orElseThrow(() -> new IllegalArgumentException("정산 없음"));
+
+        // 기존 결과 삭제
+        calculateDetailRepository.deleteByCalculate(calculate);
+
+        // 재분석 없이 프론트에서 전달된 수정 사항만 settlement에 업데이트 (예: 정산 대상자, 금액 등)
+
+        // 웹에서 수정 시 item: value, amount: value 형식으로 들어오니 GPT 추가로 돌리지 않고
+        // 내부 함수만 돌리는 코드 작성 필요
+
+        // 상태는 그대로 유지 (PENDING or COMPLETED)
+    }
+
+
+
+
 }
 
 

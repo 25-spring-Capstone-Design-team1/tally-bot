@@ -9,4 +9,5 @@ import java.util.List;
 public interface CalculateDetailRepository extends JpaRepository<CalculateDetail, Long> {
 
     List<CalculateDetail> findByCalculate(Calculate calculate);
+    void deleteByCalculate(Calculate calculate);
 }

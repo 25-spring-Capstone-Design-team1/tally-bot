@@ -13,18 +13,19 @@ public class GroupService {
     private final GroupRepository groupRepository;
     private final MemberRepository memberRepository;
 
-    public void createGroupWithMembers(GroupCreateRequest request) {
-        // 그룹 생성
+    public Long createGroupWithMembers(GroupCreateRequest request) {
         Group group = new Group();
         group.setGroupName(request.getGroupName());
         groupRepository.save(group);
 
-        // 멤버 리스트 저장
         for (String nickname : request.getMembers()) {
             Member member = new Member();
             member.setNickname(nickname);
             member.setGroup(group);
             memberRepository.save(member);
         }
+
+        return group.getGroupId();  // 생성된 groupId 반환
     }
+
 }

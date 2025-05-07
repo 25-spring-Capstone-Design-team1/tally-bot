@@ -1,8 +1,8 @@
 package com.tallybot.backend.tallybot_back.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tallybot.backend.tallybot_back.dto.CalculateDto;
-import com.tallybot.backend.tallybot_back.dto.ResponseDto;
+import com.tallybot.backend.tallybot_back.dto.BotCalculateDto;
+import com.tallybot.backend.tallybot_back.dto.BotResponseDto;
 import com.tallybot.backend.tallybot_back.service.CalculateService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,8 +20,8 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(CalculateController.class)
-class CalculateControllerTest {
+@WebMvcTest(BotCalculateController.class)
+class BotCalculateControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -36,12 +36,12 @@ class CalculateControllerTest {
     @DisplayName("정산 시작 요청 테스트")
     void startCalculateTest() throws Exception {
         // given
-        CalculateDto request = new CalculateDto();
+        BotCalculateDto request = new BotCalculateDto();
         request.setGroupId(1L);
         request.setStartTime(LocalDateTime.parse("2024-04-30T10:00:00"));
         request.setEndTime(LocalDateTime.parse("2024-04-30T11:00:00"));
 
-        when(calculateService.startCalculate(any(CalculateDto.class))).thenReturn(42L); // 가짜 calculateId
+        when(calculateService.startCalculate(any(BotCalculateDto.class))).thenReturn(42L); // 가짜 calculateId
 
         // when + then
         mockMvc.perform(post("/calculate/start")
@@ -56,7 +56,7 @@ class CalculateControllerTest {
     void getCalculateResultTest() throws Exception {
         // given
         Long calculateId = 42L;
-        ResponseDto fakeResponse = new ResponseDto("https://tallybot.me/calculate/42", List.of());
+        BotResponseDto fakeResponse = new BotResponseDto("https://tallybot.me/calculate/42", List.of());
 
         when(calculateService.resultReturn(calculateId)).thenReturn(fakeResponse);
 
