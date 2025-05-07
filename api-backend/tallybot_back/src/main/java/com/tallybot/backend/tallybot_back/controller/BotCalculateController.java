@@ -2,6 +2,7 @@ package com.tallybot.backend.tallybot_back.controller;
 
 import com.tallybot.backend.tallybot_back.dto.BotCalculateDto;
 import com.tallybot.backend.tallybot_back.dto.BotResponseDto;
+import com.tallybot.backend.tallybot_back.dto.ResponseDetailDto;
 import com.tallybot.backend.tallybot_back.service.CalculateService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -21,8 +22,8 @@ public class BotCalculateController {
     }
 
     @GetMapping("/{calculateId}/result")
-    public ResponseEntity<BotResponseDto> getCalculateResult(@PathVariable Long calculateId) {
-        BotResponseDto response = calculateService.resultReturn(calculateId);
+    public ResponseEntity<ResponseDetailDto> getCalculateResult(@PathVariable Long calculateId) {
+        ResponseDetailDto response = calculateService.resultReturn(calculateId);
         return ResponseEntity.ok(response);
     }
 }

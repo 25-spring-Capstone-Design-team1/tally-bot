@@ -8,4 +8,5 @@ import lombok.Getter;
 public class FrontMemberDto {
     private Long memberId;
     private String nickname;
+
 }
