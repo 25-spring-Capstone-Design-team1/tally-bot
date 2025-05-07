@@ -3,11 +3,10 @@ package com.tallybot.backend.tallybot_back.dto;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-import java.util.List;
-
 @Getter
 @AllArgsConstructor
-public class BotResponseDto {
-    private String url;
-    private List<ResponseDetail> details;
+public class ResponseDetail {
+    private String payerNickname;
+    private String payeeNickname;
+    private int amount;
 }

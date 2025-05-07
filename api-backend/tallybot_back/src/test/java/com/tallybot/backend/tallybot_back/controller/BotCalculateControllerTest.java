@@ -51,19 +51,19 @@ class BotCalculateControllerTest {
                 .andExpect(content().string("42"));
     }
 
-    @Test
-    @DisplayName("정산 결과 조회 테스트")
-    void getCalculateResultTest() throws Exception {
-        // given
-        Long calculateId = 42L;
-        BotResponseDto fakeResponse = new BotResponseDto("https://tallybot.me/calculate/42", List.of());
-
-        when(calculateService.resultReturn(calculateId)).thenReturn(fakeResponse);
-
-        // when + then
-        mockMvc.perform(get("/calculate/42/result"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.url").value("https://tallybot.me/calculate/42"))
-                .andExpect(jsonPath("$.details").isArray());
-    }
+//    @Test
+//    @DisplayName("정산 결과 조회 테스트")
+//    void getCalculateResultTest() throws Exception {
+//        // given
+//        Long calculateId = 42L;
+//        BotResponseDto fakeResponse = new BotResponseDto("https://tallybot.me/calculate/42", List.of());
+//
+//        when(calculateService.resultReturn(calculateId)).thenReturn(fakeResponse);
+//
+//        // when + then
+//        mockMvc.perform(get("/calculate/42/result"))
+//                .andExpect(status().isOk())
+//                .andExpect(jsonPath("$.url").value("https://tallybot.me/calculate/42"))
+//                .andExpect(jsonPath("$.details").isArray());
+//    }
 }

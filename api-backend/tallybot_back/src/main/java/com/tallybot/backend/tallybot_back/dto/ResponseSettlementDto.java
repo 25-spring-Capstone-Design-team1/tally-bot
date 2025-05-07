@@ -7,7 +7,7 @@ import java.util.List;
 
 @Getter
 @AllArgsConstructor
-public class BotResponseDto {
+public class ResponseSettlementDto {
     private String url;
-    private List<ResponseDetail> details;
+    private List<SettlementDto> details;
 }
