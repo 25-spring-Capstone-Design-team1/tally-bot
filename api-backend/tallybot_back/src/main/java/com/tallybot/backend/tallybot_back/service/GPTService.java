@@ -10,10 +10,10 @@ import java.util.List;
 @Service
 public class GPTService {
     public SettlementsDto returnResults(List<Chat> chats, Calculate calculate) {
-        SettlementsDto settlementDto = new SettlementsDto();
+        SettlementsDto settlementsDto = new SettlementsDto();
 
         // GPT API 호출 또는 처리 로직 작성 필요
 
-        return settlementDto;
+        return settlementsDto;
     }
 }
