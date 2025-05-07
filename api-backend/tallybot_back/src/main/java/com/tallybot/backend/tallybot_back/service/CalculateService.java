@@ -49,7 +49,7 @@ public class CalculateService {
                 request.getEndTime()
         );
 
-        //gpt 다루는 메소드에 데이터 넘기기
+        // gpt 다루는 메소드에 데이터 넘기기
         SettlementsDto results
                 = gptService.returnResults(chats, calculate);
 
@@ -137,7 +137,8 @@ public class CalculateService {
         for(CalculateDetail cd: lcd) {
             int payerNum = memberList.indexOf(cd.getPayer());
             int payeeNum = memberList.indexOf(cd.getPayee());
-            graph.addEdge(payerNum, payeeNum, cd.getAmount());
+            if(cd.getAmount() != 0)
+                graph.addEdge(payerNum, payeeNum, cd.getAmount());
         }
 
         // 그래프 간소화를 실현하되, 그것이 오히려 간선을 늘리는 경우 원복한다.
