@@ -243,14 +243,14 @@ export default function EditablePaymentItem({
               <div>
                 <Label>정산 대상자</Label>
                 <div className={cn(
-  "mt-2 p-3 border rounded-md max-h-32 overflow-y-auto",
-  splitMethod === 'equal'
-    ? "grid grid-cols-2 md:grid-cols-3 gap-2"
-    : "space-y-2",
-  errors.target && "border-destructive"
-)}>
-                  {participants.map((p, index) => {
-                    const isTarget = editedPayment.target.includes(p)
+                  "mt-2 p-3 border rounded-md max-h-32 overflow-y-auto",
+                  splitMethod === 'equal'
+                  ? "grid grid-cols-2 md:grid-cols-3 gap-2"
+                  : "space-y-2",
+                  errors.target && "border-destructive"
+                )}>
+                {participants.map((p, index) => {
+                  const isTarget = editedPayment.target.includes(p)
 
                     return (
                      <div key={p} className="flex items-center justify-between space-x-2">
