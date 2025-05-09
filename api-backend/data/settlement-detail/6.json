@@ -1,0 +1,29 @@
+{
+  "settlementId": "6",
+  "title": "팀플 스터디 간식비",
+  "createdAt": "2024-05-28T16:00:00Z",
+  "participants": ["하늘", "보검", "지은", "민석", "서현"],
+  "payments": [
+    {
+      "id": 601,
+      "payer": "하늘",
+      "target": ["하늘", "보검", "지은", "민석", "서현"],
+      "ratio": [0.2, 0.2, 0.2, 0.2, 0.2],
+      "constant": [5000, 5000, 5000, 5000, 5000],
+      "amount": 25000,
+      "item": "커피 및 음료",
+      "imageUrl": "https://picsum.photos/seed/coffee/200/100"
+    },
+    {
+      "id": 602,
+      "payer": "보검",
+      "target": ["하늘", "보검", "지은", "민석", "서현"],
+      "ratio": [0.2, 0.2, 0.2, 0.2, 0.2],
+      "constant": [4000, 4000, 4000, 4000, 4000],
+      "amount": 20000,
+      "item": "샌드위치 및 빵"
+    }
+  ],
+  "optimizedTransfers": [],
+  "isCompleted": true
+}

@@ -1,0 +1,20 @@
+{
+  "settlementId": "4",
+  "title": "시험 기간 밤샘 후 택시비",
+  "createdAt": "2024-06-12T04:00:00Z",
+  "participants": ["진우", "서아", "건", "하윤"],
+  "payments": [
+    {
+      "id": 401,
+      "payer": "진우",
+      "target": ["진우", "서아", "건", "하윤"],
+      "ratio": [0.25, 0.25, 0.25, 0.25],
+      "constant": [7000, 7000, 7000, 7000],
+      "amount": 28000,
+      "item": "집 가는 택시",
+      "imageUrl": "https://picsum.photos/seed/taxi/200/100"
+    }
+  ],
+  "optimizedTransfers": [],
+  "isCompleted": false
+}

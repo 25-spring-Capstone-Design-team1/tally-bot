@@ -1,0 +1,74 @@
+[
+  {
+    "id": "1",
+    "title": "공란",
+    "createdAt": "1970-01-01T00:00:00Z",
+    "participantCount": 0,
+    "totalAmount": 0,
+    "isCompleted": false
+  },
+  {
+    "id": "2",
+    "title": "학생회 총회 후 뒤풀이",
+    "createdAt": "2024-03-10T22:00:00Z",
+    "participantCount": 25,
+    "totalAmount": 380000,
+    "isCompleted": true
+  },
+  {
+    "id": "3",
+    "title": "개강 MT 저녁 식사",
+    "createdAt": "2024-03-02T19:30:00Z",
+    "participantCount": 12,
+    "totalAmount": 180000,
+    "isCompleted": false
+  },
+  {
+    "id": "4",
+    "title": "시험 기간 밤샘 후 택시비",
+    "createdAt": "2024-06-12T04:00:00Z",
+    "participantCount": 4,
+    "totalAmount": 28000,
+    "isCompleted": false
+  },
+  {
+    "id": "5",
+    "title": "여름 방학 가평 여행",
+    "createdAt": "2024-07-20T11:00:00Z",
+    "participantCount": 6,
+    "totalAmount": 420000,
+    "isCompleted": false
+  },
+  {
+    "id": "6",
+    "title": "팀플 스터디 간식비",
+    "createdAt": "2024-05-28T16:00:00Z",
+    "participantCount": 5,
+    "totalAmount": 45000,
+    "isCompleted": true
+  },
+  {
+    "id": "7",
+    "title": "집 관련 정산 (Test)",
+    "createdAt": "2024-08-01T10:00:00Z",
+    "participantCount": 3,
+    "totalAmount": 150000,
+    "isCompleted": false
+  },
+  {
+    "id": "8",
+    "title": "공란",
+    "createdAt": "1970-01-01T00:00:00Z",
+    "participantCount": 0,
+    "totalAmount": 0,
+    "isCompleted": false
+  },
+  {
+    "id": "9",
+    "title": "공란",
+    "createdAt": "1970-01-01T00:00:00Z",
+    "participantCount": 0,
+    "totalAmount": 0,
+    "isCompleted": false
+  }
+]

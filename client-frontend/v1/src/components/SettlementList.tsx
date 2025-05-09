@@ -70,11 +70,11 @@ export default function SettlementList({ settlements }: SettlementListProps): Re
                    </Badge>
                 )}
               </div>
-             <CardDescription className="flex items-center text-sm text-muted-foreground pt-1">
-                <Calendar className="mr-1.5 h-4 w-4" /> {/* 날짜 아이콘 */}
-                {/* 날짜 포맷팅: 'yyyy년 M월 d일' 형식, 한국어 로케일 적용 */}
-                {format(new Date(settlement.createdAt), 'yyyy년 M월 d일', { locale: ko })}
-            </CardDescription>
+              <CardDescription className="flex items-center text-sm text-muted-foreground pt-1">
+                <Calendar className="mr-1.5 h-4 w-4" />
+                {new Date(settlement.createdAt).getFullYear() !== 1970 &&
+                format(new Date(settlement.createdAt), 'yyyy년 M월 d일', { locale: ko })}
+              </CardDescription>
           </CardHeader>
           {/* 카드 본문: 참여자 수, 총 금액 */}
           <CardContent className="flex-grow"> {/* 내용 영역이 남은 공간을 채우도록 설정 */}
@@ -83,11 +83,6 @@ export default function SettlementList({ settlements }: SettlementListProps): Re
                     <Users className="mr-1.5 h-4 w-4 text-sky-600"/> {/* 참여자 아이콘 */}
                     <span>{settlement.participantCount}명 참여</span>
                  </div>
-                 <div className="flex items-center">
-                    <Coins className="mr-1.5 h-4 w-4 text-amber-600" /> {/* 금액 아이콘 */}
-                    {/* 총 금액: 세 자리마다 콤마 표시 */}
-                    <span>총 {settlement.totalAmount.toLocaleString()}원</span>
-                </div>
             </div>
           </CardContent>
           {/* 카드 푸터: 상세 보기 버튼 */}

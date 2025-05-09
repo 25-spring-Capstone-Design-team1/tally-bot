@@ -1,0 +1,29 @@
+{
+  "settlementId": "7",
+  "title": "집 관련 정산 (Test)",
+  "createdAt": "2024-08-01T10:00:00Z",
+  "participants": ["민지", "철수", "영희"],
+  "payments": [
+    {
+      "id": 701,
+      "payer": "민지",
+      "target": ["민지", "철수", "영희"],
+      "ratio": [0.3333, 0.3333, 0.3333],
+      "constant": [30000, 30000, 30000],
+      "amount": 90000,
+      "item": "월세",
+      "imageUrl": "https://picsum.photos/seed/rent/200/100"
+    },
+    {
+      "id": 702,
+      "payer": "철수",
+      "target": ["민지", "철수", "영희"],
+      "ratio": [0.3333, 0.3333, 0.3333],
+      "constant": [20000, 20000, 20000],
+      "amount": 60000,
+      "item": "관리비 및 공과금"
+    }
+  ],
+  "optimizedTransfers": [],
+  "isCompleted": false
+}

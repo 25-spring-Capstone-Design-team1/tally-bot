@@ -48,6 +48,7 @@ export default function SettlementDetail({ payments, participants, onPaymentsCha
       payer: participants[0] || '', // 참여자 목록의 첫 번째 사람을 기본 결제자로 설정 (없으면 빈 문자열)
       target: [...participants], // 기본적으로 모든 참여자를 정산 대상으로 설정
       ratio: participants.length > 0 ? participants.map(() => 1 / participants.length) : [], // 균등 분배 비율 기본값
+      constant: participants.length > 0 ? participants.map(() => 0) : [],
       amount: 0, // 금액 기본값 0
       item: '', // 항목명 기본값 빈 문자열
       imageUrl: '', // 이미지 URL 기본값 빈 문자열
