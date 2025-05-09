@@ -5,7 +5,7 @@
 ## Architecture
 
 <p align="center">
-  <img src="./.drawio/tally-bot.drawio.png" alt="시스템 구성도">
+  <img src="./.drawio/tally-bot.drawio.png" alt="시스템 구성도" width="60%" height="60%">
   <br>
   <em>Tally-Bot 프로젝트 전체 아키텍처 구성도</em>
 </p>
