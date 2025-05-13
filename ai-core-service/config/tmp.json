@@ -1,0 +1,12 @@
+{
+    "chatroom_name": "2025 유럽여행 인생샷 멤버들",
+    "members": ["지훈", "준호", "소연", "유진", "민우"],
+    "messages": [
+        {
+            "unique_chat_id": "chat_001",
+            "speaker": "지훈",
+            "message_content": "렌트비 300유로 나왔는데 준호랑 소연이거는 내가 같이 낼게",
+            "timestamp": "2025-05-01T21:23:15"
+        }
+    ]
+}
