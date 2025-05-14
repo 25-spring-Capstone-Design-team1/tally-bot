@@ -35,20 +35,20 @@ async def convert_currency_in_json(json_data: Union[Dict[str, Any], List[Dict[st
         
         # 딕셔너리인 경우
         if isinstance(json_data, dict):
-            result = {}
-            for key, value in json_data.items():
-                if isinstance(value, (dict, list)):
-                    result[key] = await convert_currency_in_json(value)
-                elif isinstance(value, str) and key == 'currency' and value != 'KRW':
-                    # 금액 필드 찾기
-                    amount_key = next((k for k in json_data.keys() if 'amount' in k.lower()), None)
-                    if amount_key and isinstance(json_data[amount_key], (int, float)):
-                        # 환율 변환
-                        krw_amount = await convert_to_krw(json_data[amount_key], value)
-                        result[amount_key] = krw_amount
-                        # KRW로 변환된 경우 currency 필드 생략
-                else:
-                    result[key] = value
+            result = json_data.copy()  # 원본 데이터 보존
+            
+            # currency와 amount 필드가 있는 경우에만 변환
+            if 'currency' in result and 'amount' in result:
+                currency = result['currency']
+                amount = result['amount']
+                
+                if currency != 'KRW' and isinstance(amount, (int, float)):
+                    # 환율 변환
+                    krw_amount = await convert_to_krw(amount, currency)
+                    result['amount'] = krw_amount
+                    # currency 필드 제거
+                    del result['currency']
+            
             return result
         
         return json_data

@@ -16,7 +16,13 @@ async def load_conversation(file_path: str) -> List[Dict[str, str]]:
         
         # 채팅방 멤버 정보와 대화 내용을 명확한 형식으로 구성
         members = json_content.get('members', [])
-        conversation = [{'speaker': 'system', 'message_content': f"members: {members}"}]
+        member_count = len(members)
+        
+        # 시스템 메시지에 멤버 정보와 멤버 수를 추가
+        conversation = [{
+            'speaker': 'system', 
+            'message_content': f"members: {members}\nmember_count: {member_count}"
+        }]
         
         # 실제 대화 내용을 명확한 형식으로 추가
         conversation.extend([

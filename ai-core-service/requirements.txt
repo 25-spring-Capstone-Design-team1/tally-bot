@@ -1,0 +1,9 @@
+fastapi==0.110.0
+uvicorn==0.27.1
+pydantic==2.6.1
+langchain==0.1.8
+langchain-openai==0.0.5
+openai==1.11.1
+python-dotenv==1.0.0
+pyyaml==6.0.1
+aiofiles==23.2.1 

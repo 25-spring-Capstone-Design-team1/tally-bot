@@ -1,61 +1,79 @@
-# AI-Engine 프로젝트 구조 📚
+# Tally Bot AI Core Service
 
 ## 개요 🌟
 
-이 프로젝트는 FastAPI를 기반으로 한 AI 엔진 서비스입니다. API 버전 관리, 데이터베이스 모델, 스키마 정의, 그리고 다양한 유틸리티 기능을 포함하고 있습니다.
+이 프로젝트는 대화 내용에서 금액과 통화 정보를 추출하고 원화로 변환하는 FastAPI 기반 AI 엔진 서비스입니다.
+
+## 설치 및 실행 방법 🚀
+
+### 환경 설정
+
+1. Python 3.8 이상이 필요합니다.
+2. 가상 환경 생성 및 활성화:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # Linux/Mac
+   venv\Scripts\activate     # Windows
+   ```
+
+3. 의존성 설치:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. 환경 변수 설정 (.env 파일 생성):
+   ```
+   OPENAI_API_KEY=sk-your-api-key
+   LANGSMITH_API_KEY=ls-your-api-key
+   ```
+
+### 서버 실행
+
+```bash
+uvicorn main:app --reload
+```
+
+서버는 기본적으로 http://localhost:8000 에서 실행됩니다.
+
+
+## API 엔드포인트 📡
+
+### 1. 기본 상태 확인
+- **GET /** - 서비스 상태 확인
+
+### 2. 대화 내용 처리
+- **POST /api/process** - JSON 형식의 대화 내용을 직접 전송하여 처리
+  ```json
+  {
+    "conversation": [
+      {"speaker": "system", "message_content": "members: [준호, 소연, 민우]\nmember_count: 3"},
+      {"speaker": "준호", "message_content": "택시비 19유로 냈어요."}
+    ],
+    "prompt_file": "resources/input_prompt.yaml"
+  }
+  ```
+
+### 3. 파일에서 대화 내용 처리
+- **POST /api/process-file** - 기존 파일에서 대화 내용을 로드하여 처리
+  - 매개변수:
+    - `conversation_file`: 대화 내용 파일 경로 (기본값: "resources/sample_conversation.json")
+    - `prompt_file`: 프롬프트 파일 경로 (기본값: "resources/input_prompt.yaml")
+
+## API 문서
+
+FastAPI는 자동으로 API 문서를 생성합니다:
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
 
 ## 프로젝트 구조 🏗️
 
 ```text
 ai-core-service/
-├── .github/              # GitHub 관련 설정 파일
-│   └── workflows/        # CI/CD 파이프라인 설정(AWS 연동 등 필요시 구축)
-│
-├── api/                  # API 엔드포인트 정의
-│   ├── init.py
-│   └── v1/               # API 버전 1
-│       ├── init.py
-│       └── routers/      # API 라우터 모음
-│
-├── model/                # 데이터베이스 모델 정의
-│   ├── init.py
-│   └── [model_files]     # SQLAlchemy 모델 파일들
-│
-├── schema/               # Pydantic 스키마 정의
-│   ├── init.py
-│   └── [schema_files]    # 요청/응답 데이터 스키마 파일들
-│
-├── service/              # 비즈니스 로직 서비스
-│   ├── init.py
-│   └── [service_files]   # 주요 비즈니스 로직 구현 파일들
-│
-├── utils/                # 유틸리티 모듈
-│   ├── init.py
-│   ├── config/           # 환경 설정 및 구성 관리
-│   ├── exception/        # 예외 처리 및 에러 메시지
-│   └── llm/              # LLM(대규모 언어 모델) 관련 설정
-│
+├── load/                 # 프롬프트 및 대화 로딩 모듈
+├── resources/            # 프롬프트 및 샘플 대화 파일
+├── services/             # AI 서비스 및 설정
+├── utils/                # 유틸리티 모듈 (통화 변환 등)
+├── main.py               # FastAPI 서버 메인 파일
+├── requirements.txt      # 의존성 목록
 └── README.md             # 프로젝트 설명
 ```
-
-## 주요 컴포넌트 설명 🔍
-
-### API 모듈 🌐
-
-API 모듈은 HTTP 엔드포인트를 정의하며 클라이언트의 요청을 처리합니다. 버전별로 구분되어 있어 API 변경 시 하위 호환성을 유지할 수 있습니다. Swagger를 통해 API 문서화가 자동으로 제공됩니다.
-
-### 스키마 모듈 📋
-
-Pydantic을 사용하여 API 요청 및 응답 데이터의 구조와 유효성 검사 규칙을 정의합니다. 이를 통해 타입 안전성을 보장하고 자동 문서화를 지원합니다.
-
-### 서비스 모듈 ⚙️
-
-비즈니스 로직을 담당하는 서비스 계층입니다. API 엔드포인트와 데이터 접근 계층 사이에서 중요한 처리를 수행합니다.
-
-### 유틸리티 모듈 🛠️
-
-프로젝트 전반에 걸쳐 사용되는 공통 기능과 설정을 관리합니다.
-
-config: 환경 변수, 데이터베이스 연결 설정 등
-exception: 커스텀 예외 클래스 및 오류 처리 로직
-llm: LLM 모델 연동 및 설정

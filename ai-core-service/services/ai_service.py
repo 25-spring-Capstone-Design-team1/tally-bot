@@ -14,6 +14,21 @@ async def process_conversation(
         system_prompt = input_prompt.get('system', '')
         input_text = input_prompt.get('input', '')
         
+        # 특별 규칙 추가 (외화 금액과 멤버 수에 관한 규칙)
+        special_rules = """
+            【매우 중요한 규칙】
+            1. 모든 외화 금액(EUR, USD 등)은 절대 곱하지 않고 원래 숫자 그대로 사용하세요.
+            "19유로", "19EUR", "택시비 19유로" → amount: 19 (절대 19000으로 변환하지 마세요)
+            "23유로", "23EUR", "택시비 23유로" → amount: 23 (절대 23000으로 변환하지 마세요)
+            "27유로", "27EUR", "택시비 27유로" → amount: 27 (절대 27000으로 변환하지 마세요)
+
+            2. 대화 시작 부분에 멤버 수(member_count)가 제공됩니다. 이 수와 동일한 인원으로 나눠야 한다는 표현이 있으면 반드시 "n분의1"로 처리하세요.
+            예: member_count가 5일 때 "5명이서 나눠야 함" → hint_type: "n분의1"
+            """
+        
+        # 시스템 프롬프트에 특별 규칙 추가
+        enhanced_system_prompt = system_prompt + special_rules
+        
         # 대화 내용을 문자열로 변환
         conversation_text = "\n".join([
             f"{msg['speaker']}: {msg['message_content']}"
@@ -24,7 +39,7 @@ async def process_conversation(
         
         # 메시지 구성
         messages = [
-            SystemMessage(content=system_prompt),
+            SystemMessage(content=enhanced_system_prompt),
             HumanMessage(content=input_text + "\n\n" + conversation_text)
         ]
         
