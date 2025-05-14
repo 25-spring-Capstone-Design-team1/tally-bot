@@ -17,6 +17,7 @@ public class GroupService {
     private final GroupRepository groupRepository;
     private final MemberRepository memberRepository;
 
+
     public GroupCreateResponse createGroupWithMembers(GroupCreateRequest request) {
         Group group = groupRepository.save(new Group(null, request.getGroupName()));
 

@@ -5,14 +5,14 @@ import com.tallybot.backend.tallybot_back.domain.*;
 import com.tallybot.backend.tallybot_back.dto.CalculateRequestDto;
 import com.tallybot.backend.tallybot_back.dto.SettlementDto;
 import com.tallybot.backend.tallybot_back.repository.*;
-//import jakarta.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 //import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
-//import java.util.*;
-//import java.util.stream.Collectors;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -22,10 +22,10 @@ public class CalculateService {
     private final CalculateRepository calculateRepository;
     private final ChatRepository chatRepository;
     private final GPTService gptService;
-//    private final CalculateDetailRepository calculateDetailRepository;
-//    private final SettlementRepository settlementRepository;
-//    private final SettlementService settlementService;
-//    private final ParticipantRepository participantRepository;
+
+    public boolean groupExists(Long groupId) {
+        return groupRepository.existsById(groupId);
+    }
 
     /*
      * group ID와 시작 시간, 종료 시간을 담은 query를 받아

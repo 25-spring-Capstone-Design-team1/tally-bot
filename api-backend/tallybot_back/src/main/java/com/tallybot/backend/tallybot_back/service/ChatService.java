@@ -37,7 +37,7 @@ public class ChatService {
             Group group = groupRepository.findById(dto.getGroupId())
                     .orElseThrow(() -> new IllegalArgumentException("Group not found"));
 
-            Member member = memberRepository.findByIdAndGroup(dto.getMemberId(), group)
+            Member member = memberRepository.findByMemberIdAndGroup(dto.getMemberId(), group)
                     .orElseThrow(() -> new IllegalArgumentException("Member not found"));
 
             Chat chat = new Chat();
