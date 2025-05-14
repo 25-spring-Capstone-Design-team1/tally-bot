@@ -1,5 +1,6 @@
 package com.tallybot.backend.tallybot_back.controller;
 
+import com.tallybot.backend.tallybot_back.dto.BotResponseDto;
 import com.tallybot.backend.tallybot_back.dto.CalculateRequestDto;
 import com.tallybot.backend.tallybot_back.dto.CalculateIdDto;
 import com.tallybot.backend.tallybot_back.dto.ErrorResponse;
@@ -27,20 +28,20 @@ public class CalculateController {
                     .body(new ErrorResponse("Start time must be before end time."));
         }
 
-//        // 그룹 존재 여부 확인
-//        if (!calculateService.groupExists(request.getGroupId())) {
-//            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-//                    .body(new ErrorResponse("Group not found."));
-//        }
+        // 그룹 존재 여부 확인
+        if (!calculateService.groupExists(request.getGroupId())) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ErrorResponse("Group not found."));
+        }
 
         // 정산 시작
         Long calculateId = calculateService.startCalculate(request);
         return ResponseEntity.ok(new CalculateIdDto(calculateId));
     }
 
-//    @GetMapping("/{calculateId}/result")
-//    public ResponseEntity<ResponseDetailDto> getCalculateResult(@PathVariable Long calculateId) {
-//        ResponseDetailDto response = calculateService.resultReturn(calculateId);
+//    @GetMapping("/{calculateId}/brief-result")
+//    public ResponseEntity<BotResponseDto> getCalculateResult(@PathVariable Long calculateId) {
+//        BotResponseDto response = calculateService.resultReturn(calculateId);
 //        return ResponseEntity.ok(response);
 //    }
 }

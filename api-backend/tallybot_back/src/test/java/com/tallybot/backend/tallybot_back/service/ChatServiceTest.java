@@ -44,7 +44,7 @@ class ChatServiceTest {
         mockMember.setMemberId(1001L);
 
         when(groupRepository.findById(anyLong())).thenReturn(Optional.of(mockGroup));
-        when(memberRepository.findByIdAndGroup(anyLong(), eq(mockGroup)))
+        when(memberRepository.findByMemberIdAndGroup(anyLong(), eq(mockGroup)))
                 .thenReturn(Optional.of(mockMember));
 
         chatService.saveChats(List.of(dto));
