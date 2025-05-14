@@ -2,10 +2,12 @@
 //
 //import lombok.AllArgsConstructor;
 //import lombok.Getter;
+//import lombok.NoArgsConstructor;
+//import lombok.Setter;
 //
 //@Getter
 //@AllArgsConstructor
-//public class FrontMemberDto {
+//public class PythonRequestDto {
 //    private Long memberId;
-//    private String nickname;
+//    private String message;
 //}

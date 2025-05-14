@@ -17,19 +17,15 @@ public class Chat {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long chatId;
 
-    @JsonProperty("message")
-    private String message;
-
-    @JsonProperty("timestamp")
-    private LocalDateTime timestamp;
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JsonProperty("group_id")
     @JoinColumn(name = "group_id") // 외래 키로 연결, db 컬럼명으로 수정하기
     private Group group;
 
+    private LocalDateTime timestamp;
+
     @ManyToOne(fetch = FetchType.EAGER)
-    @JsonProperty("member_id")
     @JoinColumn(name = "member_id")
     private Member member;
+
+    private String message;
 }

@@ -5,8 +5,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class FrontCalculateDetailDto {
-    private String payerNickname;
-    private String payeeNickname;
-    private int amount;
+public class CalculateIdDto {
+    private Long calculateId;
 }
+

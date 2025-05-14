@@ -3,15 +3,10 @@
 //import lombok.AllArgsConstructor;
 //import lombok.Getter;
 //
-//import java.util.List;
-//
 //@Getter
 //@AllArgsConstructor
-//public class ResponseBriefSettlement {
-//    private Long settlementId;
-//    private String place;
+//public class TransferDto {
 //    private String payerNickname;
-//    private int memberNum;
+//    private String payeeNickname;
 //    private int amount;
-//    private List<String> nicknames;
 //}

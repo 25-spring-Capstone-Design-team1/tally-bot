@@ -22,44 +22,58 @@ import static org.mockito.Mockito.*;
 @ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)
 class ChatServiceTest {
 
-    @InjectMocks
+    private GroupRepository groupRepository;
+    private MemberRepository memberRepository;
+    private ChatRepository chatRepository;
     private ChatService chatService;
-
-    @Mock private GroupRepository groupRepository;
-    @Mock private MemberRepository memberRepository;
-    @Mock private ChatRepository chatRepository;
-
-    private Group group;
-    private Member member;
 
     @BeforeEach
     void setup() {
-        group = new Group();
-        group.setGroupId(1L);
-        group.setGroupName("여행방");
-
-        member = new Member();
-        member.setMemberId(100L);
-        member.setNickname("철수");
-        member.setGroup(group);
+        groupRepository = mock(GroupRepository.class);
+        memberRepository = mock(MemberRepository.class);
+        chatRepository = mock(ChatRepository.class);
+        chatService = new ChatService(groupRepository, memberRepository, chatRepository);
     }
 
     @Test
-    @DisplayName("채팅 리스트 저장 테스트")
-    void saveChatsTest() {
-        // given
-        ChatDto dto1 = new ChatDto(1L, LocalDateTime.parse("2024-05-01T12:00:00"), "철수", "안녕");
-        List<ChatDto> dtoList = List.of(dto1);
+    void saveChats_success() {
+        ChatDto dto = new ChatDto(1L, LocalDateTime.now(), 1001L, "테스트");
 
-        when(groupRepository.findById(1L)).thenReturn(Optional.of(group));
-        when(memberRepository.findByNicknameAndGroup("철수", group)).thenReturn(Optional.of(member));
+        Group mockGroup = new Group();
+        Member mockMember = new Member();
+        mockMember.setMemberId(1001L);
 
-        // when
-        chatService.saveChats(dtoList);
+        when(groupRepository.findById(anyLong())).thenReturn(Optional.of(mockGroup));
+        when(memberRepository.findByIdAndGroup(anyLong(), eq(mockGroup)))
+                .thenReturn(Optional.of(mockMember));
 
-        // then
-        verify(groupRepository).findById(1L);
-        verify(memberRepository).findByNicknameAndGroup("철수", group);
-        verify(chatRepository).saveAll(any());
+        chatService.saveChats(List.of(dto));
+
+        verify(chatRepository, times(1)).saveAll(anyList());
+    }
+
+    @Test
+    void saveChats_groupNotFound() {
+        ChatDto dto = new ChatDto(999L, LocalDateTime.now(), 1001L, "하이");
+
+        when(groupRepository.findById(999L)).thenReturn(Optional.empty());
+
+        try {
+            chatService.saveChats(List.of(dto));
+            assert false : "예외가 발생해야 함";
+        } catch (IllegalArgumentException e) {
+            assert e.getMessage().contains("Group not found");
+        }
+    }
+
+    @Test
+    void groupAndMembersExist_returnsFalseIfMissing() {
+        when(groupRepository.existsById(1L)).thenReturn(true);
+        when(memberRepository.existsById(999L)).thenReturn(false);
+
+        ChatDto dto = new ChatDto(1L, LocalDateTime.now(), 999L, "하이");
+
+        boolean result = chatService.groupAndMembersExist(List.of(dto));
+        assert !result;
     }
 }

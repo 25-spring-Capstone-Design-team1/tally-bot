@@ -19,6 +19,17 @@ public class ChatService {
     private final MemberRepository memberRepository;
     private final ChatRepository chatRepository;
 
+    public boolean groupAndMembersExist(List<ChatDto> chatDtos) {
+        for (ChatDto chat : chatDtos) {
+            if (!groupRepository.existsById(chat.getGroupId()) ||
+                    !memberRepository.existsById(chat.getMemberId())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+
     public void saveChats(List<ChatDto> dtoList) {
         List<Chat> chatList = new ArrayList<>();
 
@@ -26,7 +37,7 @@ public class ChatService {
             Group group = groupRepository.findById(dto.getGroupId())
                     .orElseThrow(() -> new IllegalArgumentException("Group not found"));
 
-            Member member = memberRepository.findByNicknameAndGroup(dto.getNickname(), group)
+            Member member = memberRepository.findByIdAndGroup(dto.getMemberId(), group)
                     .orElseThrow(() -> new IllegalArgumentException("Member not found"));
 
             Chat chat = new Chat();

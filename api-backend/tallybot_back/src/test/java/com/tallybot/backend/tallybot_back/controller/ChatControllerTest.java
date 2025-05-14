@@ -3,20 +3,22 @@ package com.tallybot.backend.tallybot_back.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tallybot.backend.tallybot_back.dto.ChatDto;
 import com.tallybot.backend.tallybot_back.service.ChatService;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static org.mockito.Mockito.doNothing;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+
+
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(ChatController.class)
@@ -25,37 +27,68 @@ class ChatControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockitoBean
-    private ChatService chatService;
-
     @Autowired
     private ObjectMapper objectMapper;
 
+    @MockitoBean
+    private ChatService chatService;
+
     @Test
-    void uploadChatFile_shouldReturnSuccess() throws Exception {
+    @DisplayName("채팅 업로드 성공")
+    void uploadChat_Success() throws Exception {
         // 테스트용 ChatDto 리스트 생성
-        List<ChatDto> chatDtos = List.of(
-                new ChatDto(1L, LocalDateTime.parse("2024-04-30T15:30:00"), "철수", "안녕"),
-                new ChatDto(1L, LocalDateTime.parse("2024-04-30T15:31:00"), "영희", "반가워")
+        List<ChatDto> chatList = List.of(
+                new ChatDto(1L, LocalDateTime.now(), 1001L, "안녕"),
+                new ChatDto(1L, LocalDateTime.now(), 1002L, "반가워")
         );
 
-        // ChatDto 리스트를 JSON 문자열로 변환
-        String jsonContent = objectMapper.writeValueAsString(chatDtos);
+        given(chatService.groupAndMembersExist(anyList())).willReturn(true);
 
-        // MultipartFile 형태로 변환 (txt 파일처럼)
-        MockMultipartFile mockFile = new MockMultipartFile(
-                "file",
-                "chat.txt",
-                MediaType.TEXT_PLAIN_VALUE,
-                jsonContent.getBytes(StandardCharsets.UTF_8)
-        );
-
-        // 서비스가 호출됐을 때 에러 없이 통과되도록 설정
-        doNothing().when(chatService).saveChats(chatDtos);
-
-        // 실제 API 호출 테스트
-        mockMvc.perform(multipart("/chat/upload").file(mockFile))
+        mockMvc.perform(post("/api/chat/upload")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(chatList)))
                 .andExpect(status().isOk())
-                .andExpect(content().string("업로드 성공! 채팅 수: " + chatDtos.size()));
+                .andExpect(jsonPath("$.message").value("Upload successful. Chat count: 2"));
+
+    }
+
+    @Test
+    @DisplayName("404 Not Found : 그룹/멤버 없음")
+    void uploadChat_groupOrMemberNotFound() throws Exception {
+        List<ChatDto> chatList = List.of(
+                new ChatDto(1L, LocalDateTime.now(), 9999L, "없는 사람")
+        );
+
+        given(chatService.groupAndMembersExist(anyList())).willReturn(false);
+
+        mockMvc.perform(post("/api/chat/upload")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(chatList)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("Group or member not found for given data."));
+    }
+
+    @Test
+    @DisplayName("400 Bad Request : JSON 형식 오류")
+    void uploadChat_jsonFormatError() throws Exception {
+        String invalidJson = "[ { \"groupId\": 1, \"timestamp\": \"오류\", \"memberId\": 1001, \"message\": \"하이\" } ]";
+
+        mockMvc.perform(post("/api/chat/upload")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invalidJson))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Invalid input"));
+    }
+
+    @Test
+    @DisplayName("400 Bad Request : 필수 필드 누락")
+    void uploadChat_missingFields() throws Exception {
+        String missingFieldJson = "[ { \"groupId\": 1, \"memberId\": 1001, \"message\": \"하이\" } ]";
+
+        mockMvc.perform(post("/api/chat/upload")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(missingFieldJson))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Essential field must not be null"));
     }
 }

@@ -7,8 +7,7 @@
 //
 //@Getter
 //@AllArgsConstructor
-//public class BotResponseDto {
-//    private String groupUrl;
-//    private String calculateUrl;
+//public class FrontBriefTransferDto {
+//    private Integer transferCount;
 //    private List<TransferDto> transfers;
 //}

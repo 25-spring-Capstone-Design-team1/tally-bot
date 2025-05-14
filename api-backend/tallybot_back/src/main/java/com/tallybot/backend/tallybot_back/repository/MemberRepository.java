@@ -11,7 +11,7 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     Optional<Member> findByNickname(String nickname);
 
-    Optional<Member> findByNicknameAndGroup(String nickname, Group group);
+    Optional<Member> findByIdAndGroup(Long id, Group group);
 
     List<Member> findByGroup(Group group);
 

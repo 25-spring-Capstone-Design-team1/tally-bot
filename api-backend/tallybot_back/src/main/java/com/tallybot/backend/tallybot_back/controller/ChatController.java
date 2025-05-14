@@ -2,10 +2,17 @@ package com.tallybot.backend.tallybot_back.controller;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.tallybot.backend.tallybot_back.dto.ChatDto;
+import com.tallybot.backend.tallybot_back.dto.ErrorResponse;
+import com.tallybot.backend.tallybot_back.dto.MessageResponse;
 import com.tallybot.backend.tallybot_back.service.ChatService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.aspectj.bridge.Message;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.nio.charset.StandardCharsets;
@@ -13,27 +20,20 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/chat")
+@RequestMapping("/api/chat")
 public class ChatController {
 
     private final ChatService chatService;
-    private final ObjectMapper objectMapper;
 
     @PostMapping("/upload")
-    public ResponseEntity<String> uploadChatFile(@RequestParam("file") MultipartFile file) {
-        try {
-            String content = new String(file.getBytes(), StandardCharsets.UTF_8);
-            List<ChatDto> chatDtoList = objectMapper.readValue(
-                    content,
-                    new TypeReference<List<ChatDto>>() {}
-            );
+    public ResponseEntity<?> uploadChat(@Valid @RequestBody List<@Valid ChatDto> chatDtoList) {
 
-            chatService.saveChats(chatDtoList); // 채팅 저장
-
-            return ResponseEntity.ok("업로드 성공! 채팅 수: " + chatDtoList.size());
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("에러: " + e.getMessage());
+        boolean allExist = chatService.groupAndMembersExist(chatDtoList);
+        if (!allExist) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ErrorResponse("Group or member not found for given data."));
         }
+        chatService.saveChats(chatDtoList); // 채팅 저장
+        return ResponseEntity.ok(new MessageResponse("Upload successful. Chat count: " + chatDtoList.size()));
     }
-
 }

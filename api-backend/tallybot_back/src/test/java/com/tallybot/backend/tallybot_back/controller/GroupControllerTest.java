@@ -2,6 +2,7 @@ package com.tallybot.backend.tallybot_back.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tallybot.backend.tallybot_back.dto.GroupCreateRequest;
+import com.tallybot.backend.tallybot_back.dto.GroupCreateResponse;
 import com.tallybot.backend.tallybot_back.service.GroupService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,6 +14,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -29,22 +32,76 @@ class GroupControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+
     @Test
-    @DisplayName("그룹 생성 요청 테스트")
-    void createGroupTest() throws Exception {
-        // given
-        GroupCreateRequest request = new GroupCreateRequest();
-        request.setGroupName("여행팀");
-        request.setMembers(List.of("철수", "영희", "민수"));
+    @DisplayName("200 OK : 그룹 생성 성공")
+    void createGroupSuccess() throws Exception {
+        GroupCreateRequest request = new GroupCreateRequest("정산방", List.of("철수", "영희", "민수"));
+        GroupCreateResponse response = new GroupCreateResponse(42L, List.of(
+                new GroupCreateResponse.MemberInfo("철수", 1L),
+                new GroupCreateResponse.MemberInfo("영희", 2L),
+                new GroupCreateResponse.MemberInfo("민수", 3L)
+        ));
 
-        // service 가짜 설정
-        doNothing().when(groupService).createGroupWithMembers(request);
+        given(groupService.createGroupWithMembers(any())).willReturn(response);
 
-        // when + then
-        mockMvc.perform(post("/group/create")
+        mockMvc.perform(post("/api/group/create")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(content().string("그룹 생성 완료"));
+                .andExpect(status().isOk()) //200 ok인지 검증
+                .andExpect(jsonPath("$.groupId").value(42))
+                .andExpect(jsonPath("$.members[0].nickname").value("철수"))
+                .andExpect(jsonPath("$.members[1].memberId").value(2));
+    }
+
+    @Test
+    @DisplayName("400 Bad Request : 그룹 이름 누락")
+    void createGroupWithoutName() throws Exception {
+        String json = """
+            {
+              "groupName": "",
+              "members": ["철수", "영희"]
+            }
+            """;
+
+        mockMvc.perform(post("/api/group/create")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Group name must not be empty."));
+    }
+
+    @Test
+    @DisplayName("400 Bad Request : 멤버 리스트 누락")
+    void createGroupWithoutMembers() throws Exception {
+        String json = """
+            {
+              "groupName": "정산방",
+              "members": []
+            }
+            """;
+
+        mockMvc.perform(post("/api/group/create")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Members list must not be empty."));
+    }
+
+    @Test
+    @DisplayName("400 Bad Request : 멤버 중 빈 문자열 존재")
+    void createGroupWithEmptyNickname() throws Exception {
+        String json = """
+            {
+              "groupName": "정산방",
+              "members": ["철수", ""]
+            }
+            """;
+
+        mockMvc.perform(post("/api/group/create")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("All member nicknames must be non-empty strings."));
     }
 }
