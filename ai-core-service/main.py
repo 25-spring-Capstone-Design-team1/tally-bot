@@ -26,8 +26,16 @@ app.add_middleware(
 )
 
 # 요청 모델 정의
+class ChatMessage(BaseModel):
+    unique_chat_id: Optional[str] = None
+    speaker: str
+    message_content: str
+    timestamp: Optional[str] = None
+
 class ConversationRequest(BaseModel):
-    conversation: List[Dict[str, str]]
+    chatroom_name: str
+    members: List[str]
+    messages: List[ChatMessage]
     prompt_file: str = "resources/input_prompt.yaml"
 
 # 응답 모델 정의
@@ -57,9 +65,24 @@ async def process_api(request: ConversationRequest, background_tasks: Background
         # 프롬프트 로드
         input_prompt = await load_prompt(request.prompt_file)
         
+        # sample_conversation.json 형식에서 필요한 대화 형식으로 변환
+        conversation = [{
+            'speaker': 'system', 
+            'message_content': f"members: {request.members}\nmember_count: {len(request.members)}"
+        }]
+        
+        # 실제 대화 내용 추가
+        conversation.extend([
+            {
+                'speaker': msg.speaker,
+                'message_content': msg.message_content
+            }
+            for msg in request.messages
+        ])
+        
         # 대화 처리 및 결과 변환
         result = await process_conversation(
-            request.conversation,
+            conversation,
             input_prompt,
             callback=None
         )
