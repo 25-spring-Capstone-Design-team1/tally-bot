@@ -350,6 +350,14 @@ class CalculateControllerTest {
     @DisplayName("200 ok : 재정산 성공")
     void recalculate_success() throws Exception {
         Long calculateId = 101L;
+
+        // Given: 가짜 Calculate 객체와 상태 설정
+        Calculate calculate = new Calculate();
+        calculate.setCalculateId(calculateId);
+        calculate.setStatus(CalculateStatus.PENDING);
+
+        when(calculateRepository.findById(calculateId)).thenReturn(Optional.of(calculate));
+        when(calculateRepository.save(any(Calculate.class))).thenReturn(calculate);
         doNothing().when(calculateService).recalculate(calculateId);
 
         mockMvc.perform(post("/api/calculate/recalculate")
@@ -358,6 +366,7 @@ class CalculateControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("Recalculation completed successfully."));
     }
+
 
     @Test
     @DisplayName("400 Bad Request : 재정산 실패 - calculateId 누락")
@@ -373,8 +382,9 @@ class CalculateControllerTest {
     @DisplayName("404 Not Found : 재정산 실패 - calculateId에 해당하는 엔티티 없음")
     void recalculate_fail_notFound() throws Exception {
         Long invalidId = 999L;
-        doThrow(new IllegalArgumentException("Calculate entity not found."))
-                .when(calculateService).recalculate(invalidId);
+
+        // calculateRepository.findById()가 빈 값을 반환하게 설정
+        when(calculateRepository.findById(invalidId)).thenReturn(Optional.empty());
 
         mockMvc.perform(post("/api/calculate/recalculate")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -382,4 +392,5 @@ class CalculateControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("Calculate entity not found."));
     }
+
 }

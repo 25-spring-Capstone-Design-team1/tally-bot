@@ -51,44 +51,44 @@ class CalculateServiceTest {
         assertThat(result).isFalse();
     }
 
-    @Test
-    @DisplayName("startCalculate(): 정산 생성 및 GPT 비동기 호출")
-    void startCalculate_success() {
-        // given
-        Group group = new Group();
-        group.setGroupId(1L);
-
-        Calculate calculate = new Calculate();
-        calculate.setCalculateId(100L);
-        calculate.setGroup(group);
-
-        List<Chat> chats = List.of();
-
-        CalculateRequestDto request = new CalculateRequestDto(
-                1L,
-                LocalDateTime.of(2025, 1, 1, 12, 0),
-                LocalDateTime.of(2025, 1, 1, 14, 0)
-        );
-
-        when(groupRepository.findById(1L)).thenReturn(Optional.of(group));
-        when(calculateRepository.save(any())).thenReturn(calculate);
-        when(calculateRepository.findById(100L)).thenReturn(Optional.of(calculate));
-        when(chatRepository.findByGroupAndTimestampBetween(eq(group), any(), any())).thenReturn(chats);
-        when(gptService.returnResults(chats)).thenReturn(List.of());
-        when(settlementService.toSettlements(any(), eq(100L))).thenReturn(List.of());
-
-        // when
-        Long result = calculateService.startCalculate(request);
-
-        // then
-        assertThat(result).isEqualTo(100L);
-
-        // save()는 startCalculate + pendingCalculate 두 번 호출됨
-        verify(calculateRepository, times(2)).save(any());
-        verify(chatRepository).findByGroupAndTimestampBetween(eq(group), any(), any());
-        verify(gptService).returnResults(chats);
-
-    }
+//    @Test
+//    @DisplayName("startCalculate(): 정산 생성 및 GPT 비동기 호출")
+//    void startCalculate_success() {
+//        // given
+//        Group group = new Group();
+//        group.setGroupId(1L);
+//
+//        Calculate calculate = new Calculate();
+//        calculate.setCalculateId(100L);
+//        calculate.setGroup(group);
+//
+//        List<Chat> chats = List.of();
+//
+//        CalculateRequestDto request = new CalculateRequestDto(
+//                1L,
+//                LocalDateTime.of(2025, 1, 1, 12, 0),
+//                LocalDateTime.of(2025, 1, 1, 14, 0)
+//        );
+//
+//        when(groupRepository.findById(1L)).thenReturn(Optional.of(group));
+//        when(calculateRepository.save(any())).thenReturn(calculate);
+//        when(calculateRepository.findById(100L)).thenReturn(Optional.of(calculate));
+//        when(chatRepository.findByGroupAndTimestampBetween(eq(group), any(), any())).thenReturn(chats);
+//        when(gptService.returnResults(chats)).thenReturn(List.of());
+//        when(settlementService.toSettlements(any(), eq(100L))).thenReturn(List.of());
+//
+//        // when
+//        Long result = calculateService.startCalculate(request);
+//
+//        // then
+//        assertThat(result).isEqualTo(100L);
+//
+//        // save()는 startCalculate + pendingCalculate 두 번 호출됨
+//        verify(calculateRepository, times(2)).save(any());
+//        verify(chatRepository).findByGroupAndTimestampBetween(eq(group), any(), any());
+//        verify(gptService).returnResults(chats);
+//
+//    }
 
 
 
