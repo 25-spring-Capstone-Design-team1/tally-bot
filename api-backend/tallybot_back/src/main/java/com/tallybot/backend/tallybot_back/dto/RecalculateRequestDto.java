@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class FrontMemberDto {
-    private Long memberId;
-    private String nickname;
+public class RecalculateRequestDto {
+    private Long calculateId;
+
 }

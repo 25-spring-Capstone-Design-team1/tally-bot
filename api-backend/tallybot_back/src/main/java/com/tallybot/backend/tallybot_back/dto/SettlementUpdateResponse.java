@@ -2,10 +2,11 @@ package com.tallybot.backend.tallybot_back.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.Setter;
 
 @Getter
+@Setter
 @AllArgsConstructor
-public class FrontMemberDto {
-    private Long memberId;
-    private String nickname;
+public class SettlementUpdateResponse {
+    private Long settlementId;
 }

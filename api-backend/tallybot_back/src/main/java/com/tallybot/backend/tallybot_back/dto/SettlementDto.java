@@ -1,9 +1,6 @@
 package com.tallybot.backend.tallybot_back.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.List;
 import java.util.Map;
@@ -12,6 +9,7 @@ import java.util.Map;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Data
 public class SettlementDto {
     private String place;     // 결제 장소
     private Long payerId;     // 결제자

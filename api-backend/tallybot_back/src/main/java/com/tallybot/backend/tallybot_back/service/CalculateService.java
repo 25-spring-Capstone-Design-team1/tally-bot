@@ -1,17 +1,18 @@
 package com.tallybot.backend.tallybot_back.service;
 
 //import com.tallybot.backend.tallybot_back.debtopt.Graph;
+import com.tallybot.backend.tallybot_back.debtopt.Graph;
 import com.tallybot.backend.tallybot_back.domain.*;
-import com.tallybot.backend.tallybot_back.dto.CalculateRequestDto;
-import com.tallybot.backend.tallybot_back.dto.SettlementDto;
+import com.tallybot.backend.tallybot_back.dto.*;
 import com.tallybot.backend.tallybot_back.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-//import org.springframework.data.util.Pair;
+import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
@@ -22,6 +23,10 @@ public class CalculateService {
     private final CalculateRepository calculateRepository;
     private final ChatRepository chatRepository;
     private final GPTService gptService;
+    private final CalculateDetailRepository calculateDetailRepository;
+    private final SettlementRepository settlementRepository;
+    private final SettlementService settlementService;
+    private final ParticipantRepository participantRepository;
 
     public boolean groupExists(Long groupId) {
         return groupRepository.existsById(groupId);
@@ -43,8 +48,9 @@ public class CalculateService {
         calculate.setGroup(group);
         calculate.setStartTime(request.getStartTime());
         calculate.setEndTime(request.getEndTime());
-        calculate.setStatus(CalculateStatus.PENDING);
+        calculate.setStatus(CalculateStatus.CALCULATING);
         calculate = calculateRepository.save(calculate);
+        Long calculateId = calculate.getCalculateId();
 
         List<Chat> chats = chatRepository.findByGroupAndTimestampBetween(
                 group,
@@ -53,120 +59,165 @@ public class CalculateService {
         );
 
 
-        //gpt 처리로 넘기기
-        List<SettlementDto> results = gptService.returnResults(chats);
+        // 나머지 GPT 처리 로직은 비동기로 실행
+        CompletableFuture.runAsync(() -> {
+            List<SettlementDto> results = gptService.returnResults(chats);
+
+            // GPT 결과 → 엔티티 변환
+            List<Settlement> settlements = settlementService.toSettlements(results, calculateId);
+
+            // 정산 및 참여자 저장
+            for (Settlement settlement : settlements) {
+                // 먼저 Settlement 저장
+                Settlement savedSettlement = settlementRepository.save(settlement);
+
+                // Participant와 연결된 Settlement를 명확히 설정
+                for (Participant participant : settlement.getParticipants()) {
+                    participant.getParticipantKey().setSettlement(savedSettlement);
+                    participantRepository.save(participant);
+                }
+            }
+
+            calculateAndOptimize(settlements);
+        }).exceptionally(ex -> {
+            return null;
+        });
+
+        pendingCalculate(calculateId);
 
         return calculate.getCalculateId();
 
+
     }
-//
-//        List<Settlement> res = settlementService.toSettlements(results, group, calculate.getCalculateId());
-//
-//
-//        // 해독 결과 저장
-////       List<Settlement> res = settlementService.toSettlements(results, calculate.getCalculateId());
-//        for(Settlement sm: res) {
-//            sm = settlementRepository.save(sm);
-//            for(Participant pc: sm.getParticipants()) {
-//                pc.getParticipantKey().settlement = sm;
-//                participantRepository.save(pc);
-//            }
-//        }
-//
-//        ///여기부터 클래스 분리 - 재정산에서 재사용 가능하도록
-//        // Calculate Detail 생성
-//        List<CalculateDetail> lcd = calculateShare(res);
-//        lcd = optimize(lcd);
-//        calculateDetailRepository.saveAll(lcd);
+
+    public void calculateAndOptimize(List<Settlement> settlementList)
+    {
+        // Calculate Detail 생성
+        List<CalculateDetail> lcd = calculateShare(settlementList);
+        lcd = optimize(lcd);
+        calculateDetailRepository.saveAll(lcd);
+    }
+
+    /// 로직 테스트 필요
+    public void recalculate(Long calculateId) {
+        Calculate calculate = calculateRepository.findByCalculateId(calculateId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 Calculate ID가 존재하지 않습니다."));
+
+        List<Settlement> settlementList = settlementRepository.findByCalculate(calculate);
+        calculateAndOptimize(settlementList);
+        pendingCalculate(calculateId);
+    }
 
 
-//    /*
-//     * 정산 완료를 표시하여 저장한다.
-//     */
-//    public void completeCalculate(Long calculateId) {
-//        Calculate calculate = calculateRepository.findById(calculateId)
-//                .orElseThrow(() -> new IllegalArgumentException("정산 없음"));
-//
-//        calculate.setStatus(CalculateStatus.COMPLETED);
-//        calculateRepository.save(calculate);
-//    }
-//
-//    /*
-//     * 각자의 정산 몫을 산정한다.
-//     */
-//    public List<CalculateDetail> calculateShare(List<Settlement> sm) {
-//        Map<Pair<Member, Member>, Integer> m = new HashMap<>();
-//
-//
-//        for (Settlement s : sm) {
-//            // 미리 고정 금액으로 정산하는 금액을 뺀다.
-//            int amount = s.getAmount();
-//            for(Participant pc: s.getParticipants()) {
-//                amount -= pc.getConstant();
-//            }
-//
-//            // 남은 금액을 각 비율로 나눈다.
-//            final int finalAmount = amount;
-//            for(Participant pc: s.getParticipants()) {
-//                Pair<Member, Member> p = Pair.of(pc.getParticipantKey().member, s.getPayer());
-//                m.put(p, m.getOrDefault(p, 0) + pc.getConstant() + pc.getRatio().mul(new Ratio(amount)).toInt());
-//            }
-//        }
-//
-//        Calculate calculate = sm.get(0).getCalculate();
-//
-//        List<CalculateDetail> lcd = new ArrayList<>();
-//        for(Pair<Member, Member> mem2Mem: m.keySet()) {
-//            lcd.add(new CalculateDetail(null, calculate, mem2Mem.getFirst(), mem2Mem.getSecond(), m.get(mem2Mem)));
-//        }
-//
-//        return lcd;
-//    }
-//
-//    /*
-//     * 그래프 간소화를 이용하여 산정된 정산 몫을 최적화한다.
-//     */
-//    public List<CalculateDetail> optimize(List<CalculateDetail> lcd) {
-//        // 그래프 형태로 만든다.
-//        Set<Member> members = new HashSet<>();
-//        Calculate calculate = lcd.get(0).getCalculate();
-//        for(CalculateDetail cd: lcd) {
-//            members.add(cd.getPayer());
-//            members.add(cd.getPayee());
-//        }
-//
-//        // index compression
-//        List<Member> memberList = members.stream().toList();
-//        Graph graph = new Graph(memberList.size());
-//        for(CalculateDetail cd: lcd) {
-//            int payerNum = memberList.indexOf(cd.getPayer());
-//            int payeeNum = memberList.indexOf(cd.getPayee());
-//            graph.addEdge(payerNum, payeeNum, cd.getAmount());
-//        }
-//
-//        // 그래프 간소화를 실현하되, 그것이 오히려 간선을 늘리는 경우 원복한다.
-//        Graph graph2 = Graph.summarize(graph);
-//        if(graph2.getEdgeCount() < graph.getEdgeCount()) {
-//            graph = graph2;
-//        }
-//
-//        // 그래프 형태를 되돌린다.
-//        List<CalculateDetail> lcd2 = new ArrayList<>();
-//        for(int i = 0; i < graph.getVertexCount(); i++) {
-//            for(Integer j: graph.getAdjacencyList().get(i).keySet()) {
-//                if(graph.getAdjacencyList().get(i).get(j) < 0) continue;
-//                lcd2.add(new CalculateDetail(null, calculate, memberList.get(i), memberList.get(j),
-//                        graph.getAdjacencyList().get(i).get(j)));
-//            }
-//        }
-//
-//        return lcd2;
-//    }
-//
-//    /*
-//     * Calculate ID에 따라 정산 계산된 payer-payee 간
-//     * 금전 거래 관계를 CalculateDetail울 Response 형태로 반환한다.
-//     */
+
+    /*
+     * 정산 계산 완료를 표시하여 저장한다.
+     */
+    public void pendingCalculate(Long calculateId) {
+        Calculate calculate = calculateRepository.findById(calculateId)
+                .orElseThrow(() -> new IllegalArgumentException("정산 없음"));
+
+        calculate.setStatus(CalculateStatus.PENDING);
+        calculateRepository.save(calculate);
+    }
+
+    /*
+     * 각자의 정산 몫을 산정한다.
+     */
+    public List<CalculateDetail> calculateShare(List<Settlement> sm) {
+        Map<Pair<Member, Member>, Integer> m = new HashMap<>();
+
+
+        for (Settlement s : sm) {
+            // 미리 고정 금액으로 정산하는 금액을 뺀다.
+            int amount = s.getAmount();
+            for(Participant pc: s.getParticipants()) {
+                amount -= pc.getConstant();
+            }
+
+            // 남은 금액을 각 비율로 나눈다.
+            final int finalAmount = amount;
+            for(Participant pc: s.getParticipants()) {
+                Pair<Member, Member> p = Pair.of(pc.getParticipantKey().getMember(), s.getPayer());
+                m.put(p, m.getOrDefault(p, 0) + pc.getConstant() + pc.getRatio().mul(new Ratio(amount)).toInt());
+            }
+        }
+
+        Calculate calculate = sm.get(0).getCalculate();
+
+        List<CalculateDetail> lcd = new ArrayList<>();
+        for(Pair<Member, Member> mem2Mem: m.keySet()) {
+            lcd.add(new CalculateDetail(null, calculate, mem2Mem.getFirst(), mem2Mem.getSecond(), m.get(mem2Mem)));
+        }
+
+        return lcd;
+    }
+
+    /*
+     * 그래프 간소화를 이용하여 산정된 정산 몫을 최적화한다.
+     */
+    public List<CalculateDetail> optimize(List<CalculateDetail> lcd) {
+        // 그래프 형태로 만든다.
+        Set<Member> members = new HashSet<>();
+        Calculate calculate = lcd.get(0).getCalculate();
+        for(CalculateDetail cd: lcd) {
+            members.add(cd.getPayer());
+            members.add(cd.getPayee());
+        }
+
+        // index compression
+        List<Member> memberList = members.stream().toList();
+        Graph graph = new Graph(memberList.size());
+        for(CalculateDetail cd: lcd) {
+            int payerNum = memberList.indexOf(cd.getPayer());
+            int payeeNum = memberList.indexOf(cd.getPayee());
+            graph.addEdge(payerNum, payeeNum, cd.getAmount());
+        }
+
+        // 그래프 간소화를 실현하되, 그것이 오히려 간선을 늘리는 경우 원복한다.
+        Graph graph2 = Graph.summarize(graph);
+        if(graph2.getEdgeCount() < graph.getEdgeCount()) {
+            graph = graph2;
+        }
+
+        // 그래프 형태를 되돌린다.
+        List<CalculateDetail> lcd2 = new ArrayList<>();
+        for(int i = 0; i < graph.getVertexCount(); i++) {
+            for(Integer j: graph.getAdjacencyList().get(i).keySet()) {
+                if(graph.getAdjacencyList().get(i).get(j) < 0) continue;
+                lcd2.add(new CalculateDetail(null, calculate, memberList.get(i), memberList.get(j),
+                        graph.getAdjacencyList().get(i).get(j)));
+            }
+        }
+
+        return lcd2;
+    }
+
+
+    public BotResponseDto botResultReturn(Calculate calculate) {
+        Long groupId = calculate.getGroup().getGroupId();
+        Long calculateId = calculate.getCalculateId();
+
+        String groupUrl = "https://tallybot.me/" + groupId;
+        String calculateUrl = groupUrl + "/" + calculateId;
+
+        // 실제 정산 결과 리스트 생성
+        List<TransferDto> transfers = calculateDetailRepository.findAllByCalculate(calculate)
+                .stream()
+                .map(detail -> new TransferDto(
+                        detail.getPayer().getMemberId(),
+                        detail.getPayee().getMemberId(),
+                        detail.getAmount()
+                ))
+                .collect(Collectors.toList());
+
+        return new BotResponseDto(groupUrl, calculateUrl, transfers);
+    }
+
+    /*
+     * Calculate ID에 따라 정산 계산된 payer-payee 간
+     * 금전 거래 관계를 CalculateDetail울 Response 형태로 반환한다.
+     */
 //    public ResponseDetailDto resultReturn(Long calculateId) {
 //        Calculate calculate = calculateRepository.findById(calculateId)
 //                .orElseThrow(() -> new IllegalArgumentException("정산 없음"));
