@@ -1,186 +1,250 @@
-//package com.tallybot.backend.tallybot_back.service;
-//
-//import com.tallybot.backend.tallybot_back.domain.*;
-//import com.tallybot.backend.tallybot_back.dto.*;
-//import com.tallybot.backend.tallybot_back.repository.*;
-//import jakarta.transaction.Transactional;
-//import lombok.RequiredArgsConstructor;
-//import org.springframework.stereotype.Service;
-//import java.util.*;
-//import java.util.stream.*;
-//
-//
-//@Service
-//@Transactional
-//@RequiredArgsConstructor
-//public class SettlementService {
-//
-//    private final SettlementRepository settlementRepository;
-//    private final MemberRepository memberRepository;
-//    private final CalculateRepository calculateRepository;
-//
-//    @Transactional
-//    public void applySettlementUpdate(SettlementUpdateRequest request) {
-//        Map<Long, Integer> constants = request.getConstants() != null ? request.getConstants() : new HashMap<>();
-//        Map<Long, Integer> ratios = request.getRatios() != null ? request.getRatios() : new HashMap<>();
-//        Integer sum = request.getSum() != null ? request.getSum() : 0;
-//        ///settlement add
-//        if ("add".equals(request.getField())) {
-//            Map<String, Object> newValueMap = (Map<String, Object>) request.getNewValue();
-//
-//            /// new settlement 생성
-//            Settlement newSettlement = new Settlement();
-//
-//            /// item 저장
-//            newSettlement.setItem((String) newValueMap.get("item"));
-//
-//            /// amount 저장
-//            newSettlement.setAmount((Integer) newValueMap.get("amount"));
-//
-//            /// payer 저장
-//            // memberId로 결제자(Member) 조회
-//            Long payerId = (Long) newValueMap.get("payerId");  // payerId를 받아옴
-//            // payer를 Id로 조회
-//            Member payer = memberRepository.findById(payerId)
-//                    .orElseThrow(() -> new IllegalArgumentException("결제자 없음"));
-//            // newSettlement에 payer 설정
-//            newSettlement.setPayer(payer);
-//
-//
-//            /// participants 저장
-//            Object rawParticipantsIds = request.getNewValue();
-//            List<Long> participantIds = new ArrayList<>();
-//            if (rawParticipantsIds instanceof List<?>) {
-//                for (Object o : (List<?>) rawParticipantsIds) {
-//                    if (o instanceof Long id) {
-//                        participantIds.add(id);
-//                    } else {
-//                        throw new IllegalArgumentException("participants 항목은 Long 타입의 memberId이어야 합니다.");
-//                    }
-//                }
-//            } else {
-//                throw new IllegalArgumentException("participants 값이 리스트가 아닙니다.");
-//            }
-//
-//            List<Member> participants = memberRepository.findByIdIn(participantIds);
-//            Set<Participant> participantSet = new HashSet<>();
-//            for (Member member : participants) {
-//                Participant.ParticipantKey participantKey = new Participant.ParticipantKey(newSettlement, member);
-//
-//                // participants 수정 시 constant와 ratio 값을 `newValue`에서 가져오기
-//                Long memberId = member.getMemberId();  // memberId (Long 타입)
-//
-//                // constant와 ratio 값을 constants와 ratios에서 가져오기
-//                Integer constant = request.getConstants().get(memberId);  // memberId를 기준으로 constant 조회
-//                Integer ratioValue = request.getRatios().get(memberId);
-//                Integer ratioSum = request.getSum();
-//                Ratio ratio = new Ratio(ratioValue, ratioSum);
-//
-//                // Participant 객체에 추가
-//                Participant participant = new Participant(participantKey, constant, ratio);
-//                participantSet.add(participant);
-//            }
-//
-//            newSettlement.setParticipants(participantSet);
-//
-//            ///group 저장
-//            Group group = payer.getGroup();
-//            newSettlement.setGroup(group);
-//
-//            Calculate calculate = calculateRepository.findById(request.getCalculateId())
-//                    .orElseThrow(() -> new IllegalArgumentException("해당 정산 ID 없음"));
-//            newSettlement.setCalculate(calculate);
-//
-//            settlementRepository.save(newSettlement);
-//            return;
-//        }
-//
-//        ///settlement 수정 및 삭제
-//        Settlement settlement = settlementRepository.findById(request.getSettlementId())
-//                .orElseThrow(() -> new IllegalArgumentException("해당 정산 내역이 존재하지 않음"));
-//
-//        switch (request.getField()) {
-//            /// item 수정
-//            case "item" -> {
-//                Object raw = request.getNewValue();
-//                if (raw instanceof String item) {
-//                    settlement.setItem(item);
-//                } else {
-//                    throw new IllegalArgumentException("item 값은 문자열이어야 합니다.");
-//                }
-//            }
-//            /// amount 수정
-//            case "amount" -> {
-//                Integer amount;
-//                Object rawAmount = request.getNewValue();
-//                if (rawAmount instanceof Integer i) {
-//                    amount = i;
-//                } else if (rawAmount instanceof String s) {
-//                    amount = Integer.parseInt(s);
-//                } else {
-//                    throw new IllegalArgumentException("amount 값이 유효하지 않음");
-//                }
-//                settlement.setAmount(amount);
-//            }
-//            /// payer 수정
-//            case "payer" -> {
-//                Object rawPayerId = request.getNewValue();
-//                if (rawPayerId instanceof Long payerId) {
-//                    Member payer = memberRepository.findById(payerId)
-//                            .orElseThrow(() -> new IllegalArgumentException("결제자가 존재하지 않습니다."));
-//                    settlement.setPayer(payer);
-//                } else {
-//                    throw new IllegalArgumentException("payer 값은 Long 타입의 memberId여야 합니다.");
-//                }
-//            }
-//            /// participants 수정
-//            case "participants" -> {
-//                Object rawParticipantIds = request.getNewValue();
-//                List<Long> participantIds = new ArrayList<>();
-//                if (rawParticipantIds instanceof List<?>) {
-//                    for (Object o : (List<?>) rawParticipantIds) {
-//                        if (o instanceof Long id) {
-//                            participantIds.add(id);
-//                        } else {
-//                            throw new IllegalArgumentException("participants 항목은 Long 타입의 memberId이어야 합니다.");
-//                        }
-//                    }
-//                } else {
-//                    throw new IllegalArgumentException("participants 값이 리스트가 아닙니다.");
-//                }
-//
-//                List<Member> participants = memberRepository.findByIdIn(participantIds);
-//                Set<Participant> participantSet = new HashSet<>();
-//                for (Member member : participants) {
-//                    Participant.ParticipantKey participantKey = new Participant.ParticipantKey(settlement, member);
-//
-//                    // participants 수정 시 constant와 ratio 값을 `newValue`에서 가져오기
-//                    Long memberId = member.getMemberId();  // memberId (Long 타입)
-//
-//                    // constant와 ratio 값을 constants와 ratios에서 가져오기
-//                    Integer constant = request.getConstants().get(memberId);  // memberId를 기준으로 constant 조회
-//                    Integer ratioValue = request.getRatios().get(memberId);
-//                    Integer ratioSum = request.getSum();
-//                    Ratio ratio = new Ratio(ratioValue, ratioSum);
-//
-//                    // Participant 객체에 추가
-//                    Participant participant = new Participant(participantKey, constant, ratio);
-//                    participantSet.add(participant);
-//                }
-//
-//                settlement.setParticipants(participantSet);
-//            }
-//
-//            case "delete" -> {
-//                settlementRepository.delete(settlement);
-//                return;
-//            }
-//            default -> throw new IllegalArgumentException("알 수 없는 수정항목");
-//        }
-//
-//        settlementRepository.save(settlement);
-//    }
-//
+package com.tallybot.backend.tallybot_back.service;
+
+import com.tallybot.backend.tallybot_back.domain.*;
+import com.tallybot.backend.tallybot_back.dto.*;
+import com.tallybot.backend.tallybot_back.repository.*;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import java.util.*;
+import java.util.stream.*;
+
+
+@Service
+@Transactional
+@RequiredArgsConstructor
+public class SettlementService {
+
+    private final SettlementRepository settlementRepository;
+    private final MemberRepository memberRepository;
+    private final CalculateRepository calculateRepository;
+    private final GroupRepository groupRepository;
+
+    public boolean fieldExists(String fieldName, SettlementUpdateRequest request)
+    {
+        Map<String, Object> newValue = request.getNewValue();
+        Long calculateId = request.getCalculateId();
+        Long settlementId = request.getSettlementId();
+        Map<String, Integer> constants = request.getConstants();
+        Map<String, Integer> ratios = request.getRatios();
+        Integer sum = request.getSum();
+        String field = request.getField();
+
+        if (calculateId==null)
+            return false;
+
+        if ("add".equals(field))
+        {
+            if (newValue == null || newValue.get("amount") == null || newValue.get("payer") == null)
+                return false;
+            else if ((constants == null && ratios == null)||(sum == null))
+                return false;
+        }
+        if ("delete".equals(field) && settlementId == null) {
+            return false;
+        }
+        if ("update".equals(field))
+        {
+           if (settlementId == null)
+               return false;
+           if ((newValue.get("participants")!=null)&&(constants==null&&ratios==null))
+               return false;
+        }
+
+        return true;
+    }
+
+
+    @Transactional
+    public Long applySettlementUpdate(SettlementUpdateRequest request) {
+        Long settlementId = request.getSettlementId();
+        String field = request.getField();
+        Map<String, Object> newValue = request.getNewValue()!= null ? request.getNewValue() : new HashMap<>();
+
+        ///settlement add
+        if ("add".equals(field)) {
+            /// new settlement 생성
+            Settlement newSettlement = new Settlement();
+
+            /// place와 item: 기본값 처리
+            newSettlement.setPlace((String) newValue.getOrDefault("place", "default"));
+            newSettlement.setItem((String) newValue.getOrDefault("item", "default"));
+
+            /// amount 저장
+            Object rawAmount = newValue.get("amount");
+            if (!(rawAmount instanceof Integer)) {
+                throw new IllegalArgumentException("amount는 필수값입니다.");
+            }
+            newSettlement.setAmount((Integer) rawAmount);
+
+            /// payer 저장
+            // memberId로 결제자(Member) 조회
+            Object rawPayer = newValue.get("payer");
+            Long payerId = null;
+            if (rawPayer instanceof Integer i) payerId = i.longValue();
+            else if (rawPayer instanceof Long l) payerId = l;
+            else throw new IllegalArgumentException("payerId 형식 오류");
+
+            // payer를 Id로 조회
+            Member payer = memberRepository.findById(payerId)
+                    .orElseThrow(() -> new IllegalArgumentException("결제자 없음"));
+            // newSettlement에 payer 설정
+            newSettlement.setPayer(payer);
+
+
+            /// participants 저장
+            Set<Participant> participantSet = new HashSet<>();
+
+            // "participants" 키만 명시적으로 처리
+            Object rawParticipants = newValue.get("participants");
+
+            List<Member> participants;
+            Map<String, Integer> constants = request.getConstants();
+            Map<String, Integer> ratios = request.getRatios();
+            Integer sum = request.getSum();
+
+
+            if (rawParticipants == null) {
+                // constants 또는 ratios만 있고 participants가 누락된 경우 예외
+                if (constants != null || ratios != null) {
+                    throw new IllegalArgumentException("participants가 null일 경우 constants/ratios도 null이어야 합니다.");
+                }
+
+                participants = memberRepository.findByGroup(payer.getGroup());
+                for (Member member : participants) {
+                    Participant.ParticipantKey participantKey = new Participant.ParticipantKey(newSettlement, member);
+                    Ratio ratio = new Ratio(1, 1); // 기본값 ratio 1/1
+                    Participant participant = new Participant(participantKey, 0, ratio); // 기본값 constant 0
+                    participantSet.add(participant);
+                }
+            }else if (rawParticipants instanceof List<?> rawList) {
+                List<Long> participantIds = rawList.stream()
+                        .map(obj -> {
+                            if (obj instanceof Integer i) return i.longValue();
+                            else if (obj instanceof Long l) return l;
+                            else throw new IllegalArgumentException("participants 값이 유효하지 않습니다.");
+                        })
+                        .toList();
+
+                participants = memberRepository.findAllById(participantIds);
+                int ratioSum = (sum != null) ? sum : participants.size();  // 참여자 수 기반
+
+                for (Member member : participants) {
+                    Participant.ParticipantKey participantKey = new Participant.ParticipantKey(newSettlement, member);
+
+                    Long memberId = member.getMemberId();
+                    String memberIdStr = String.valueOf(memberId);
+
+                    Integer constant = constants != null ? constants.get(memberIdStr) : 0;
+                    Integer ratioValue = ratios != null ? ratios.get(memberIdStr) : 1;
+                    Ratio ratio = new Ratio(ratioValue, ratioSum);
+
+                    Participant participant = new Participant(participantKey, constant, ratio);
+                    participantSet.add(participant);
+                }
+            }
+            newSettlement.setParticipants(participantSet);
+            newSettlement.setGroup(payer.getGroup());
+
+            Calculate calculate = calculateRepository.findById(request.getCalculateId())
+                    .orElseThrow(() -> new IllegalArgumentException("해당 정산 ID 없음"));
+            newSettlement.setCalculate(calculate);
+
+            settlementRepository.save(newSettlement);
+            return newSettlement.getSettlementId();
+        }
+
+        ///settlement 수정 및 삭제
+        Settlement settlement = settlementRepository.findById(request.getSettlementId())
+                .orElseThrow(() -> new IllegalArgumentException("해당 정산 내역이 존재하지 않음"));
+
+        if ("delete".equals(field))
+         {
+             settlementRepository.delete(settlement);
+             return settlementId;
+         }else{
+            for (Map.Entry<String, Object> entry : newValue.entrySet()) {
+                String key = entry.getKey();
+                Object value = entry.getValue();
+
+                switch (key) {
+                    /// place 수정
+                    case "place" -> {
+                        if (value instanceof String place) {
+                            settlement.setPlace(place);
+                        }
+                    }
+                    /// item 수정
+                    case "item" -> {
+                        if (value instanceof String item) {
+                            settlement.setItem(item);
+                        }
+                    }
+                    /// amount 수정
+                    case "amount" -> {
+                        Integer amount = null;
+                        if (value instanceof Integer i) {
+                            amount = i;
+                            settlement.setAmount(amount);
+                        }
+                    }
+                    /// payer 수정
+                    case "payer" -> {
+                        Long payerId = null;
+                        if (value instanceof Integer) {
+                            payerId = ((Integer) value).longValue();
+                        } else if (value instanceof Long) {
+                            payerId = (Long) value;
+                        }
+                        if (payerId != null) {
+                            Member payer = memberRepository.findById(payerId)
+                                    .orElseThrow(() -> new IllegalArgumentException("Member entity not found."));
+                            settlement.setPayer(payer);
+                        }
+                    }
+                    /// participants 수정
+                    case "participants" -> {
+                        if (value instanceof List<?> rawList) {
+                            List<Long> partcipantIds = rawList.stream()
+                                    .map(obj -> {
+                                        if (obj instanceof Integer i) return i.longValue();
+                                        else if (obj instanceof Long l) return l;
+                                        else throw new IllegalArgumentException("participants 값이 유효하지 않습니다.");
+                                    })
+                                    .toList();
+
+                            List<Member> participants = memberRepository.findAllById(partcipantIds);
+                            Set<Participant> participantSet = new HashSet<>();
+                            for (Member member : participants) {
+                                Participant.ParticipantKey participantKey = new Participant.ParticipantKey(settlement, member);
+
+                                // participants 수정 시 constant와 ratio 값을 `newValue`에서 가져오기
+                                Long memberId = member.getMemberId();  // memberId (Long 타입)
+
+                                // constant와 ratio 값을 constants와 ratios에서 가져오기
+                                String memberIdStr = String.valueOf(memberId);
+                                Integer constant = request.getConstants().get(memberIdStr);
+                                Integer ratioValue = request.getRatios().get(memberIdStr);
+                                Integer ratioSum = request.getSum();
+                                Ratio ratio = new Ratio(ratioValue, ratioSum);
+
+                                // Participant 객체에 추가
+                                Participant participant = new Participant(participantKey, constant, ratio);
+                                participantSet.add(participant);
+                            }
+
+                            settlement.setParticipants(participantSet);
+                        }
+
+                    }
+                    default -> throw new IllegalArgumentException("지원하지 않는 수정 필드: " + key);
+                }
+            }
+            settlementRepository.save(settlement);
+            return settlementId;
+        }
+    }
+
 //    /*
 //     * 각 정산에 대하여 참여하는 사람의 Nickname을 가져온다.
 //     */
@@ -207,72 +271,65 @@
 //     * GPT에서 넘어오는 settlement 관련 정보를
 //     * settlement의 ID, Group 객체, calculate의 ID 등을 사용하여 DB의 Settlement 객체로 변환한다.
 //     */
-//    public Settlement toSettlement(SettlementDto settlementDto, Long settlementId, Group group, Long calculateId) {
-//        // 정보 채우기
-//        Settlement settlement = new Settlement();
-//        settlement.setSettlementId(settlementId);
-//
-//        settlement.setPlace(settlementDto.getPlace());
-//        settlement.setItem(settlementDto.getItem());
-//        settlement.setAmount(settlementDto.getAmount());
-//
-//        settlement.setGroup(group);
-//
-//        // 닉네임으로 관여 멤버 찾기
-//        var payer = memberRepository.findByNicknameAndGroup(settlementDto.getPayer(), group)
-//                .orElseGet(() -> {
-//                    Member member = new Member();
-//                    member.setNickname(settlementDto.getPayer());
-//                    member.setGroup(group);
-//                    return memberRepository.save(member);
-//                });
-//
-//        settlement.setPayer(payer);
-//
-//        // 비율의 분모를 만들기 위해 합한다.
-//        int sum = 0;
-//        for (Integer ratio : settlementDto.getRatios().values()) {
-//            sum += ratio;
-//        }
-//
-//        // 비율을 분수의 형태로, 고정금액과 함께 각 멤버로 저장, participant 테이블을 체운다.
-//        Set<Participant> participants = new HashSet<>();
-//        for (int i = 0; i < settlementDto.getParticipants().size(); i++) {
-//            int finalI = i;
-//            var mem = memberRepository.findByNicknameAndGroup(settlementDto.getParticipants().get(i), group)
-//                    .orElseGet(() -> {
-//                        Member member = new Member();
-//                        member.setNickname(settlementDto.getParticipants().get(finalI));
-//                        member.setGroup(group);
-//                        return memberRepository.save(member);
-//                    });
-//            var constant = settlementDto.getConstants().get(settlementDto.getParticipants().get(i));
-//            var ratio = settlementDto.getRatios().get(settlementDto.getParticipants().get(i));
-//            participants.add(new Participant(new Participant.ParticipantKey(settlement, mem), constant, new Ratio(ratio, sum)));
-//        }
-//
-//        settlement.setParticipants(participants);
-//
-//        // calculate ID에 해당하는 게 있는지 찾고 없으면 null을 채운다.
-//        var calculate = calculateRepository.findById(calculateId)
-//                .orElse(null);
-//        settlement.setCalculate(calculate);
-//
-//        return settlement;
-//    }
-//
-//    /*
-//     * 여러 항목이 섞여있는 GPT로부터 오는 전체 정산 항목을 종합하여 DB의 Settlement의 List 형태로 변환한다.
-//     */
-////    public List<Settlement> toSettlements(List<SettlementDto> settlementsDto, Long calculateId) {
-////        List<Settlement> settlementList = new ArrayList<>();
-////        for (int i = 0; i < settlementsDto.getSettlementDtos().size(); i++) {
-////            settlementList.add(toSettlement(settlementsDto.getSettlementDtos().get(i),
-////                    null, settlementsDto.getGroup(), calculateId));
-////        }
-////        return settlementList;
-////    }
-//
+    public Settlement toSettlement(SettlementDto settlementDto, Long calculateId) {
+        // 정보 채우기
+        Settlement settlement = new Settlement();
+
+        settlement.setPlace(settlementDto.getPlace());
+        settlement.setItem(settlementDto.getItem());
+        settlement.setAmount(settlementDto.getAmount());
+
+        // Calculate 및 Group 정보 설정
+        Calculate calculate = calculateRepository.findById(calculateId)
+                .orElseThrow(() -> new IllegalArgumentException("Calculate entity not found."));
+        Group group = calculate.getGroup();
+        settlement.setGroup(group);
+
+        // Payer 조회
+        Long payerId = settlementDto.getPayerId();
+        Member payer = memberRepository.findByMemberIdAndGroup(payerId, group)
+                .orElseThrow(() -> new IllegalArgumentException("Participant member not found in group. ID: " + payerId));
+        settlement.setPayer(payer);
+
+
+        // 비율의 분모를 만들기 위해 합한다.
+        int sum = 0;
+        for (Integer ratio : settlementDto.getRatios().values()) {
+            sum += ratio;
+        }
+
+        // 비율을 분수의 형태로, 고정금액과 함께 각 멤버로 저장, participant 테이블을 체운다.
+        Set<Participant> participants = new HashSet<>();
+        for (Long participantId : settlementDto.getParticipantIds()) {
+            Member member = memberRepository.findByMemberIdAndGroup(participantId, group)
+                    .orElseThrow(() -> new IllegalArgumentException("Participant member not found in group. ID: " + participantId));
+
+            String key = participantId.toString();
+            Integer constant = settlementDto.getConstants().getOrDefault(key, 0);
+            Integer ratio = settlementDto.getRatios().getOrDefault(key, 0);
+
+            Participant.ParticipantKey pk = new Participant.ParticipantKey(settlement, member);
+            participants.add(new Participant(pk, constant, new Ratio(ratio, sum)));
+        }
+
+        settlement.setParticipants(participants);
+        settlement.setCalculate(calculate);
+
+        return settlement;
+    }
+
+    /*
+     * 여러 항목이 섞여있는 GPT로부터 오는 전체 정산 항목을 종합하여 DB의 Settlement의 List 형태로 변환한다.
+     */
+    public List<Settlement> toSettlements(List<SettlementDto> settlementDtos, Long calculateId) {
+        List<Settlement> settlementList = new ArrayList<>();
+        for (SettlementDto dto : settlementDtos) {
+            settlementList.add(toSettlement(dto, calculateId));
+        }
+        return settlementList;
+    }
+
+
 //    public List<Settlement> toSettlements(List<SettlementDto> settlementDtos, Group group, Long calculateId) {
 //        List<Settlement> settlementList = new ArrayList<>();
 //        for (SettlementDto dto : settlementDtos) {
@@ -280,6 +337,6 @@
 //        }
 //        return settlementList;
 //    }
-//
-//
-//}
+
+
+}

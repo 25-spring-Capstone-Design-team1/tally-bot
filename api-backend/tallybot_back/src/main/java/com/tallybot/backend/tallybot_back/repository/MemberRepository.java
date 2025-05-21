@@ -12,11 +12,15 @@ import java.util.Optional;
 
 public interface MemberRepository extends JpaRepository<Member, Long> {
 
-    Optional<Member> findByNickname(String nickname);
+    Optional<Member> findByMemberId(Long memberId);
 
     Optional<Member> findByMemberIdAndGroup(Long memberId, Group group);
 
+    int countByGroup(Group group);
+
     List<Member> findByGroup(Group group);
+
+    boolean existsByGroupAndNickname(Group group, String nickname);
 
     List<Member> findByMemberIdIn(List<Long> ids);
 

@@ -17,20 +17,24 @@ public class GroupService {
     private final GroupRepository groupRepository;
     private final MemberRepository memberRepository;
 
+    public GroupCreateResponse createGroupWithMember(GroupCreateRequest request) {
+        Group group = groupRepository.findById(request.getGroupId())
+                .orElseGet(() -> groupRepository.save(new Group(request.getGroupId(), request.getGroupName())));
 
-    public GroupCreateResponse createGroupWithMembers(GroupCreateRequest request) {
-        Group group = groupRepository.save(new Group(null, request.getGroupName()));
-
-
-        List<GroupCreateResponse.MemberInfo> memberInfos = new ArrayList<>();
-        for (String nickname : request.getMembers()) {
+        // 중복 멤버 확인
+        boolean exists = memberRepository.existsByGroupAndNickname(group, request.getMember());
+        if (!exists) {
             Member member = new Member();
-            member.setNickname(nickname);
             member.setGroup(group);
+            member.setNickname(request.getMember());
             memberRepository.save(member);
-
-            memberInfos.add(new GroupCreateResponse.MemberInfo(member.getNickname(), member.getMemberId()));
         }
+
+        // 모든 멤버 조회 후 응답 반환
+        List<Member> members = memberRepository.findByGroup(group);
+        List<GroupCreateResponse.MemberInfo> memberInfos = members.stream()
+                .map(m -> new GroupCreateResponse.MemberInfo(m.getNickname(), m.getMemberId()))
+                .toList();
 
         return new GroupCreateResponse(group.getGroupId(), memberInfos);
     }

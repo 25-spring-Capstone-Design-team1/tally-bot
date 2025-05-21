@@ -11,6 +11,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -29,33 +30,71 @@ class GroupServiceTest {
     }
 
     @Test
-    @DisplayName("그룹과 멤버가 정상적으로 생성됨")
-    void createGroupWithMembers_success() {
+    @DisplayName("신규 그룹과 신규 멤버를 등록한다")
+    void createGroupWithNewGroupAndMember() {
         // given
-        GroupCreateRequest request = new GroupCreateRequest("정산방", List.of("철수", "영희"));
+        Long groupId = 1234L;
+        String groupName = "정산방";
+        String memberName = "철수";
 
-        Group savedGroup = new Group();
-        savedGroup.setGroupId(42L);
-        savedGroup.setGroupName("정산방");
+        GroupCreateRequest request = new GroupCreateRequest(groupId, groupName, memberName);
+        Group group = new Group(groupId, groupName);
 
-        when(groupRepository.save(any(Group.class))).thenReturn(savedGroup);
-        when(memberRepository.save(any(Member.class))).thenAnswer(invocation -> {
-            Member m = invocation.getArgument(0);
-            m.setMemberId((long) (Math.random() * 100)); // 임의로 ID 부여
-            return m;
-        });
+        when(groupRepository.findById(groupId)).thenReturn(Optional.empty());
+        when(groupRepository.save(any(Group.class))).thenReturn(group);
+        when(memberRepository.existsByGroupAndNickname(group, memberName)).thenReturn(false);
+
+        Member member = new Member();
+        member.setGroup(group);
+        member.setNickname(memberName);
+        member.setMemberId(1L);
+
+        when(memberRepository.save(any(Member.class))).thenReturn(member);
+        when(memberRepository.findByGroup(group)).thenReturn(List.of(member));
 
         // when
-        GroupCreateResponse response = groupService.createGroupWithMembers(request);
+        GroupCreateResponse response = groupService.createGroupWithMember(request);
 
         // then
-        assertThat(response.getGroupId()).isEqualTo(42L);
-        assertThat(response.getMembers()).hasSize(2);
-        assertThat(response.getMembers()).extracting("nickname")
-                .containsExactlyInAnyOrder("철수", "영희");
+        assertThat(response.getGroupId()).isEqualTo(groupId);
+        assertThat(response.getMembers()).hasSize(1);
+        assertThat(response.getMembers().get(0).getNickname()).isEqualTo("철수");
+        assertThat(response.getMembers().get(0).getMemberId()).isEqualTo(1L);
 
-        // Repository 호출 여부 확인
-        verify(groupRepository, times(1)).save(any(Group.class));
-        verify(memberRepository, times(2)).save(any(Member.class));
+        verify(groupRepository).save(any(Group.class));
+        verify(memberRepository).save(any(Member.class));
     }
+
+    @Test
+    @DisplayName("기존 그룹에 중복 멤버가 존재하면 추가하지 않는다")
+    void createGroupWithExistingGroupAndDuplicateMember() {
+        // given
+        Long groupId = 1234L;
+        String groupName = "정산방";
+        String memberName = "철수";
+
+        GroupCreateRequest request = new GroupCreateRequest(groupId, groupName, memberName);
+        Group group = new Group(groupId, groupName);
+
+        when(groupRepository.findById(groupId)).thenReturn(Optional.of(group));
+        when(memberRepository.existsByGroupAndNickname(group, memberName)).thenReturn(true);
+
+        Member existingMember = new Member();
+        existingMember.setGroup(group);
+        existingMember.setNickname(memberName);
+        existingMember.setMemberId(1L);
+
+        when(memberRepository.findByGroup(group)).thenReturn(List.of(existingMember));
+
+        // when
+        GroupCreateResponse response = groupService.createGroupWithMember(request);
+
+        // then
+        assertThat(response.getGroupId()).isEqualTo(groupId);
+        assertThat(response.getMembers()).hasSize(1);
+        assertThat(response.getMembers().get(0).getNickname()).isEqualTo("철수");
+
+        verify(memberRepository, never()).save(any(Member.class)); // 저장 안 함
+    }
+
 }
