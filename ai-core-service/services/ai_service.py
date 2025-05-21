@@ -1,7 +1,7 @@
 import json
 from typing import List, Dict, Any, Callable, Optional
 from langchain.schema import HumanMessage, SystemMessage
-from services.config import fast_llm  # 모델 설정 import
+from config.service_config import fast_llm  # 모델 설정 import
 
 async def process_conversation(
     conversation: List[Dict[str, str]], 
@@ -35,8 +35,6 @@ async def process_conversation(
             for msg in conversation
         ])
         
-        print(f"전체 대화 처리 시작...")
-        
         # 메시지 구성
         messages = [
             SystemMessage(content=enhanced_system_prompt),
@@ -59,32 +57,168 @@ async def process_conversation(
                     json_str = full_response[start_idx:end_idx]
                     result = json.loads(json_str)
                 else:
-                    print(f"경고: 응답에서 JSON 배열을 찾을 수 없습니다")
                     return []
             
-            # 결과가 있는 경우 출력 및 콜백 호출
-            if result:
-                print(f"총 {len(result)}개의 항목이 추출되었습니다.")
-                
-                # 콜백 함수가 제공된 경우 결과 전달
-                if callback:
-                    await callback(result)
-                else:
-                    # 콜백이 없으면 내부에서 결과 출력
-                    print(f"=== 처리 결과 ===")
-                    print(json.dumps(result, ensure_ascii=False, indent=2))
-                    print("=" * 50)
-                
-                return result
-            else:
-                print("추출된 항목이 없습니다.")
-                return []
+            # 결과가 있는 경우 콜백 호출
+            if result and callback:
+                await callback(result)
+            
+            return result if result else []
                 
         except json.JSONDecodeError as e:
             print(f"경고: 응답이 유효한 JSON 형식이 아닙니다 - {str(e)}")
-            print("원본 응답:", full_response)
             return []
             
     except Exception as e:
         print(f"대화 처리 중 오류 발생: {str(e)}")
+        return []
+
+async def process_summary(
+    conversation: List[Dict[str, str]], 
+    input_prompt: Dict[str, Any],
+    callback: Optional[Callable[[List[Dict[str, Any]]], None]] = None
+) -> List[Dict[str, Any]]:
+    """2차 검증을 위한 함수 - 단순 JSON 검증용"""
+    try:
+        # 프롬프트 구성
+        system_prompt = input_prompt.get('system', '')
+        input_text = input_prompt.get('input', '')
+        
+        # 대화 내용을 문자열로 변환
+        conversation_text = "\n".join([
+            f"{msg['speaker']}: {msg['message_content']}"
+            for msg in conversation
+        ])
+        
+        # 메시지 구성 (특별 규칙 없이 순수 프롬프트만 사용)
+        messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=input_text + "\n\n" + conversation_text)
+        ]
+        
+        # 모델 호출
+        response = await fast_llm.ainvoke(messages)
+        full_response = response.content
+        
+        # JSON 파싱
+        try:
+            result = None
+            if full_response.strip().startswith('[') and full_response.strip().endswith(']'):
+                result = json.loads(full_response)
+            else:
+                start_idx = full_response.find('[')
+                end_idx = full_response.rfind(']') + 1
+                if start_idx != -1 and end_idx != -1:
+                    json_str = full_response[start_idx:end_idx]
+                    result = json.loads(json_str)
+                else:
+                    return []
+            
+            # 결과가 있는 경우 콜백 호출
+            if result and callback:
+                await callback(result)
+            
+            return result if result else []
+                
+        except json.JSONDecodeError as e:
+            print(f"경고: 응답이 유효한 JSON 형식이 아닙니다 - {str(e)}")
+            return []
+            
+    except Exception as e:
+        print(f"2차 검증 중 오류 발생: {str(e)}")
+        return []
+
+async def process_final(
+    conversation: List[Dict[str, str]], 
+    input_prompt: Dict[str, Any],
+    callback: Optional[Callable[[List[Dict[str, Any]]], None]] = None
+) -> List[Dict[str, Any]]:
+    """3차 검증을 위한 함수 - JSON 파싱 및 유효성 검증"""
+    try:
+        # 프롬프트 구성
+        system_prompt = input_prompt.get('system', '')
+        input_text = input_prompt.get('input', '')
+        
+        # JSON 파싱을 위한 특별 지시사항 추가
+        json_validation_rules = """
+        【JSON 응답 규칙】
+        1. 반드시 유효한 JSON 배열 형식으로 응답하세요.
+        2. 각 객체는 다음 필드를 포함해야 합니다:
+           - payer: 문자열 (발화자)
+           - participants: 문자열 배열 (참여자들)
+           - constants: 객체 (각 참여자의 고정 금액)
+           - ratios: 객체 (각 참여자의 비율)
+        3. JSON 형식이 아닌 다른 텍스트는 포함하지 마세요.
+        4. 응답은 반드시 '['로 시작하고 ']'로 끝나야 합니다.
+        """
+        
+        # 시스템 프롬프트에 JSON 검증 규칙 추가
+        enhanced_system_prompt = system_prompt + json_validation_rules
+        
+        # 대화 내용을 문자열로 변환
+        conversation_text = "\n".join([
+            f"{msg['speaker']}: {msg['message_content']}"
+            for msg in conversation
+        ])
+        
+        # 메시지 구성
+        messages = [
+            SystemMessage(content=enhanced_system_prompt),
+            HumanMessage(content=input_text + "\n\n" + conversation_text)
+        ]
+        
+        # 모델 호출
+        response = await fast_llm.ainvoke(messages)
+        full_response = response.content
+        
+        # JSON 파싱 및 검증
+        try:
+            # 응답에서 JSON 부분만 추출
+            json_str = full_response.strip()
+            if not (json_str.startswith('[') and json_str.endswith(']')):
+                start_idx = json_str.find('[')
+                end_idx = json_str.rfind(']') + 1
+                if start_idx != -1 and end_idx != -1:
+                    json_str = json_str[start_idx:end_idx]
+                else:
+                    print("경고: JSON 배열을 찾을 수 없습니다.")
+                    return []
+            
+            # JSON 파싱
+            result = json.loads(json_str)
+            
+            # 결과 유효성 검증
+            if not isinstance(result, list):
+                print("경고: 결과가 배열이 아닙니다.")
+                return []
+            
+            # 각 항목의 필수 필드 검증
+            validated_result = []
+            for item in result:
+                if not isinstance(item, dict):
+                    continue
+                    
+                if not all(key in item for key in ['payer', 'participants', 'constants', 'ratios']):
+                    continue
+                    
+                if not isinstance(item['payer'], str) or \
+                   not isinstance(item['participants'], list) or \
+                   not isinstance(item['constants'], dict) or \
+                   not isinstance(item['ratios'], dict):
+                    continue
+                
+                validated_result.append(item)
+            
+            # 결과가 있는 경우 콜백 호출
+            if validated_result and callback:
+                await callback(validated_result)
+            
+            return validated_result
+                
+        except json.JSONDecodeError as e:
+            print(f"경고: JSON 파싱 실패 - {str(e)}")
+            return []
+            
+    except Exception as e:
+        print(f"3차 검증 중 오류 발생: {str(e)}")
         return [] 
