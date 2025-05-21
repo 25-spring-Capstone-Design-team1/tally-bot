@@ -111,12 +111,12 @@ class CalculateControllerTest {
     @DisplayName("200 ok : 정산 결과 정상 반환")
     void getBotResult_success() throws Exception {
         // given
-        Group group = new Group();
-        group.setGroupId(42L);
+        UserGroup userGroup = new UserGroup();
+        userGroup.setGroupId(42L);
 
         Calculate calculate = new Calculate();
         calculate.setCalculateId(101L);
-        calculate.setGroup(group);
+        calculate.setUserGroup(userGroup);
         calculate.setStatus(CalculateStatus.COMPLETED);
 
         List<TransferDto> transfers = List.of(

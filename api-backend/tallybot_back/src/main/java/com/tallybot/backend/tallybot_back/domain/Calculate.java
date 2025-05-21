@@ -24,7 +24,7 @@ public class Calculate{
 
     @ManyToOne
     @JoinColumn(name = "group_id")
-    private Group group;
+    private UserGroup userGroup;
 
     @OneToMany(mappedBy = "calculate")
     private Set<Settlement> settlements;

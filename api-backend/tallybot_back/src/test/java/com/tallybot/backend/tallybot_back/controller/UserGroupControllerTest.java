@@ -3,7 +3,7 @@ package com.tallybot.backend.tallybot_back.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tallybot.backend.tallybot_back.domain.Calculate;
 import com.tallybot.backend.tallybot_back.domain.CalculateStatus;
-import com.tallybot.backend.tallybot_back.domain.Group;
+import com.tallybot.backend.tallybot_back.domain.UserGroup;
 import com.tallybot.backend.tallybot_back.domain.Member;
 import com.tallybot.backend.tallybot_back.dto.GroupCreateRequest;
 import com.tallybot.backend.tallybot_back.dto.GroupCreateResponse;
@@ -27,13 +27,12 @@ import java.util.Optional;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(GroupController.class)
-class GroupControllerTest {
+class UserGroupControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -119,13 +118,13 @@ class GroupControllerTest {
     @DisplayName("200 ok : 그룹 정보 조회 성공")
     void getGroupInfo_success() throws Exception {
         // given
-        Group group = new Group();
-        group.setGroupId(42L);
-        group.setGroupName("정산방");
+        UserGroup userGroup = new UserGroup();
+        userGroup.setGroupId(42L);
+        userGroup.setGroupName("정산방");
 
-        Mockito.when(groupRepository.findById(42L)).thenReturn(Optional.of(group));
-        Mockito.when(memberRepository.countByGroup(group)).thenReturn(3);
-        Mockito.when(calculateRepository.countByGroup(group)).thenReturn(2);
+        Mockito.when(groupRepository.findById(42L)).thenReturn(Optional.of(userGroup));
+        Mockito.when(memberRepository.countByUserGroup(userGroup)).thenReturn(3);
+        Mockito.when(calculateRepository.countByUserGroup(userGroup)).thenReturn(2);
 
         // when & then
         mockMvc.perform(get("/api/group/42"))
@@ -158,22 +157,22 @@ class GroupControllerTest {
     @DisplayName("200 ok : 그룹 멤버 조회 성공")
     void getGroupMembers_success() throws Exception {
         // given
-        Group group = new Group();
-        group.setGroupId(42L);
-        group.setGroupName("정산방");
+        UserGroup userGroup = new UserGroup();
+        userGroup.setGroupId(42L);
+        userGroup.setGroupName("정산방");
 
         Member m1 = new Member();
         m1.setMemberId(1L);
         m1.setNickname("철수");
-        m1.setGroup(group);
+        m1.setUserGroup(userGroup);
 
         Member m2 = new Member();
         m2.setMemberId(2L);
         m2.setNickname("영희");
-        m2.setGroup(group);
+        m2.setUserGroup(userGroup);
 
-        Mockito.when(groupRepository.findById(42L)).thenReturn(Optional.of(group));
-        Mockito.when(memberRepository.findByGroup(group)).thenReturn(List.of(m1, m2));
+        Mockito.when(groupRepository.findById(42L)).thenReturn(Optional.of(userGroup));
+        Mockito.when(memberRepository.findByUserGroup(userGroup)).thenReturn(List.of(m1, m2));
 
         // when & then
         mockMvc.perform(get("/api/group/42/members"))
@@ -206,9 +205,9 @@ class GroupControllerTest {
     @DisplayName("200 OK : 정산 목록 조회 성공")
     void getGroupCalculates_success() throws Exception {
         // given
-        Group group = new Group();
-        group.setGroupId(42L);
-        group.setGroupName("정산방");
+        UserGroup userGroup = new UserGroup();
+        userGroup.setGroupId(42L);
+        userGroup.setGroupName("정산방");
 
         Calculate c1 = new Calculate();
         c1.setCalculateId(101L);
@@ -223,8 +222,8 @@ class GroupControllerTest {
         c2.setStatus(CalculateStatus.COMPLETED);
 
         // when
-        Mockito.when(groupRepository.findById(42L)).thenReturn(Optional.of(group));
-        Mockito.when(calculateRepository.findByGroup(group)).thenReturn(List.of(c1, c2));
+        Mockito.when(groupRepository.findById(42L)).thenReturn(Optional.of(userGroup));
+        Mockito.when(calculateRepository.findByUserGroup(userGroup)).thenReturn(List.of(c1, c2));
 
         // then
         mockMvc.perform(get("/api/group/42/calculates"))

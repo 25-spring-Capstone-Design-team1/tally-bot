@@ -5,7 +5,6 @@ import com.tallybot.backend.tallybot_back.debtopt.Graph;
 import com.tallybot.backend.tallybot_back.domain.*;
 import com.tallybot.backend.tallybot_back.dto.*;
 import com.tallybot.backend.tallybot_back.repository.*;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
@@ -41,19 +40,19 @@ public class CalculateService {
      * 각자의 정산 몫 분배와 최적화는 백에서 이루어진다.
      */
     public Long startCalculate(CalculateRequestDto request) {
-        Group group = groupRepository.findById(request.getGroupId())
+        UserGroup userGroup = groupRepository.findById(request.getGroupId())
                 .orElseThrow(() -> new IllegalArgumentException("Group not found"));
 
         Calculate calculate = new Calculate();
-        calculate.setGroup(group);
+        calculate.setUserGroup(userGroup);
         calculate.setStartTime(request.getStartTime());
         calculate.setEndTime(request.getEndTime());
         calculate.setStatus(CalculateStatus.CALCULATING);
         calculate = calculateRepository.save(calculate);
         Long calculateId = calculate.getCalculateId();
 
-        List<Chat> chats = chatRepository.findByGroupAndTimestampBetween(
-                group,
+        List<Chat> chats = chatRepository.findByUserGroupAndTimestampBetween(
+                userGroup,
                 request.getStartTime(),
                 request.getEndTime()
         );
@@ -195,7 +194,7 @@ public class CalculateService {
 
 
     public BotResponseDto botResultReturn(Calculate calculate) {
-        Long groupId = calculate.getGroup().getGroupId();
+        Long groupId = calculate.getUserGroup().getGroupId();
         Long calculateId = calculate.getCalculateId();
 
         String groupUrl = "https://tallybot.me/" + groupId;

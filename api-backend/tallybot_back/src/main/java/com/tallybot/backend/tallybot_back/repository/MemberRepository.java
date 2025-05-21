@@ -1,10 +1,7 @@
 package com.tallybot.backend.tallybot_back.repository;
 
-import com.tallybot.backend.tallybot_back.domain.Group;
+import com.tallybot.backend.tallybot_back.domain.UserGroup;
 import com.tallybot.backend.tallybot_back.domain.Member;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -14,13 +11,13 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     Optional<Member> findByMemberId(Long memberId);
 
-    Optional<Member> findByMemberIdAndGroup(Long memberId, Group group);
+    Optional<Member> findByMemberIdAndUserGroup(Long memberId, UserGroup userGroup);
 
-    int countByGroup(Group group);
+    int countByUserGroup(UserGroup userGroup);
 
-    List<Member> findByGroup(Group group);
+    List<Member> findByUserGroup(UserGroup userGroup);
 
-    boolean existsByGroupAndNickname(Group group, String nickname);
+    boolean existsByUserGroupAndNickname(UserGroup userGroup, String nickname);
 
     List<Member> findByMemberIdIn(List<Long> ids);
 

@@ -7,7 +7,7 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Group {
+public class UserGroup {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long groupId; // 채팅방 구별용 ID
