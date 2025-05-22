@@ -184,9 +184,6 @@
         <mxCell id="y0-GiUwErUeSbFxAOmRo-52" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=classicThin;startFill=1;" edge="1" parent="1" source="y0-GiUwErUeSbFxAOmRo-31" target="y0-GiUwErUeSbFxAOmRo-47">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="y0-GiUwErUeSbFxAOmRo-54" value="&lt;span style=&quot;font-size: 25px;&quot;&gt;&lt;b&gt;아키텍처&lt;/b&gt;&lt;/span&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=35;" vertex="1" parent="1">
-          <mxGeometry x="178.71" y="1195" width="167.71" height="30" as="geometry" />
-        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
