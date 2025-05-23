@@ -78,21 +78,12 @@ export interface SettlementListItem {
  *
  * @returns SettlementListItem 객체 배열을 포함하는 Promise.
  */
-export async function getSettlementsList(groupId: string): Promise<SettlementListItem[]> {
-  const res = await fetch(`http://tally-bot-web-backend-alb-243058276.ap-northeast-2.elb.amazonaws.com/api/group/${groupId}/calculates`);
-  if (!res.ok) throw new Error('정산 목록 불러오기 실패');
-
-  const calculates = await res.json();
-
-  return calculates.map((item: any) => ({
-    id: item.calculateId.toString(),
-    title: `${item.startTime} ~ ${item.endTime}`,
-    createdAt: item.startTime,
-    participantCount: 0,
-    totalAmount: 0,
-    isCompleted: item.status === 'COMPLETED',
-  }));
+export async function getSettlementsList(): Promise<SettlementListItem[]> {
+  const res = await fetch('http://localhost:4000/api/settlements')
+  if (!res.ok) throw new Error('정산 목록 불러오기 실패')
+  return await res.json()
 }
+
 
 /**
  * 주어진 ID에 해당하는 상세 정산 정보를 비동기적으로 가져옵니다.
@@ -105,35 +96,18 @@ function computeConstant(ratio: number[], amount: number): number[] {
   return ratio.map(r => Math.round(r * amount))
 }
 
-export async function getSettlement(calculateId: string): Promise<Settlement> {
-  const res = await fetch(`http://52.79.167.2:8080/api/calculate/${calculateId}/settlements`);
-  if (!res.ok) throw new Error(`정산 ${calculateId} 조회 실패`);
-  const data = await res.json();
+export async function getSettlement(id: string): Promise<Settlement> {
+  const res = await fetch(`http://localhost:4000/api/settlements/${id}`)
+  if (!res.ok) throw new Error(`정산 ${id} 조회 실패`)
+  const data: Settlement = await res.json()
 
-  const participants = data.settlements
-    .flatMap((s: any) => s.participantIds)
-    .filter((v: any, i: number, arr: any[]) => arr.indexOf(v) === i)
-    .map((id: number) => id.toString());
+  // constant 필드가 없으면 계산해서 채움
+  data.payments = data.payments.map(p => ({
+    ...p,
+    constant: p.constant ?? computeConstant(p.ratio, p.amount)
+  }))
 
-  const payments = data.settlements.map((s: any) => ({
-    id: s.settlementId,
-    payer: s.payerId.toString(),
-    target: s.participantIds.map((id: number) => id.toString()),
-    ratio: Object.values(s.ratios),
-    constant: Object.values(s.constants),
-    amount: s.amount,
-    item: s.item,
-  }));
-
-  return {
-    settlementId: calculateId,
-    title: `정산 ${calculateId}`,
-    createdAt: '', // 별도 필요시 추가 API
-    participants,
-    payments,
-    optimizedTransfers: [],
-    isCompleted: false,
-  };
+  return data
 }
 
 
@@ -146,7 +120,7 @@ export async function getSettlement(calculateId: string): Promise<Settlement> {
  * @returns 업데이트되고 재계산된 정산 상세 정보를 포함하는 Settlement 객체의 Promise.
  */
 export async function updateSettlement(id: string, settlement: Settlement): Promise<Settlement> {
-  const res = await fetch(`http://52.79.167.2:8080/api/settlements/${id}`, {
+  const res = await fetch(`http://localhost:4000/api/settlements/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(settlement),
@@ -164,7 +138,7 @@ export async function updateSettlement(id: string, settlement: Settlement): Prom
  * @returns 재계산된 정산 상세 정보를 포함하는 Settlement 객체의 Promise.
  */
 export async function recalculateSettlement(id: string): Promise<Settlement> {
-  const res = await fetch(`http://52.79.167.2:8080/api/settlements/${id}/recalculate`, {
+  const res = await fetch(`http://localhost:4000/api/settlements/${id}/recalculate`, {
     method: 'POST',
   });
 
@@ -276,7 +250,7 @@ async function recalculateSettlementInternal(settlement: Settlement): Promise<Se
  * @returns 업데이트된 정산 상세 정보를 포함하는 Settlement 객체의 Promise.
  */
 export async function markSettlementComplete(id: string): Promise<Settlement> {
-  const res = await fetch(`http://52.79.167.2:8080/api/settlements/${id}/complete`, {
+  const res = await fetch(`http://localhost:4000/api/settlements/${id}/complete`, {
     method: 'POST',
   });
 
@@ -322,25 +296,17 @@ export interface TransferGraph {
  * @param id - 그래프를 조회할 정산의 ID.
  * @returns 최적화된 송금 정보를 기반으로 구성된 TransferGraph 객체의 Promise.
  */
-export async function getTransferGraph(calculateId: string): Promise<TransferGraph> {
-  const res = await fetch(`http://52.79.167.2:8080/api/calculate/${calculateId}/transfers`);
-  if (!res.ok) throw new Error('송금 관계 조회 실패');
-  const data = await res.json();
+export async function getTransferGraph(id: string): Promise<TransferGraph> {
+  const settlement = await getSettlement(id) // 최신 상태 fetch
 
-  // payerId, payeeId를 모아 중복 제거 후 string[] 생성
-  const uniqueIds = Array.from(
-    new Set(
-      data.transfers.flatMap((t: any) => [t.payerId, t.payeeId])
-    )
-  ) as number[];
+  const nodes = settlement.participants.map(p => ({ id: p }))
+  const edges = settlement.optimizedTransfers
+    .filter(t => t.amount > 0) // 0원은 필터링
+    .map(t => ({
+      source: t.from,
+      target: t.to,
+      amount: t.amount,
+    }))
 
-  const nodes: GraphNode[] = uniqueIds.map(id => ({ id: id.toString() }));
-
-  const edges: GraphEdge[] = data.transfers.map((t: any) => ({
-    source: t.payerId.toString(),
-    target: t.payeeId.toString(),
-    amount: t.amount,
-  }));
-
-  return { nodes, edges };
+  return { nodes, edges }
 }

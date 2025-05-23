@@ -11,6 +11,7 @@ import { format } from 'date-fns'; // 날짜 포맷팅 라이브러리
 import { ko } from 'date-fns/locale'; // 한국어 로케일
 import { Badge } from '@/components/ui/badge'; // Badge 컴포넌트 임포트
 import { cn } from '@/lib/utils'; // cn 유틸리티 임포트
+import { useParams } from 'next/navigation';
 
 /**
  * SettlementList 컴포넌트의 Props 정의
@@ -27,7 +28,7 @@ interface SettlementListProps {
  * @param settlements - 표시할 정산 목록 아이템 배열
  */
 export default function SettlementList({ settlements }: SettlementListProps): ReactElement {
-
+  const { groupId } = useParams();
   // 정산 목록이 비어있을 경우 메시지 표시
   if (settlements.length === 0) {
     return (
@@ -70,11 +71,11 @@ export default function SettlementList({ settlements }: SettlementListProps): Re
                    </Badge>
                 )}
               </div>
-             <CardDescription className="flex items-center text-sm text-muted-foreground pt-1">
-                <Calendar className="mr-1.5 h-4 w-4" /> {/* 날짜 아이콘 */}
-                {/* 날짜 포맷팅: 'yyyy년 M월 d일' 형식, 한국어 로케일 적용 */}
-                {format(new Date(settlement.createdAt), 'yyyy년 M월 d일', { locale: ko })}
-            </CardDescription>
+              <CardDescription className="flex items-center text-sm text-muted-foreground pt-1">
+                <Calendar className="mr-1.5 h-4 w-4" />
+                {new Date(settlement.createdAt).getFullYear() !== 1970 &&
+                format(new Date(settlement.createdAt), 'yyyy년 M월 d일', { locale: ko })}
+              </CardDescription>
           </CardHeader>
           {/* 카드 본문: 참여자 수, 총 금액 */}
           <CardContent className="flex-grow"> {/* 내용 영역이 남은 공간을 채우도록 설정 */}
@@ -83,16 +84,11 @@ export default function SettlementList({ settlements }: SettlementListProps): Re
                     <Users className="mr-1.5 h-4 w-4 text-sky-600"/> {/* 참여자 아이콘 */}
                     <span>{settlement.participantCount}명 참여</span>
                  </div>
-                 <div className="flex items-center">
-                    <Coins className="mr-1.5 h-4 w-4 text-amber-600" /> {/* 금액 아이콘 */}
-                    {/* 총 금액: 세 자리마다 콤마 표시 */}
-                    <span>총 {settlement.totalAmount.toLocaleString()}원</span>
-                </div>
             </div>
           </CardContent>
           {/* 카드 푸터: 상세 보기 버튼 */}
           <CardFooter className="border-t pt-4"> {/* 상단 테두리 및 패딩 */}
-            <Link href={`/settlements/${settlement.id}`} legacyBehavior passHref>
+            <Link href={`/${groupId}/settlements/${settlement.id}`} legacyBehavior passHref>
               {/* Link 컴포넌트로 상세 페이지(/settlements/[id])로 이동 */}
               <Button variant="outline" size="sm" className="w-full"> {/* 버튼 스타일: 외곽선, 작은 크기, 너비 100% */}
                 {settlement.isCompleted ? '내역 확인' : '상세 보기'} {/* 완료 여부에 따라 버튼 텍스트 변경 */}

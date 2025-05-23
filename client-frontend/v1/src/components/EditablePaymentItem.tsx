@@ -3,7 +3,6 @@
 
 import type { ReactElement } from 'react';
 import { useState, useEffect } from 'react';
-import Image from 'next/image'; // Next.js Image 컴포넌트 임포트
 import type { Payment } from '@/services/settlement';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,13 +24,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import {
-    Dialog, // 이미지 크게 보기 위한 Dialog 추가
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog"
 
 
 /**
@@ -105,6 +97,7 @@ export default function EditablePaymentItem({
   const [editedPayment, setEditedPayment] = useState<Payment>(payment);
   // 입력 필드 유효성 검사 에러 상태 관리
   const [errors, setErrors] = useState<{ amount?: string; item?: string; target?: string }>({});
+  const [splitMethod, setSplitMethod] = useState<'equal' | 'custom'>('equal');
 
   /**
    * isEditing 상태가 변경될 때 editedPayment를 초기화/업데이트하고 에러 상태를 초기화합니다.
@@ -136,28 +129,22 @@ export default function EditablePaymentItem({
    * @param checked - 체크 여부
    */
   const handleTargetChange = (participant: string, checked: boolean) => {
-    if (isCompleted) return; // 완료된 정산은 수정 불가
-    let newTargets = [...editedPayment.target];
-    if (checked) {
-      if (!newTargets.includes(participant)) {
-        newTargets.push(participant); // 선택 시 대상자 추가
+    const newTargets = checked
+      ? [...editedPayment.target, participant]
+      : editedPayment.target.filter(p => p !== participant)
+  
+    const newAmount = (editedPayment.constant || []).reduce((sum, val, i) => {
+      if (newTargets.includes(participants[i]) && typeof val === 'number') {
+        return sum + val
       }
-    } else {
-      newTargets = newTargets.filter(p => p !== participant); // 해제 시 대상자 제거
-    }
-
-    // 대상자가 변경되면 비율도 균등하게 재설정 (필요시 다른 로직 적용 가능)
-    // target이 0명이 되는 경우 방지 필요
-    const newRatio = newTargets.length > 0 ? newTargets.map(() => 1 / newTargets.length) : [];
+      return sum
+    }, 0)
+  
     setEditedPayment(prev => ({
-        ...prev,
-        target: newTargets,
-        ratio: newRatio
-    }));
-    // 대상자 에러 초기화
-    if (errors.target) {
-        setErrors(prev => ({ ...prev, target: undefined }));
-    }
+      ...prev,
+      target: newTargets,
+      amount: splitMethod === 'custom' ? newAmount : prev.amount
+    }))
   };
 
    /**
@@ -202,7 +189,7 @@ export default function EditablePaymentItem({
           // --- 수정 모드 UI ---
           <div className="space-y-4">
             {/* 항목명, 금액, 이미지 URL 입력 필드 */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* 항목명 */}
               <div className="md:col-span-1">
                 <Label htmlFor={`item-${payment.id}`}>항목명</Label>
@@ -219,26 +206,17 @@ export default function EditablePaymentItem({
                <div className="md:col-span-1">
                  <Label htmlFor={`amount-${payment.id}`}>금액 (원)</Label>
                  <Input
-                   id={`amount-${payment.id}`}
-                   type="number"
-                   value={editedPayment.amount}
-                   onChange={(e) => handleChange('amount', parseInt(e.target.value) || 0)}
-                   className={cn(errors.amount && "border-destructive")}
-                   disabled={isCompleted}
-                 />
+                  id={`amount-${payment.id}`}
+                  step={1000}
+                  type="number"
+                  value={editedPayment.amount}
+                  onChange={(e) => handleChange('amount', parseInt(e.target.value) || 0)}
+                  readOnly={splitMethod === 'custom'}
+                  className={cn(errors.amount && "border-destructive")}
+                  disabled={isCompleted}
+                  />
                   {errors.amount && <p className="text-xs text-destructive mt-1">{errors.amount}</p>}
                </div>
-              {/* 이미지 URL */}
-              <div className="md:col-span-1">
-                 <Label htmlFor={`imageUrl-${payment.id}`}>이미지 URL (선택)</Label>
-                 <Input
-                   id={`imageUrl-${payment.id}`}
-                   value={editedPayment.imageUrl || ''}
-                   onChange={(e) => handleChange('imageUrl', e.target.value)}
-                   placeholder="https://..."
-                   disabled={isCompleted}
-                 />
-              </div>
             </div>
 
             {/* 결제자, 정산 대상자 선택 필드 */}
@@ -265,30 +243,90 @@ export default function EditablePaymentItem({
               <div>
                 <Label>정산 대상자</Label>
                 <div className={cn(
-                  "mt-2 space-y-2 p-3 border rounded-md max-h-32 overflow-y-auto",
+                  "mt-2 p-3 border rounded-md max-h-32 overflow-y-auto",
+                  splitMethod === 'equal'
+                  ? "grid grid-cols-2 md:grid-cols-3 gap-2"
+                  : "space-y-2",
                   errors.target && "border-destructive"
                 )}>
-                  {participants.map(p => (
-                    <div key={p} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`target-${payment.id}-${p}`}
-                        checked={editedPayment.target.includes(p)}
-                        onCheckedChange={(checked) => handleTargetChange(p, !!checked)}
-                        disabled={isCompleted}
-                      />
-                      <label
-                        htmlFor={`target-${payment.id}-${p}`}
-                        className={cn(
-                            "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
-                            isCompleted && "cursor-not-allowed opacity-70" // 완료 시 스타일
-                        )}
-                      >
-                        {p}
-                      </label>
-                    </div>
-                  ))}
+                {participants.map((p, index) => {
+                  const isTarget = editedPayment.target.includes(p)
+
+                    return (
+                     <div key={p} className="flex items-center justify-between space-x-2">
+                       <div className="flex items-center space-x-2">
+                         <Checkbox
+                           id={`target-${payment.id}-${p}`}
+                           checked={isTarget}
+                           onCheckedChange={(checked) => handleTargetChange(p, !!checked)}
+                           disabled={isCompleted}
+                         />
+                         <label
+                           htmlFor={`target-${payment.id}-${p}`}
+                           className={cn(
+                             "text-lg font-medium leading-none",
+                             !isTarget && "text-muted-foreground",
+                             isCompleted && "cursor-not-allowed opacity-70"
+                           )}
+                         >
+                           {p}
+                         </label>
+                       </div>
+
+                       {splitMethod === 'custom' && (
+                         <Input
+                           type="number"
+                           step={1000}
+                           disabled={!isTarget || isCompleted}
+                           value={editedPayment.constant?.[index] ?? ''}
+                           onChange={(e) => {
+                            const value = parseInt(e.target.value)
+                            if (isNaN(value) || value < 0) return
+                          
+                            const newConst = [...(editedPayment.constant || [])]
+                            newConst[index] = value
+                          
+                            const total = newConst.reduce(
+                              (sum, val, i) =>
+                                editedPayment.target.includes(participants[i]) && typeof val === 'number'
+                                  ? sum + val
+                                  : sum,
+                              0
+                            )
+                          
+                            setEditedPayment(prev => ({
+                              ...prev,
+                              constant: newConst,
+                              amount: total
+                            }))
+                          }}
+                           className="w-24 h-8 text-sm"
+                           placeholder="금액"
+                         />
+                       )}
+                     </div>
+                   )
+                 })}
                 </div>
                  {errors.target && <p className="text-xs text-destructive mt-1">{errors.target}</p>}
+              </div>
+              <div></div>
+              {/* 결제 방식 */}
+              <div>
+                <Label htmlFor={`splitMethod-${payment.id}`}>확인 방식</Label>
+                <Select
+                  value={splitMethod}
+                  onValueChange={(value) => setSplitMethod(value as 'equal' | 'custom')}
+                  disabled={isCompleted}
+  >
+                  <SelectTrigger id={`splitMethod-${payment.id}`}>
+                  <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                  <SelectItem value="equal">인원 확인</SelectItem>
+                  <SelectItem value="custom">금액 확인</SelectItem>
+                  </SelectContent>
+                  </Select>
               </div>
             </div>
 
@@ -339,31 +377,6 @@ export default function EditablePaymentItem({
                    {payment.payer} 결제 · {payment.target.length}명 정산
                  </p>
                </div>
-               {/* 이미지 아이콘 (이미지 URL이 있을 경우) 및 확대 보기 Dialog */}
-               {payment.imageUrl && (
-                 <Dialog>
-                    <DialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0 text-muted-foreground hover:text-primary">
-                            <ImageIcon className="h-4 w-4" />
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[600px]">
-                        <DialogHeader>
-                            <DialogTitle>이미지 상세 보기: {payment.item}</DialogTitle>
-                        </DialogHeader>
-                        <div className="mt-4 flex justify-center">
-                            <Image
-                                src={payment.imageUrl}
-                                alt={`영수증 이미지 - ${payment.item}`}
-                                width={500}
-                                height={500}
-                                className="rounded-md object-contain max-h-[70vh]" // 이미지 스타일
-                                unoptimized // 외부 이미지 URL 최적화 비활성화 (필요에 따라 제거)
-                            />
-                        </div>
-                    </DialogContent>
-                 </Dialog>
-               )}
              </div>
 
              {/* 오른쪽 영역: 금액, 수정 버튼 */}
@@ -383,8 +396,10 @@ export default function EditablePaymentItem({
                  )}
                  {/* 완료 시 잠금 아이콘 표시 */}
                  {isCompleted && (
-                     <Lock className="h-4 w-4 text-muted-foreground" title="완료된 정산 항목"/>
-                 )}
+                  <span title="완료된 정산 항목">
+                  <Lock className="h-4 w-4 text-muted-foreground" />
+                </span>
+                )}
              </div>
           </div>
         )}

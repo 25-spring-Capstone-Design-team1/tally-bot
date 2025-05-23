@@ -81,8 +81,6 @@ export default function SettlementSummary({ settlement }: SettlementSummaryProps
               <div key={participant} className="flex flex-col items-center gap-1">
                 {/* 참여자 아바타 */}
                 <Avatar className="h-12 w-12 border-2 border-primary/50">
-                  {/* TODO: 실제 사용자 프로필 이미지 URL이 있다면 AvatarImage src에 적용 */}
-                  <AvatarImage src={`https://picsum.photos/seed/${participant}/48/48`} alt={participant} />
                   {/* 프로필 이미지 없을 경우 폴백: 이름 이니셜과 고유 색상 배경 */}
                   <AvatarFallback
                     className="font-semibold"

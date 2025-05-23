@@ -79,10 +79,30 @@ export default function SettlementPage(): ReactElement {
    * SettlementDetail 컴포넌트에서 호출됩니다.
    * @param updatedPayments - 변경된 결제 항목 목록
    */
-  const handlePaymentsChange = (updatedPayments: Settlement['payments']) => {
-     if (settlement?.isCompleted) return; // 완료된 정산은 수정 불가
-    setSettlement(prev => prev ? { ...prev, payments: updatedPayments } : null);
-    // TODO: 변경 사항이 있을 때 저장 버튼 활성화 등의 로직 추가 가능
+  const handlePaymentsChange = async (updatedPayments: Settlement['payments']) => {
+    if (!settlement || settlement.isCompleted) return; // 상태 비어있거나 완료면 무시
+  
+    const updatedSettlement: Settlement = {
+      settlementId: settlement.settlementId,
+      title: settlement.title,
+      createdAt: settlement.createdAt,
+      participants: settlement.participants,
+      payments: updatedPayments,
+      optimizedTransfers: settlement.optimizedTransfers,
+      isCompleted: settlement.isCompleted,
+    };
+  
+    try {
+      const saved = await updateSettlement(settlementId, updatedSettlement);
+      setSettlement(saved);
+    } catch (err) {
+      console.error("자동 저장 실패", err);
+      toast({
+        title: "오류",
+        description: "자동 저장에 실패했습니다. 수동 저장을 시도하세요.",
+        variant: "destructive",
+      });
+    }
   };
 
   /**
@@ -237,15 +257,59 @@ export default function SettlementPage(): ReactElement {
           <div>
             <CardTitle className="text-2xl font-bold text-primary flex items-center">
               {settlement.title}
-              {isSettlementCompleted && <Lock className="ml-2 h-5 w-5 text-muted-foreground" title="완료된 정산"/>} {/* 완료 시 자물쇠 아이콘 */}
+              {isSettlementCompleted && <span title="완료된 정산">
+              <Lock className="ml-2 h-5 w-5 text-muted-foreground" />
+              </span>} {/* 완료 시 자물쇠 아이콘 */}
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              총 정산 금액: {totalAmount.toLocaleString()}원 | 생성일: {new Date(settlement.createdAt).toLocaleDateString('ko-KR')}
-               {isSettlementCompleted && <span className="ml-2 font-semibold text-green-600">(완료됨)</span>}
-            </p>
+              생성일: {
+                !isNaN(new Date(settlement.createdAt).getTime())
+                ? new Date(settlement.createdAt).toLocaleDateString('ko-KR')
+                : null
+              }
+              {isSettlementCompleted && (
+              <span className="ml-2 font-semibold text-green-600">(완료됨)</span>
+              )}
+          </p>
           </div>
           {/* 액션 버튼 그룹 */}
           <div className="flex gap-2">
+          <Button
+                onClick={() => {
+                  if (window.confirm('정산 내용을 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+                      const blankSettlement: Settlement = {
+                      settlementId,
+                      title: '공란',
+                      createdAt: '1970-01-01T00:00:00Z',
+                      participants: [],
+                      payments: [],
+                      optimizedTransfers: [],
+                      isCompleted: false,
+                    };
+
+                    updateSettlement(settlementId, blankSettlement)
+                      .then(() => {
+                      setSettlement(blankSettlement);
+                      toast({
+                       title: '초기화 완료',
+                        description: '정산 내용이 초기화되었습니다.',
+                     });
+                   })
+                    .catch((err) => {
+                      console.error('초기화 실패:', err);
+                      toast({
+                       title: '오류',
+                       description: '초기화에 실패했습니다.',
+                        variant: 'destructive',
+                      });
+                    });
+                }
+              }}
+                size="sm"
+                className="bg-black text-white hover:bg-black/80"
+>
+                리셋
+                </Button>
              {/* 저장 버튼 (완료되지 않았을 때만 보임) */}
              {!isSettlementCompleted && (
                <Button onClick={handleSave} size="sm" disabled={isSaving || isRecalculating || isCompleting}>
@@ -307,10 +371,9 @@ export default function SettlementPage(): ReactElement {
 
           <Tabs defaultValue="summary" className="w-full">
             {/* 탭 목록 */}
-            <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 mb-6">
+            <TabsList className="grid w-full grid-cols-1 md:grid-cols-2 mb-6">
               <TabsTrigger value="summary">요약</TabsTrigger>
               <TabsTrigger value="details">상세 내역</TabsTrigger>
-              <TabsTrigger value="graph">송금 그래프</TabsTrigger>
             </TabsList>
 
             {/* 요약 탭 */}
@@ -326,11 +389,6 @@ export default function SettlementPage(): ReactElement {
                 onPaymentsChange={handlePaymentsChange} // 변경 사항을 부모로 전달
                 isCompleted={isSettlementCompleted} // 완료 상태 전달
               />
-            </TabsContent>
-
-            {/* 송금 그래프 탭 */}
-            <TabsContent value="graph">
-              <TransferGraph settlementId={settlementId} />
             </TabsContent>
           </Tabs>
         </CardContent>
