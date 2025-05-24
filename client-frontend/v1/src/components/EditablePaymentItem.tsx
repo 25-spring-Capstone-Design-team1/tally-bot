@@ -46,6 +46,7 @@ interface EditablePaymentItemProps {
   onCancel: () => void;
   /** 정산 완료 여부 */
   isCompleted: boolean;
+  getNickname: (id: string) => string; 
 }
 
 /**
@@ -92,6 +93,7 @@ export default function EditablePaymentItem({
   onDelete,
   onCancel,
   isCompleted, // 완료 상태 prop 추가
+  getNickname,
 }: EditablePaymentItemProps): ReactElement {
   // 수정 중인 결제 항목의 상태 관리
   const [editedPayment, setEditedPayment] = useState<Payment>(payment);
@@ -269,7 +271,7 @@ export default function EditablePaymentItem({
                              isCompleted && "cursor-not-allowed opacity-70"
                            )}
                          >
-                           {p}
+                           {getNickname(p)}
                          </label>
                        </div>
 
@@ -374,7 +376,7 @@ export default function EditablePaymentItem({
                <div className="flex-grow min-w-0">
                  <p className="font-semibold truncate" title={payment.item}>{payment.item}</p>
                  <p className="text-sm text-muted-foreground">
-                   {payment.payer} 결제 · {payment.target.length}명 정산
+                    {getNickname(payment.payer)} 결제 · {payment.target.length}명 정산
                  </p>
                </div>
              </div>

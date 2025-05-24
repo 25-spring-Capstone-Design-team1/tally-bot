@@ -3,26 +3,25 @@
 
 import type { ReactElement } from 'react';
 import { useState } from 'react';
+import { useEffect } from 'react';
 import type { Payment } from '@/services/settlement';
 import EditablePaymentItem from '@/components/EditablePaymentItem';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Lock } from 'lucide-react'; // Lock 아이콘 임포트
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area'; // 스크롤 가능한 영역 컴포넌트
+import { getGroupMembers, GroupMember } from '@/services/settlement';
 
 
 /**
  * SettlementDetail 컴포넌트의 Props 정의
  */
 interface SettlementDetailProps {
-  /** 현재 정산에 포함된 결제 항목 목록 */
   payments: Payment[];
-  /** 정산 참여자 전체 목록 (항목 추가/수정 시 필요) */
   participants: string[];
-  /** 결제 항목 목록이 변경될 때 호출되는 콜백 함수 (변경된 목록을 부모로 전달) */
-  onPaymentsChange: (updatedPayments: Payment[]) => void;
-  /** 정산 완료 여부 */
+  onPaymentsChange: (updated: Payment[]) => Promise<void>;
   isCompleted: boolean;
+  groupId: string; 
 }
 
 /**
@@ -31,9 +30,19 @@ interface SettlementDetailProps {
  * 항목 추가, 수정 시작, 수정 완료, 삭제 기능을 관리합니다.
  * 정산이 완료된 경우 수정/추가/삭제 기능을 비활성화합니다.
  */
-export default function SettlementDetail({ payments, participants, onPaymentsChange, isCompleted }: SettlementDetailProps): ReactElement {
+export default function SettlementDetail({ payments, participants, onPaymentsChange, isCompleted, groupId}: SettlementDetailProps): ReactElement {
   // 현재 수정 중인 항목의 ID를 관리하는 상태. null이면 수정 중인 항목 없음.
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
+  const [members, setMembers] = useState<GroupMember[]>([]);
+
+  useEffect(() => {
+    getGroupMembers(groupId).then(setMembers).catch(console.error);
+  },[groupId]);
+
+  const getNickname = (id: string) => {
+    const member = members.find(m => m.memberId.toString() === id);
+    return member?.nickname || id;
+  };
 
   /**
    * 새 정산 항목 추가 핸들러.
@@ -113,6 +122,7 @@ export default function SettlementDetail({ payments, participants, onPaymentsCha
      setEditingItemId(null); // 수정 모드 해제
      // TODO: 필요하다면 수정 전 상태로 되돌리는 로직 추가 (현재는 취소 시 변경사항 유지됨)
    };
+   
 
   // --- 렌더링 ---
   return (
@@ -156,6 +166,7 @@ export default function SettlementDetail({ payments, participants, onPaymentsCha
                     onDelete={handleDeletePayment} // 삭제 핸들러 전달
                     onCancel={handleCancelEdit} // 수정 취소 핸들러 전달
                     isCompleted={isCompleted} // 완료 상태 전달
+                    getNickname={getNickname}
                   />
                 </li>
               ))}

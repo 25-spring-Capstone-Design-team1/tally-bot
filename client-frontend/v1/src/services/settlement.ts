@@ -58,18 +58,15 @@ export interface Settlement {
  * 정산 목록 페이지에 표시될 각 정산의 요약 정보를 나타냅니다.
  */
 export interface SettlementListItem {
-    /** 정산의 고유 식별자 */
-    id: string;
-    /** 정산 제목 */
-    title: string;
-    /** 정산 생성 타임스탬프 (ISO 8601 형식 문자열) */
-    createdAt: string;
-     /** 총 참여자 수 */
-    participantCount: number;
-     /** 정산 총 금액 */
-    totalAmount: number;
-    /** 정산 완료 여부 */
-    isCompleted: boolean;
+  calculateId: number;
+  startTime: string;
+  endTime: string;
+  status: 'PENDING' | 'COMPLETED';
+}
+
+export interface GroupMember {
+  memberId: number;
+  nickname: string;
 }
 
 
@@ -85,12 +82,10 @@ export async function getSettlementsList(groupId: string): Promise<SettlementLis
   const calculates = await res.json();
 
   return calculates.map((item: any) => ({
-    id: item.calculateId.toString(),
-    title: `${item.startTime} ~ ${item.endTime}`,
-    createdAt: item.startTime,
-    participantCount: 0,
-    totalAmount: 0,
-    isCompleted: item.status === 'COMPLETED',
+    calculateId: item.calculateId,
+    startTime: item.startTime,
+    endTime: item.endTime,
+    status: item.status,
   }));
 }
 
@@ -134,6 +129,12 @@ export async function getSettlement(calculateId: string): Promise<Settlement> {
     optimizedTransfers: [],
     isCompleted: false,
   };
+}
+
+export async function getGroupMembers(groupId: string): Promise<GroupMember[]> {
+  const res = await fetch(`http://52.79.167.2:8080/api/group/${groupId}/members`);
+  if (!res.ok) throw new Error('멤버 목록 불러오기 실패');
+  return await res.json();
 }
 
 

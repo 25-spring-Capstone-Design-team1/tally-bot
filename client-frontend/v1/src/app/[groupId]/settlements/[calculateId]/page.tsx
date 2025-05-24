@@ -4,7 +4,7 @@
 import type { ReactElement } from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getSettlement, recalculateSettlement, updateSettlement, markSettlementComplete, type Settlement } from '@/services/settlement';
+import { getSettlement, recalculateSettlement, updateSettlement, markSettlementComplete, getSettlementsList, type Settlement } from '@/services/settlement';
 import SettlementSummary from '@/components/SettlementSummary';
 import SettlementDetail from '@/components/SettlementDetail';
 import TransferGraph from '@/components/TransferGraph';
@@ -25,6 +25,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { format } from 'date-fns';
+
 
 
 /**
@@ -32,10 +34,10 @@ import {
  * 요약, 상세 내역, 송금 그래프 탭을 포함하며, 데이터 로딩, 수정, 재계산, 완료 기능을 제공합니다.
  */
 export default function SettlementPage(): ReactElement {
-  const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
-  const settlementId = params.id as string; // URL에서 정산 ID 추출
+  const { groupId, calculateId } = useParams();
+  const settlementId = calculateId as string;
 
   const [settlement, setSettlement] = useState<Settlement | null>(null); // 정산 데이터 상태
   const [loading, setLoading] = useState<boolean>(true); // 로딩 상태
@@ -43,6 +45,9 @@ export default function SettlementPage(): ReactElement {
   const [isRecalculating, setIsRecalculating] = useState<boolean>(false); // 재계산 중 상태
   const [isSaving, setIsSaving] = useState<boolean>(false); // 저장 중 상태
   const [isCompleting, setIsCompleting] = useState<boolean>(false); // 완료 처리 중 상태
+
+  const [timeRangeTitle, setTimeRangeTitle] = useState<string | null>(null);
+  const [isSettlementCompleted, setIsSettlementCompleted] = useState(false);
 
   /**
    * 정산 데이터를 불러오는 함수.
@@ -68,6 +73,25 @@ export default function SettlementPage(): ReactElement {
       setLoading(false); // 로딩 상태 해제
     }
   }, [settlementId, toast]);
+
+  const fetchTitleFromList = useCallback(async () => {
+    try {
+      const list = await getSettlementsList(groupId as string);
+      const match = list.find(item => item.calculateId.toString() === settlementId);
+      if (match) {
+        const formatted = `${format(new Date(match.startTime), 'yyyy/MM/dd HH:mm')} ~ ${format(new Date(match.endTime), 'yyyy/MM/dd HH:mm')}`;
+        setTimeRangeTitle(formatted);
+        setIsSettlementCompleted(match.status === 'COMPLETED');
+      }
+    } catch (err) {
+      console.error('제목용 정산 목록 불러오기 실패', err);
+    }
+    
+  }, [groupId, settlementId]);
+
+  useEffect(() => {
+    fetchTitleFromList();
+  }, [fetchTitleFromList]);
 
   // 컴포넌트 마운트 시 및 fetchSettlement 함수 변경 시 데이터 로드
   useEffect(() => {
@@ -171,22 +195,22 @@ export default function SettlementPage(): ReactElement {
    * '공유' 버튼 클릭 시 호출됩니다. Mock URL을 클립보드에 복사합니다.
    */
   const handleShare = () => {
-    const mockUrl = `https://tally.bot/share/${settlementId}`; // Mock URL 생성
-    navigator.clipboard.writeText(mockUrl)
-      .then(() => {
-        toast({
-          title: "성공",
-          description: "정산 공유 링크(Mock)가 클립보드에 복사되었습니다.",
-        });
-      })
-      .catch(err => {
-        console.error('클립보드 복사 실패:', err);
-        toast({
-          title: "오류",
-          description: "링크 복사에 실패했습니다.",
-          variant: "destructive",
-        });
-      });
+    const currentUrl = window.location.href;
+navigator.clipboard.writeText(currentUrl)
+  .then(() => {
+    toast({
+      title: "성공",
+      description: "현재 페이지 링크가 클립보드에 복사되었습니다.",
+    });
+  })
+  .catch(err => {
+    console.error('클립보드 복사 실패:', err);
+    toast({
+      title: "오류",
+      description: "링크 복사에 실패했습니다.",
+      variant: "destructive",
+    });
+  });
   };
 
   /**
@@ -245,117 +269,131 @@ export default function SettlementPage(): ReactElement {
 
   // 총 정산 금액 계산 (UI 표시용)
   const totalAmount = settlement.payments.reduce((sum, payment) => sum + payment.amount, 0);
-  const isSettlementCompleted = settlement.isCompleted; // 정산 완료 여부
 
   // 메인 렌더링
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="bg-primary/10 rounded-t-lg pb-4">
       {/* 상단 카드: 제목, 총액, 생성일, 액션 버튼들 */}
       <Card className="mb-8 shadow-lg rounded-lg">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-primary/10 rounded-t-lg">
-          {/* 정산 정보 */}
-          <div>
-            <CardTitle className="text-2xl font-bold text-primary flex items-center">
-              {settlement.title}
-              {isSettlementCompleted && <span title="완료된 정산">
+      <CardHeader className="flex flex-col items-start gap-2 bg-primary/10 rounded-t-lg pb-4">
+  {/* 제목 */}
+        <div className="w-full">
+          <CardTitle className="text-2xl font-bold text-primary flex items-center justify-between">
+            {timeRangeTitle || '정산 상세'}
+            {isSettlementCompleted && (
               <Lock className="ml-2 h-5 w-5 text-muted-foreground" />
-              </span>} {/* 완료 시 자물쇠 아이콘 */}
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              생성일: {
-                !isNaN(new Date(settlement.createdAt).getTime())
-                ? new Date(settlement.createdAt).toLocaleDateString('ko-KR')
-                : null
-              }
-              {isSettlementCompleted && (
-              <span className="ml-2 font-semibold text-green-600">(완료됨)</span>
-              )}
-          </p>
-          </div>
-          {/* 액션 버튼 그룹 */}
-          <div className="flex gap-2">
-          <Button
-                onClick={() => {
-                  if (window.confirm('정산 내용을 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
-                      const blankSettlement: Settlement = {
-                      settlementId,
-                      title: '공란',
-                      createdAt: '1970-01-01T00:00:00Z',
-                      participants: [],
-                      payments: [],
-                      optimizedTransfers: [],
-                      isCompleted: false,
-                    };
+            )}
+          </CardTitle>
+        </div>
 
-                    updateSettlement(settlementId, blankSettlement)
-                      .then(() => {
-                      setSettlement(blankSettlement);
-                      toast({
-                       title: '초기화 완료',
-                        description: '정산 내용이 초기화되었습니다.',
-                     });
-                   })
-                    .catch((err) => {
-                      console.error('초기화 실패:', err);
-                      toast({
-                       title: '오류',
-                       description: '초기화에 실패했습니다.',
-                        variant: 'destructive',
-                      });
-                    });
-                }
-              }}
-                size="sm"
-                className="bg-black text-white hover:bg-black/80"
->
-                리셋
-                </Button>
-             {/* 저장 버튼 (완료되지 않았을 때만 보임) */}
-             {!isSettlementCompleted && (
-               <Button onClick={handleSave} size="sm" disabled={isSaving || isRecalculating || isCompleting}>
-                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                저장
-               </Button>
-             )}
-             {/* 재계산 버튼 (완료되지 않았을 때만 보임) */}
-             {!isSettlementCompleted && (
-                <Button onClick={() => handleRecalculate()} size="sm" variant="outline" disabled={isRecalculating || isSaving || isCompleting}>
-                 {isRecalculating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                 재계산
-                </Button>
-             )}
-             {/* 완료 버튼 (완료되지 않았을 때만 보임) */}
-             {!isSettlementCompleted && (
-                <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                       <Button size="sm" variant="destructive" disabled={isRecalculating || isSaving || isCompleting}>
-                         {isCompleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
-                         정산 완료
-                       </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>정산을 완료하시겠습니까?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          정산을 완료하면 더 이상 항목을 수정하거나 삭제할 수 없습니다. 이 작업은 되돌릴 수 없습니다.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>취소</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleCompleteSettlement} className="bg-destructive hover:bg-destructive/90">
-                           완료 확인
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-             )}
-             {/* 공유 버튼 (항상 보임) */}
-             <Button onClick={handleShare} size="sm" variant="secondary">
-              <Share2 className="mr-2 h-4 w-4" />
-              공유
-            </Button>
-          </div>
-        </CardHeader>
+  {/* 액션 버튼 그룹 */}
+  <div className="w-full flex flex-wrap justify-end gap-2">
+
+    {/* ✅ 삭제 버튼: 항상 보임 */}
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button size="sm" variant="destructive">
+          삭제
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>정말 삭제하시겠습니까?</AlertDialogTitle>
+          <AlertDialogDescription>
+            이 작업은 되돌릴 수 없습니다.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>취소</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive hover:bg-destructive/90"
+            onClick={() => {
+              // TODO: 삭제 기능 구현 예정
+            }}
+          >
+            삭제 확인
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    {/* 저장 버튼 */}
+    {!isSettlementCompleted && (
+      <Button
+        onClick={handleSave}
+        size="sm"
+        disabled={isSaving || isRecalculating || isCompleting}
+      >
+        {isSaving ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : (
+          <Save className="mr-2 h-4 w-4" />
+        )}
+        저장
+      </Button>
+    )}
+
+    {/* 재계산 버튼 */}
+    {!isSettlementCompleted && (
+      <Button
+        onClick={() => handleRecalculate()}
+        size="sm"
+        variant="outline"
+        disabled={isRecalculating || isSaving || isCompleting}
+      >
+        {isRecalculating ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : (
+          <RefreshCw className="mr-2 h-4 w-4" />
+        )}
+        재계산
+      </Button>
+    )}
+
+    {/* ✅ 정산 완료 버튼 (녹색) */}
+    {!isSettlementCompleted && (
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button
+            size="sm"
+            className="bg-green-600 hover:bg-green-700 text-white"
+            disabled={isRecalculating || isSaving || isCompleting}
+          >
+            {isCompleting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <CheckCircle className="mr-2 h-4 w-4" />
+            )}
+            정산 완료
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>정산을 완료하시겠습니까?</AlertDialogTitle>
+            <AlertDialogDescription>
+              정산을 완료하면 더 이상 항목을 수정하거나 삭제할 수 없습니다. 이 작업은 되돌릴 수 없습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCompleteSettlement}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              완료 확인
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    )}
+
+    {/* 공유 버튼 */}
+    <Button onClick={handleShare} size="sm" variant="secondary">
+      <Share2 className="mr-2 h-4 w-4" />
+      공유
+    </Button>
+  </div>
+</CardHeader>
         {/* 탭 콘텐츠 */}
         <CardContent className="pt-6">
           {/* 완료 알림 (완료되었을 때만 보임) */}
@@ -378,7 +416,7 @@ export default function SettlementPage(): ReactElement {
 
             {/* 요약 탭 */}
             <TabsContent value="summary">
-              <SettlementSummary settlement={settlement} />
+              <SettlementSummary settlement={settlement} groupId={groupId as string} />
             </TabsContent>
 
             {/* 상세 내역 탭 */}
@@ -388,6 +426,7 @@ export default function SettlementPage(): ReactElement {
                 participants={settlement.participants}
                 onPaymentsChange={handlePaymentsChange} // 변경 사항을 부모로 전달
                 isCompleted={isSettlementCompleted} // 완료 상태 전달
+                groupId={groupId as string}
               />
             </TabsContent>
           </Tabs>
