@@ -76,7 +76,7 @@ export interface GroupMember {
  * @returns SettlementListItem 객체 배열을 포함하는 Promise.
  */
 export async function getSettlementsList(groupId: string): Promise<SettlementListItem[]> {
-  const res = await fetch(`http://tally-bot-web-backend-alb-243058276.ap-northeast-2.elb.amazonaws.com/api/group/${groupId}/calculates`);
+  const res = await fetch(`/api/proxy/settlement-list?groupId=${groupId}`);
   if (!res.ok) throw new Error('정산 목록 불러오기 실패');
 
   const calculates = await res.json();
@@ -101,7 +101,7 @@ function computeConstant(ratio: number[], amount: number): number[] {
 }
 
 export async function getSettlement(calculateId: string): Promise<Settlement> {
-  const res = await fetch(`http://52.79.167.2:8080/api/calculate/${calculateId}/settlements`);
+  const res = await fetch(`/api/proxy/settlement?id=${calculateId}`);
   if (!res.ok) throw new Error(`정산 ${calculateId} 조회 실패`);
   const data = await res.json();
 
@@ -132,7 +132,7 @@ export async function getSettlement(calculateId: string): Promise<Settlement> {
 }
 
 export async function getGroupMembers(groupId: string): Promise<GroupMember[]> {
-  const res = await fetch(`http://52.79.167.2:8080/api/group/${groupId}/members`);
+  const res = await fetch(`/api/proxy/group-members?groupId=${groupId}`);
   if (!res.ok) throw new Error('멤버 목록 불러오기 실패');
   return await res.json();
 }
@@ -147,7 +147,7 @@ export async function getGroupMembers(groupId: string): Promise<GroupMember[]> {
  * @returns 업데이트되고 재계산된 정산 상세 정보를 포함하는 Settlement 객체의 Promise.
  */
 export async function updateSettlement(id: string, settlement: Settlement): Promise<Settlement> {
-  const res = await fetch(`http://52.79.167.2:8080/api/settlements/${id}`, {
+  const res = await fetch(`http://tally-bot-web-backend-alb-243058276.ap-northeast-2.elb.amazonaws.com/api/settlements/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(settlement),
@@ -165,7 +165,7 @@ export async function updateSettlement(id: string, settlement: Settlement): Prom
  * @returns 재계산된 정산 상세 정보를 포함하는 Settlement 객체의 Promise.
  */
 export async function recalculateSettlement(id: string): Promise<Settlement> {
-  const res = await fetch(`http://52.79.167.2:8080/api/settlements/${id}/recalculate`, {
+  const res = await fetch(`http://tally-bot-web-backend-alb-243058276.ap-northeast-2.elb.amazonaws.com/api/settlements/${id}/recalculate`, {
     method: 'POST',
   });
 
@@ -277,7 +277,7 @@ async function recalculateSettlementInternal(settlement: Settlement): Promise<Se
  * @returns 업데이트된 정산 상세 정보를 포함하는 Settlement 객체의 Promise.
  */
 export async function markSettlementComplete(id: string): Promise<Settlement> {
-  const res = await fetch(`http://52.79.167.2:8080/api/settlements/${id}/complete`, {
+  const res = await fetch(`http://http://tally-bot-web-backend-alb-243058276.ap-northeast-2.elb.amazonaws.com/api/settlements/${id}/complete`, {
     method: 'POST',
   });
 
@@ -324,7 +324,7 @@ export interface TransferGraph {
  * @returns 최적화된 송금 정보를 기반으로 구성된 TransferGraph 객체의 Promise.
  */
 export async function getTransferGraph(calculateId: string): Promise<TransferGraph> {
-  const res = await fetch(`http://52.79.167.2:8080/api/calculate/${calculateId}/transfers`);
+  const res = await fetch(`http://tally-bot-web-backend-alb-243058276.ap-northeast-2.elb.amazonaws.com/api/calculate/${calculateId}/transfers`);
   if (!res.ok) throw new Error('송금 관계 조회 실패');
   const data = await res.json();
 

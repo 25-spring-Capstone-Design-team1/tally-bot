@@ -236,7 +236,7 @@ export default function EditablePaymentItem({
                   </SelectTrigger>
                   <SelectContent>
                     {participants.map(p => (
-                      <SelectItem key={p} value={p}>{p}</SelectItem>
+                      <SelectItem key={p} value={p}>{getNickname(p)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -371,7 +371,7 @@ export default function EditablePaymentItem({
              <div className="flex items-center gap-3 flex-grow min-w-0">
                {!isCompleted && <GripVertical className="h-5 w-5 text-muted-foreground flex-shrink-0 cursor-grab" />} {/* 완료 시 드래그 핸들 숨김 */}
                <Avatar className="h-9 w-9 text-sm flex-shrink-0">
-                  <AvatarFallback style={stringToColor(payment.payer)}>{getInitials(payment.payer)}</AvatarFallback>
+                  <AvatarFallback style={stringToColor(getNickname(payment.payer))}>{getInitials(getNickname(payment.payer))}</AvatarFallback>
                </Avatar>
                <div className="flex-grow min-w-0">
                  <p className="font-semibold truncate" title={payment.item}>{payment.item}</p>
