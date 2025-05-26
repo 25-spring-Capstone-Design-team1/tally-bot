@@ -10,9 +10,10 @@ __pycache__/
 *$py.class
 
 # Virtual Environment
-venv/
+.venv/
 env/
 ENV/
+venv/
 
 # IDE
 .idea/
@@ -23,3 +24,6 @@ ENV/
 # OS
 .DS_Store
 Thumbs.db 
+
+# Test
+test/

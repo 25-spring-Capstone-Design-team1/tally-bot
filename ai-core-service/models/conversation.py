@@ -16,7 +16,7 @@ class ConversationRequest(BaseModel):
     # API 요청 모델 - FastAPI 엔드포인트에서 request: ConversationRequest 형태로 사용됩니다.
     # FastAPI는 수신된 JSON을 자동으로 이 모델로 변환하고 검증합니다.
     chatroom_name: str
-    members: List[str]
+    members: List[Dict[str, str]]
     messages: List[ChatMessage]
     prompt_file: str = "resources/input_prompt.yaml" # 1차 프롬프트 파일
     secondary_prompt_file: str = "resources/secondary_prompt.yaml"  # 2차 프롬프트 파일

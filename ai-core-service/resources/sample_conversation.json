@@ -1,124 +1,124 @@
 {
   "chatroom_name": "2025 유럽여행 인생샷 멤버들",
-  "members": ["지훈", "준호", "소연", "유진", "민우"],
+  "members": [{"0":"지훈", "1":"준호", "2":"소연", "3":"유진", "4":"민우"}],
   "messages": [
     {
       "unique_chat_id": "chat_001",
-      "speaker": "지훈",
+      "speaker": "0",
       "message_content": "야 얘들아 이제 여행 끝났으니까 정산좀 해볼까? 내가 엑셀로 대충 정리해봤는데 카톡으로 보내기 귀찮아서 여기다 올릴게ㅋㅋ",
       "timestamp": "2025-05-01T21:23:15"
     },
     {
       "unique_chat_id": "chat_002",
-      "speaker": "소연",
+      "speaker": "2",
       "message_content": "ㅇㅋ 나 파리 숙소비 47만 8천원이랑 에펠탑 입장권 5장에 13만 5천원 결제했어! 총 61만 3천원!",
       "timestamp": "2025-05-01T21:25:30"
     },
     {
       "unique_chat_id": "chat_003",
-      "speaker": "준호",
+      "speaker": "1",
       "message_content": "나는 로마 숙소 52만 3천원, 바티칸 입장료 11만 2500원, 베니스 곤돌라 18만 7천원 결제함! 근데 곤돌라는 진짜 비싼데 인생샷 건짐ㅋㅋㅋ",
       "timestamp": "2025-05-01T21:27:45"
     },
     {
       "unique_chat_id": "chat_004",
-      "speaker": "유진",
+      "speaker": "3",
       "message_content": "나 바르셀로나 숙소 39만 5천원, 사그라다 파밀리아 8만 7500원, 플라멩코 공연 5명 티켓 22만 5천원! 근데 우리 합산하면 진짜 많이 썼다ㄷㄷ",
       "timestamp": "2025-05-01T21:30:12"
     },
     {
       "unique_chat_id": "chat_005",
-      "speaker": "민우",
+      "speaker": "4",
       "message_content": "난 암스테르담에서 숙소 43만원, 빈센트 반 고흐 미술관 7만 8천원, 운하 크루즈 13만 5천원 냈음! 그리고 다같이 먹은 치즈퐁듀 레스토랑에서 저녁 31만원도!",
       "timestamp": "2025-05-01T21:32:45"
     },
     {
       "unique_chat_id": "chat_006",
-      "speaker": "지훈",
+      "speaker": "0",
       "message_content": "아 맞다 나는 파리-로마 기차표 5명 67만원, 로마-바르셀로나 항공권 5명 126만 3천원, 바르셀로나-암스테르담 항공권 5명 103만 5천원 결제했어! 진짜 큰돈이다ㅋㅋㅠㅠ",
       "timestamp": "2025-05-01T21:35:10"
     },
     {
       "unique_chat_id": "chat_007",
-      "speaker": "소연",
+      "speaker": "2",
       "message_content": "헐ㅋㅋㅋ 진짜 많이 썼네... 근데 교통비는 원래 미리 입금 받아서 계산한 거 아니었어? 내가 35만원씩 보냈던 거 같은데",
       "timestamp": "2025-05-01T21:37:25"
     },
     {
       "unique_chat_id": "chat_008",
-      "speaker": "지훈",
+      "speaker": "0",
       "message_content": "ㅇㅇ 맞아! 근데 당시에 예상보다 비싸서 내가 좀 더 보탠거라서 1인당 17만원씩 더 줘야돼ㅜㅜ 물가 미쳤음",
       "timestamp": "2025-05-01T21:39:30"
     },
     {
       "unique_chat_id": "chat_009",
-      "speaker": "준호",
+      "speaker": "1",
       "message_content": "ㄷㄷ 진짜 비싸네... 그래도 인생여행이었으니까 괜찮다고 생각하자ㅋㅋ 그리고 나 현금 없어서 식당에서 유진이가 대신 계산해준 거 15유로 있었는데 그것도 추가해줘",
       "timestamp": "2025-05-01T21:41:50"
     },
     {
       "unique_chat_id": "chat_010",
-      "speaker": "유진",
+      "speaker": "3",
       "message_content": "ㅇㅇ 맞아ㅋㅋ 그거랑 로마에서 민우 전화기 충전이 안 돼서 내가 산 충전기값 25유로도! 아 그리고 소연이한테 빌린 5만원도 있어",
       "timestamp": "2025-05-01T21:43:15"
     },
     {
       "unique_chat_id": "chat_011",
-      "speaker": "민우",
+      "speaker": "4",
       "message_content": "ㅋㅋㅋ 맞네 충전기 고마웠어! 아 그리고 내가 택시비 4번 냈는데, 파리에서 19유로, 로마에서 23유로, 바르셀로나에서 27유로 2번 있었음! 이것도 추가해줘",
       "timestamp": "2025-05-01T21:45:30"
     },
     {
       "unique_chat_id": "chat_012",
-      "speaker": "지훈",
+      "speaker": "0",
       "message_content": "오 이거 계산 복잡하네ㅋㅋㅋ 잠깐만 정리 좀 해볼게. 유로는 지금 환율이 얼마지? 1유로에 약 1450원 정도?",
       "timestamp": "2025-05-01T21:47:20"
     },
     {
       "unique_chat_id": "chat_013",
-      "speaker": "소연",
+      "speaker": "2",
       "message_content": "ㅇㅇ 1450원 맞아! 아 그리고 바르셀로나에서 내가 사진 인화한 것도 있어. 20유로였는데 5명 다 나눠서 계산하는 게 좋을 듯",
       "timestamp": "2025-05-01T21:49:45"
     },
     {
       "unique_chat_id": "chat_014",
-      "speaker": "준호",
+      "speaker": "1",
       "message_content": "와 생각해보니까 진짜 이것저것 많이 썼네 우리ㅋㅋㅋ 근데 암스테르담에서 민우가 샀던 단체 티셔츠값 95유로도 있잖아! 이것도 5명이서 나눠야 함",
       "timestamp": "2025-05-01T21:52:10"
     },
     {
       "unique_chat_id": "chat_015",
-      "speaker": "민우",
+      "speaker": "4",
       "message_content": "ㅋㅋㅋ맞다 까먹고 있었어! 단체티 진짜 비쌌는데 인스타용으로는 좋았지ㅎㅎ 근데 정산 너무 복잡한데 누가 계산 좀 해줘 나 수포자임ㅠㅠ",
       "timestamp": "2025-05-01T21:54:30"
     },
     {
       "unique_chat_id": "chat_016",
-      "speaker": "유진",
+      "speaker": "3",
       "message_content": "내가 그냥 토스 정산방 만들까? 근데 항목별로 넣어야 하니까 좀 귀찮을 것 같기도 하고... 지훈이가 엑셀 잘하니까 그냥 엑셀로 해보는 건 어때?",
       "timestamp": "2025-05-01T21:56:45"
     },
     {
       "unique_chat_id": "chat_017",
-      "speaker": "지훈",
+      "speaker": "0",
       "message_content": "ㅋㅋㅋ알았어 내가 해볼게. 그럼 다들 항목 한번 더 말해줘! 내가 깜빡한 거 있을 수도 있고, 빠진 거 있을 수도 있으니까",
       "timestamp": "2025-05-01T21:58:20"
     },
     {
       "unique_chat_id": "chat_018",
-      "speaker": "소연",
+      "speaker": "2",
       "message_content": "맞다 로마에서 먹은 젤라또 5명 분 15유로도 내가 냈었는데! 별거 아니긴 한데 다 합치면 돈이니까ㅎㅎ",
       "timestamp": "2025-05-01T22:00:05"
     },
     {
       "unique_chat_id": "chat_019",
-      "speaker": "준호",
+      "speaker": "1",
       "message_content": "아 맞아ㅋㅋ 그거 진짜 맛있었는데! 그리고 생각해보니까 내가 프랑스에서 와인 3병 사서 숙소에서 같이 마셨잖아. 그거 87유로였어",
       "timestamp": "2025-05-01T22:02:30"
     },
     {
       "unique_chat_id": "chat_020",
-      "speaker": "유진",
+      "speaker": "3",
       "message_content": "헐 우리 진짜 이것저것 많이 썼네... 이러다 통장이 텅장 되겠다ㅋㅋㅋㅠㅠ 그래도 추억 생각하면 아깝진 않음! 지훈아 정산 다 되면 계좌번호 올려줘 바로 보낼게~",
       "timestamp": "2025-05-01T22:04:55"
     }

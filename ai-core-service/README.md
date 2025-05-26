@@ -31,6 +31,8 @@
 
 ```bash
 uvicorn main:app --reload
+
+nohup uvicorn main:app --host 0.0.0.0 --port 8000 &
 ```
 
 서버는 기본적으로 http://localhost:8000 에서 실행됩니다.
