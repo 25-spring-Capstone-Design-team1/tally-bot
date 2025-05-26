@@ -1,7 +1,7 @@
 package com.tallybot.backend.tallybot_back.controller;
 
 import com.tallybot.backend.tallybot_back.domain.Calculate;
-import com.tallybot.backend.tallybot_back.domain.Group;
+import com.tallybot.backend.tallybot_back.domain.UserGroup;
 import com.tallybot.backend.tallybot_back.domain.Member;
 import com.tallybot.backend.tallybot_back.dto.*;
 import com.tallybot.backend.tallybot_back.repository.CalculateRepository;
@@ -41,20 +41,20 @@ public class GroupController {
                     .body(new ErrorResponse("Group ID must be positive."));
         }
 
-        Optional<Group> optionalGroup = groupRepository.findById(groupId);
+        Optional<UserGroup> optionalGroup = groupRepository.findById(groupId);
         if (optionalGroup.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(new ErrorResponse("Group not found."));
         }
 
-        Group group = optionalGroup.get();
+        UserGroup userGroup = optionalGroup.get();
 
-        int memberCount = memberRepository.countByGroup(group);
-        int calculateCount = calculateRepository.countByGroup(group);
+        int memberCount = memberRepository.countByUserGroup(userGroup);
+        int calculateCount = calculateRepository.countByUserGroup(userGroup);
 
         FrontGroupDto response = new FrontGroupDto(
-                group.getGroupId(),
-                group.getGroupName(),
+                userGroup.getGroupId(),
+                userGroup.getGroupName(),
                 memberCount,
                 calculateCount
         );
@@ -71,16 +71,16 @@ public class GroupController {
         }
 
         // 그룹 존재 여부 확인
-        Optional<Group> optionalGroup = groupRepository.findById(groupId);
+        Optional<UserGroup> optionalGroup = groupRepository.findById(groupId);
         if (optionalGroup.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(new ErrorResponse("Group not found."));
         }
 
-        Group group = optionalGroup.get();
+        UserGroup userGroup = optionalGroup.get();
 
         // 해당 그룹에 속한 멤버 목록 조회
-        List<Member> members = memberRepository.findByGroup(group);
+        List<Member> members = memberRepository.findByUserGroup(userGroup);
         List<FrontMemberDto> result = members.stream()
                 .map(m -> new FrontMemberDto(m.getMemberId(), m.getNickname()))
                 .toList();
@@ -97,15 +97,15 @@ public class GroupController {
                     .body(new ErrorResponse("Group ID must be positive."));
         }
 
-        Optional<Group> optionalGroup = groupRepository.findById(groupId);
+        Optional<UserGroup> optionalGroup = groupRepository.findById(groupId);
         if (optionalGroup.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(new ErrorResponse("Group not found."));
         }
 
-        Group group = optionalGroup.get();
+        UserGroup userGroup = optionalGroup.get();
 
-        List<Calculate> calculates = calculateRepository.findByGroup(group);
+        List<Calculate> calculates = calculateRepository.findByUserGroup(userGroup);
         List<FrontCalculateDto> result = calculates.stream()
                 .map(c -> new FrontCalculateDto(
                         c.getCalculateId(),

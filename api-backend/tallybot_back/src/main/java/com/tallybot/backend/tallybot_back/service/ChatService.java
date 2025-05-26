@@ -1,7 +1,7 @@
 package com.tallybot.backend.tallybot_back.service;
 
 import com.tallybot.backend.tallybot_back.domain.Chat;
-import com.tallybot.backend.tallybot_back.domain.Group;
+import com.tallybot.backend.tallybot_back.domain.UserGroup;
 import com.tallybot.backend.tallybot_back.domain.Member;
 import com.tallybot.backend.tallybot_back.dto.ChatDto;
 import com.tallybot.backend.tallybot_back.repository.*;
@@ -34,14 +34,14 @@ public class ChatService {
         List<Chat> chatList = new ArrayList<>();
 
         for (ChatDto dto : dtoList) {
-            Group group = groupRepository.findById(dto.getGroupId())
+            UserGroup userGroup = groupRepository.findById(dto.getGroupId())
                     .orElseThrow(() -> new IllegalArgumentException("Group not found"));
 
-            Member member = memberRepository.findByMemberIdAndGroup(dto.getMemberId(), group)
+            Member member = memberRepository.findByMemberIdAndUserGroup(dto.getMemberId(), userGroup)
                     .orElseThrow(() -> new IllegalArgumentException("Member not found"));
 
             Chat chat = new Chat();
-            chat.setGroup(group);
+            chat.setUserGroup(userGroup);
             chat.setMember(member);
             chat.setTimestamp(dto.getTimestamp());
             chat.setMessage(dto.getMessage());

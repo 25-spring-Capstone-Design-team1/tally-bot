@@ -1,17 +1,15 @@
 package com.tallybot.backend.tallybot_back.service;
 
-import com.tallybot.backend.tallybot_back.domain.Chat;
-import com.tallybot.backend.tallybot_back.domain.Group;
+import com.tallybot.backend.tallybot_back.domain.UserGroup;
 import com.tallybot.backend.tallybot_back.domain.Member;
 import com.tallybot.backend.tallybot_back.dto.ChatDto;
 import com.tallybot.backend.tallybot_back.repository.ChatRepository;
 import com.tallybot.backend.tallybot_back.repository.GroupRepository;
 import com.tallybot.backend.tallybot_back.repository.MemberRepository;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -39,12 +37,12 @@ class ChatServiceTest {
     void saveChats_success() {
         ChatDto dto = new ChatDto(1L, LocalDateTime.now(), 1001L, "테스트");
 
-        Group mockGroup = new Group();
+        UserGroup mockUserGroup = new UserGroup();
         Member mockMember = new Member();
         mockMember.setMemberId(1001L);
 
-        when(groupRepository.findById(anyLong())).thenReturn(Optional.of(mockGroup));
-        when(memberRepository.findByMemberIdAndGroup(anyLong(), eq(mockGroup)))
+        when(groupRepository.findById(anyLong())).thenReturn(Optional.of(mockUserGroup));
+        when(memberRepository.findByMemberIdAndGroup(anyLong(), eq(mockUserGroup)))
                 .thenReturn(Optional.of(mockMember));
 
         chatService.saveChats(List.of(dto));

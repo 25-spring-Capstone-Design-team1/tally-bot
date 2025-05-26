@@ -7,7 +7,6 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.*;
-import java.util.stream.*;
 
 
 @Service
@@ -110,7 +109,7 @@ public class SettlementService {
                     throw new IllegalArgumentException("participants가 null일 경우 constants/ratios도 null이어야 합니다.");
                 }
 
-                participants = memberRepository.findByGroup(payer.getGroup());
+                participants = memberRepository.findByUserGroup(payer.getUserGroup());
                 for (Member member : participants) {
                     Participant.ParticipantKey participantKey = new Participant.ParticipantKey(newSettlement, member);
                     Ratio ratio = new Ratio(1, 1); // 기본값 ratio 1/1
@@ -144,7 +143,7 @@ public class SettlementService {
                 }
             }
             newSettlement.setParticipants(participantSet);
-            newSettlement.setGroup(payer.getGroup());
+            newSettlement.setUserGroup(payer.getUserGroup());
 
             Calculate calculate = calculateRepository.findById(request.getCalculateId())
                     .orElseThrow(() -> new IllegalArgumentException("해당 정산 ID 없음"));
@@ -282,12 +281,12 @@ public class SettlementService {
         // Calculate 및 Group 정보 설정
         Calculate calculate = calculateRepository.findById(calculateId)
                 .orElseThrow(() -> new IllegalArgumentException("Calculate entity not found."));
-        Group group = calculate.getGroup();
-        settlement.setGroup(group);
+        UserGroup userGroup = calculate.getUserGroup();
+        settlement.setUserGroup(userGroup);
 
         // Payer 조회
         Long payerId = settlementDto.getPayerId();
-        Member payer = memberRepository.findByMemberIdAndGroup(payerId, group)
+        Member payer = memberRepository.findByMemberIdAndUserGroup(payerId, userGroup)
                 .orElseThrow(() -> new IllegalArgumentException("Participant member not found in group. ID: " + payerId));
         settlement.setPayer(payer);
 
@@ -301,7 +300,7 @@ public class SettlementService {
         // 비율을 분수의 형태로, 고정금액과 함께 각 멤버로 저장, participant 테이블을 체운다.
         Set<Participant> participants = new HashSet<>();
         for (Long participantId : settlementDto.getParticipantIds()) {
-            Member member = memberRepository.findByMemberIdAndGroup(participantId, group)
+            Member member = memberRepository.findByMemberIdAndUserGroup(participantId, userGroup)
                     .orElseThrow(() -> new IllegalArgumentException("Participant member not found in group. ID: " + participantId));
 
             String key = participantId.toString();

@@ -1,6 +1,5 @@
 package com.tallybot.backend.tallybot_back.domain;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -19,7 +18,7 @@ public class Chat {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_id") // 외래 키로 연결, db 컬럼명으로 수정하기
-    private Group group;
+    private UserGroup userGroup;
 
     private LocalDateTime timestamp;
 

@@ -1,6 +1,6 @@
 package com.tallybot.backend.tallybot_back.service;
 
-import com.tallybot.backend.tallybot_back.domain.Group;
+import com.tallybot.backend.tallybot_back.domain.UserGroup;
 import com.tallybot.backend.tallybot_back.domain.Member;
 import com.tallybot.backend.tallybot_back.dto.GroupCreateRequest;
 import com.tallybot.backend.tallybot_back.dto.GroupCreateResponse;
@@ -16,7 +16,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
-class GroupServiceTest {
+class UserGroupServiceTest {
 
     private GroupRepository groupRepository;
     private MemberRepository memberRepository;
@@ -38,19 +38,19 @@ class GroupServiceTest {
         String memberName = "철수";
 
         GroupCreateRequest request = new GroupCreateRequest(groupId, groupName, memberName);
-        Group group = new Group(groupId, groupName);
+        UserGroup userGroup = new UserGroup(groupId, groupName);
 
         when(groupRepository.findById(groupId)).thenReturn(Optional.empty());
-        when(groupRepository.save(any(Group.class))).thenReturn(group);
-        when(memberRepository.existsByGroupAndNickname(group, memberName)).thenReturn(false);
+        when(groupRepository.save(any(UserGroup.class))).thenReturn(userGroup);
+        when(memberRepository.existsByUserGroupAndNickname(userGroup, memberName)).thenReturn(false);
 
         Member member = new Member();
-        member.setGroup(group);
+        member.setUserGroup(userGroup);
         member.setNickname(memberName);
         member.setMemberId(1L);
 
         when(memberRepository.save(any(Member.class))).thenReturn(member);
-        when(memberRepository.findByGroup(group)).thenReturn(List.of(member));
+        when(memberRepository.findByUserGroup(userGroup)).thenReturn(List.of(member));
 
         // when
         GroupCreateResponse response = groupService.createGroupWithMember(request);
@@ -61,7 +61,7 @@ class GroupServiceTest {
         assertThat(response.getMembers().get(0).getNickname()).isEqualTo("철수");
         assertThat(response.getMembers().get(0).getMemberId()).isEqualTo(1L);
 
-        verify(groupRepository).save(any(Group.class));
+        verify(groupRepository).save(any(UserGroup.class));
         verify(memberRepository).save(any(Member.class));
     }
 
@@ -74,17 +74,17 @@ class GroupServiceTest {
         String memberName = "철수";
 
         GroupCreateRequest request = new GroupCreateRequest(groupId, groupName, memberName);
-        Group group = new Group(groupId, groupName);
+        UserGroup userGroup = new UserGroup(groupId, groupName);
 
-        when(groupRepository.findById(groupId)).thenReturn(Optional.of(group));
-        when(memberRepository.existsByGroupAndNickname(group, memberName)).thenReturn(true);
+        when(groupRepository.findById(groupId)).thenReturn(Optional.of(userGroup));
+        when(memberRepository.existsByUserGroupAndNickname(userGroup, memberName)).thenReturn(true);
 
         Member existingMember = new Member();
-        existingMember.setGroup(group);
+        existingMember.setUserGroup(userGroup);
         existingMember.setNickname(memberName);
         existingMember.setMemberId(1L);
 
-        when(memberRepository.findByGroup(group)).thenReturn(List.of(existingMember));
+        when(memberRepository.findByUserGroup(userGroup)).thenReturn(List.of(existingMember));
 
         // when
         GroupCreateResponse response = groupService.createGroupWithMember(request);

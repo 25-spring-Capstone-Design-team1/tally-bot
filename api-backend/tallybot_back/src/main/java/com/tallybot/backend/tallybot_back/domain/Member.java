@@ -3,8 +3,6 @@ package com.tallybot.backend.tallybot_back.domain;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.List;
-
 @Entity
 @Getter
 @Setter
@@ -21,5 +19,5 @@ public class Member {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_id") // db 컬럼명으로 수정하기
-    private Group group;
+    private UserGroup userGroup;
 }

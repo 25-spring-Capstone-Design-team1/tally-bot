@@ -3,17 +3,12 @@ package com.tallybot.backend.tallybot_back.service;
 import com.tallybot.backend.tallybot_back.domain.*;
 import com.tallybot.backend.tallybot_back.dto.*;
 import com.tallybot.backend.tallybot_back.repository.*;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -129,13 +124,13 @@ class CalculateServiceTest {
     @DisplayName("calculateAndOptimize(): 정산 → 최적화 → 저장까지 정상 수행")
     void calculateAndOptimize_success() {
         // given
-        Group group = new Group();
-        Member m1 = new Member(); m1.setMemberId(1L); m1.setGroup(group);
-        Member m2 = new Member(); m2.setMemberId(2L); m2.setGroup(group);
+        UserGroup userGroup = new UserGroup();
+        Member m1 = new Member(); m1.setMemberId(1L); m1.setUserGroup(userGroup);
+        Member m2 = new Member(); m2.setMemberId(2L); m2.setUserGroup(userGroup);
 
         Calculate calculate = new Calculate();
         calculate.setCalculateId(1L);
-        calculate.setGroup(group);
+        calculate.setUserGroup(userGroup);
 
         // 정산 1건
         Settlement s = new Settlement();
@@ -160,12 +155,12 @@ class CalculateServiceTest {
     @DisplayName("✅ botResultReturn(): 정산 결과 DTO 정상 반환")
     void botResultReturn_success() {
         // given
-        Group group = new Group();
-        group.setGroupId(42L);
+        UserGroup userGroup = new UserGroup();
+        userGroup.setGroupId(42L);
 
         Calculate calculate = new Calculate();
         calculate.setCalculateId(101L);
-        calculate.setGroup(group);
+        calculate.setUserGroup(userGroup);
 
         Member payer1 = new Member();
         payer1.setMemberId(1001L);

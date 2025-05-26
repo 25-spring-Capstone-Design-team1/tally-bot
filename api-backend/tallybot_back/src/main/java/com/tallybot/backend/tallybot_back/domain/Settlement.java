@@ -3,7 +3,6 @@ package com.tallybot.backend.tallybot_back.domain;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
 import java.util.Set;
 
 @Entity
@@ -23,7 +22,7 @@ public class Settlement {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_id")
-    private Group group; // 소속 채팅방
+    private UserGroup userGroup; // 소속 채팅방
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "payer_id")
