@@ -59,22 +59,14 @@ env_vars = initialize_environment()
 
 # 빠른 모델(GPT-3.5) - 단순 추출 작업용
 fast_llm = ChatOpenAI(
-    model_name="gpt-3.5-turbo",
-    temperature=0.0,
-    metadata={
-        "ls_provider": "openai",
-        "ls_model_name": "gpt-3.5-turbo"
-    }
+    model="gpt-3.5-turbo",
+    temperature=0.0
 )
 
 # 정확한 모델(GPT-4) - 복잡한 추론 작업용
 accurate_llm = ChatOpenAI(
-    model_name="gpt-4",
-    temperature=0.0,
-    metadata={
-        "ls_provider": "openai",
-        "ls_model_name": "gpt-4"
-    }
+    model="gpt-4",
+    temperature=0.0
 )
 
 # 기본 모델은 빠른 처리를 위해 GPT-3.5 사용
