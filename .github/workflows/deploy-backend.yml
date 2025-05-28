@@ -23,7 +23,7 @@ jobs:
       - name: Deploy to EC2
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.AWS_USER }}@${{ secrets.AWS_HOST }} << 'EOF'
-            cd /home/ssm-user/app/tally-bot/tallybot_back
+            cd /home/ssm-user/app/tally-bot/api-backend/tallybot_back
             git pull origin dev
             ./gradlew build -x test
             pkill -f 'java -jar' || true
