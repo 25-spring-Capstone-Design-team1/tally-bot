@@ -10,6 +10,6 @@ public class HomeController {
 
     @GetMapping
     public String checkHealth() {
-        return "서버 정상 작동중";
+        return "git action test";
     }
 }
