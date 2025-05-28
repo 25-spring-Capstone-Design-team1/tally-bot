@@ -2,10 +2,10 @@ name: Deploy Backend to EC2
 
 on:
   push:
+    branches:
+      - dev
     paths:
       - 'api-backend/**'
-    branches:
-      - dev  # ← 사용 중인 브랜치 이름!
 
 jobs:
   deploy:
@@ -23,9 +23,9 @@ jobs:
       - name: Deploy to EC2
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.AWS_USER }}@${{ secrets.AWS_HOST }} << 'EOF'
-            cd /home/ec2-user/dev/api-backend
+            cd /home/ssm-user/app/tally-bot/tallybot_back
             git pull origin dev
             ./gradlew build -x test
             pkill -f 'java -jar' || true
-            nohup java -jar ./build/libs/*.jar > app.log 2>&1 &
+            nohup java -jar ./build/libs/tallybot_back-0.0.1-SNAPSHOT.jar > app.log 2>&1 &
           EOF
