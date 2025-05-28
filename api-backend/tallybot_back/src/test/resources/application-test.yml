@@ -1,0 +1,56 @@
+# src/test/resources/application-test.yml
+spring:
+  # JPA/Hibernate 설정
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    defer-datasource-initialization: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+        connection:
+          characterEncoding: utf8mb4
+          useUnicode: true
+        id:
+          new_generator_mappings: true
+        globally_quoted_identifiers: false
+        # 성능 최적화 설정
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+        batch_versioned_data: true
+
+  # SQL 초기화 설정
+  sql:
+    init:
+      mode: never
+
+  # 데이터소스 설정 (Testcontainers에서 오버라이드됨)
+  datasource:
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1200000
+
+# 로깅 설정
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.hibernate.tool.schema: DEBUG
+    org.springframework.jdbc.core: DEBUG
+    org.testcontainers: DEBUG
+    com.tallybot.backend.tallybot_back: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# 테스트 환경 전용 설정
+management:
+  endpoints:
+    enabled-by-default: false
