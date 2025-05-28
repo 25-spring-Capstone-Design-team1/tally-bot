@@ -9,11 +9,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.tallybot.backend.tallybot_back.exception.NoSettlementResultException;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -30,6 +36,7 @@ class CalculateServiceTest {
     @Mock private CalculateDetailRepository calculateDetailRepository;
     @Mock private SettlementRepository settlementRepository;
     @Mock private SettlementService settlementService;
+    @Mock private ParticipantRepository participantRepository;
 
 
     @Test
@@ -46,45 +53,97 @@ class CalculateServiceTest {
         assertThat(result).isFalse();
     }
 
-//    @Test
-//    @DisplayName("startCalculate(): 정산 생성 및 GPT 비동기 호출")
-//    void startCalculate_success() {
-//        // given
-//        Group group = new Group();
-//        group.setGroupId(1L);
-//
-//        Calculate calculate = new Calculate();
-//        calculate.setCalculateId(100L);
-//        calculate.setGroup(group);
-//
-//        List<Chat> chats = List.of();
-//
-//        CalculateRequestDto request = new CalculateRequestDto(
-//                1L,
-//                LocalDateTime.of(2025, 1, 1, 12, 0),
-//                LocalDateTime.of(2025, 1, 1, 14, 0)
-//        );
-//
-//        when(groupRepository.findById(1L)).thenReturn(Optional.of(group));
-//        when(calculateRepository.save(any())).thenReturn(calculate);
-//        when(calculateRepository.findById(100L)).thenReturn(Optional.of(calculate));
-//        when(chatRepository.findByGroupAndTimestampBetween(eq(group), any(), any())).thenReturn(chats);
-//        when(gptService.returnResults(chats)).thenReturn(List.of());
-//        when(settlementService.toSettlements(any(), eq(100L))).thenReturn(List.of());
-//
-//        // when
-//        Long result = calculateService.startCalculate(request);
-//
-//        // then
-//        assertThat(result).isEqualTo(100L);
-//
-//        // save()는 startCalculate + pendingCalculate 두 번 호출됨
-//        verify(calculateRepository, times(2)).save(any());
-//        verify(chatRepository).findByGroupAndTimestampBetween(eq(group), any(), any());
-//        verify(gptService).returnResults(chats);
-//
-//    }
 
+    @Test
+    void startCalculate_shouldProcessSuccessfully_whenGptReturnsResults() {
+        // given
+        Long groupId = 1L;
+        Long fakeCalculateId = 100L;
+        CalculateRequestDto request = new CalculateRequestDto();
+        request.setGroupId(groupId);
+        request.setStartTime(LocalDateTime.now().minusDays(1));
+        request.setEndTime(LocalDateTime.now());
+
+        UserGroup mockGroup = new UserGroup();
+        Calculate savedCalculate = new Calculate();
+        savedCalculate.setCalculateId(fakeCalculateId);
+
+        List<Chat> chats = List.of(createChat("A", "샘플 대화"));
+
+        SettlementDto dummyDto = new SettlementDto(); // 내용은 필요시 설정
+        List<SettlementDto> gptResults = List.of(dummyDto);
+
+        Participant dummyParticipant = new Participant();
+        Participant.ParticipantKey participantKey = new Participant.ParticipantKey();
+        dummyParticipant.setParticipantKey(participantKey);
+
+        Settlement dummySettlement = new Settlement();
+        dummySettlement.setParticipants(Set.of(dummyParticipant));
+
+        List<Settlement> settlements = List.of(dummySettlement);
+
+        // mocking
+        when(groupRepository.findById(groupId)).thenReturn(Optional.of(mockGroup));
+        when(calculateRepository.save(any(Calculate.class))).thenReturn(savedCalculate);
+        when(chatRepository.findByUserGroupAndTimestampBetween(any(), any(), any())).thenReturn(chats);
+        when(gptService.returnResults(chats)).thenReturn(gptResults);
+        when(settlementService.toSettlements(gptResults, fakeCalculateId)).thenReturn(settlements);
+        when(settlementRepository.save(any(Settlement.class))).thenReturn(dummySettlement);
+
+        // when
+        Long returnedId = calculateService.startCalculate(request);
+
+        // then: 비동기 작업이 모두 끝날 때까지 기다림
+        await().atMost(2, TimeUnit.SECONDS).untilAsserted(() -> {
+            verify(settlementRepository, times(1)).save(any(Settlement.class));
+            verify(participantRepository, times(1)).save(any(Participant.class));
+        });
+
+        assertEquals(fakeCalculateId, returnedId);
+    }
+
+
+    @Test
+    void startCalculate_shouldDeleteCalculate_whenNoSettlementResult() {
+        // given
+        Long groupId = 1L;
+        Long fakeCalculateId = 100L;
+        CalculateRequestDto request = new CalculateRequestDto();
+        request.setGroupId(groupId);
+        request.setStartTime(LocalDateTime.now().minusDays(1));
+        request.setEndTime(LocalDateTime.now());
+
+        UserGroup mockGroup = new UserGroup();
+        Calculate savedCalculate = new Calculate();
+        savedCalculate.setCalculateId(fakeCalculateId);
+
+        List<Chat> chats = List.of(createChat("A", "샘플 대화"));
+
+        // mocking
+        when(groupRepository.findById(groupId)).thenReturn(Optional.of(mockGroup));
+        when(calculateRepository.save(any(Calculate.class))).thenReturn(savedCalculate);
+        when(chatRepository.findByUserGroupAndTimestampBetween(any(), any(), any())).thenReturn(chats);
+        when(gptService.returnResults(chats)).thenThrow(new NoSettlementResultException("정산 결과 없음"));
+
+        // when
+        Long returnedId = calculateService.startCalculate(request);
+
+        // then: 비동기 작업이 deleteById 호출할 때까지 기다림
+        await().atMost(2, TimeUnit.SECONDS).untilAsserted(() -> {
+            verify(calculateRepository, times(1)).deleteById(fakeCalculateId);
+        });
+
+        assertEquals(fakeCalculateId, returnedId);
+    }
+
+    private Chat createChat(String nickname, String message) {
+        Member member = new Member();
+        member.setNickname(nickname);
+        Chat chat = new Chat();
+        chat.setMember(member);
+        chat.setMessage(message);
+        return chat;
+    }
 
 
     @Test
@@ -152,7 +211,7 @@ class CalculateServiceTest {
 
 
     @Test
-    @DisplayName("✅ botResultReturn(): 정산 결과 DTO 정상 반환")
+    @DisplayName("botResultReturn(): 정산 결과 DTO 정상 반환")
     void botResultReturn_success() {
         // given
         UserGroup userGroup = new UserGroup();

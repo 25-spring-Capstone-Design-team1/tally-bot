@@ -279,9 +279,9 @@ public class SettlementServiceTest {
 
         // when
         when(calculateRepository.findById(calculateId)).thenReturn(Optional.of(calculate));
-        when(memberRepository.findByMemberIdAndGroup(1001L, userGroup)).thenReturn(Optional.of(payer));
-        when(memberRepository.findByMemberIdAndGroup(1002L, userGroup)).thenReturn(Optional.of(participant1));
-        when(memberRepository.findByMemberIdAndGroup(1003L, userGroup)).thenReturn(Optional.of(participant2));
+        when(memberRepository.findByMemberIdAndUserGroup(1001L, userGroup)).thenReturn(Optional.of(payer));
+        when(memberRepository.findByMemberIdAndUserGroup(1002L, userGroup)).thenReturn(Optional.of(participant1));
+        when(memberRepository.findByMemberIdAndUserGroup(1003L, userGroup)).thenReturn(Optional.of(participant2));
 
         Settlement result = settlementService.toSettlement(dto, calculateId);
 
@@ -323,8 +323,8 @@ public class SettlementServiceTest {
         participant.setUserGroup(userGroup);
 
         when(calculateRepository.findById(calculateId)).thenReturn(Optional.of(calculate));
-        when(memberRepository.findByMemberIdAndGroup(1001L, userGroup)).thenReturn(Optional.of(payer));
-        when(memberRepository.findByMemberIdAndGroup(1002L, userGroup)).thenReturn(Optional.of(participant));
+        when(memberRepository.findByMemberIdAndUserGroup(1001L, userGroup)).thenReturn(Optional.of(payer));
+        when(memberRepository.findByMemberIdAndUserGroup(1002L, userGroup)).thenReturn(Optional.of(participant));
 
         // when
         List<Settlement> result = settlementService.toSettlements(List.of(dto1), calculateId);

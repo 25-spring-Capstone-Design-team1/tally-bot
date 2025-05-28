@@ -4,6 +4,7 @@ package com.tallybot.backend.tallybot_back.service;
 import com.tallybot.backend.tallybot_back.debtopt.Graph;
 import com.tallybot.backend.tallybot_back.domain.*;
 import com.tallybot.backend.tallybot_back.dto.*;
+import com.tallybot.backend.tallybot_back.exception.NoSettlementResultException;
 import com.tallybot.backend.tallybot_back.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.util.Pair;
@@ -57,37 +58,41 @@ public class CalculateService {
                 request.getEndTime()
         );
 
-
         // 나머지 GPT 처리 로직은 비동기로 실행
+        Long finalCalculateId = calculateId; // 비동기에서 접근 가능하도록 final 변수로 복사
         CompletableFuture.runAsync(() -> {
-            List<SettlementDto> results = gptService.returnResults(chats);
+            try {
+                List<SettlementDto> results = gptService.returnResults(chats);
 
-            // GPT 결과 → 엔티티 변환
-            List<Settlement> settlements = settlementService.toSettlements(results, calculateId);
+                List<Settlement> settlements = settlementService.toSettlements(results, finalCalculateId);
 
-            // 정산 및 참여자 저장
-            for (Settlement settlement : settlements) {
-                // 먼저 Settlement 저장
-                Settlement savedSettlement = settlementRepository.save(settlement);
-
-                // Participant와 연결된 Settlement를 명확히 설정
-                for (Participant participant : settlement.getParticipants()) {
-                    participant.getParticipantKey().setSettlement(savedSettlement);
-                    participantRepository.save(participant);
+                for (Settlement settlement : settlements) {
+                    Settlement savedSettlement = settlementRepository.save(settlement);
+                    for (Participant participant : settlement.getParticipants()) {
+                        participant.getParticipantKey().setSettlement(savedSettlement);
+                        participantRepository.save(participant);
+                    }
                 }
-            }
 
-            calculateAndOptimize(settlements);
-        }).exceptionally(ex -> {
-            return null;
+                calculateAndOptimize(settlements);
+                pendingCalculate(calculateId);
+
+            } catch (NoSettlementResultException ex) {
+                // GPT가 정산 결과를 반환하지 않은 경우 → calculate 삭제
+                calculateRepository.deleteById(finalCalculateId);
+                System.err.println("정산 결과 없음 - calculate 삭제됨: " + ex.getMessage());
+                return;
+            } catch (Exception ex) {
+                // 기타 오류 → calculate 삭제
+                calculateRepository.deleteById(finalCalculateId);
+                System.err.println("GPT 처리 중 오류 발생 - calculate 삭제됨: " + ex.getMessage());
+                return;
+            }
         });
 
-        pendingCalculate(calculateId);
-
-        return calculate.getCalculateId();
-
-
+        return calculateId;
     }
+
 
     public void calculateAndOptimize(List<Settlement> settlementList)
     {

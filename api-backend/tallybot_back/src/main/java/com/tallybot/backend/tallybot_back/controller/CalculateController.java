@@ -56,7 +56,7 @@ public class CalculateController {
 
         if (optionalCalculate.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new ErrorResponse("Calculate result not found for ID: " + calculateId));
+                    .body(new MessageResponse("정산할 대화 내용이 없거나, 정산 결과가 존재하지 않습니다."));
         }
 
         Calculate calculate = optionalCalculate.get();

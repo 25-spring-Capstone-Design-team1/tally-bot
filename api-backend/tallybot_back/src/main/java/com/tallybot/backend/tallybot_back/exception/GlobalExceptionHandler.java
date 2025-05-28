@@ -57,6 +57,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(new ErrorResponse(message));
     }
 
+    @ExceptionHandler(NoSettlementResultException.class)
+    public ResponseEntity<ErrorResponse> handleNoSettlementResultException(NoSettlementResultException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("정산할 대화 내용이 없어 정산이 진행되지 않았습니다."));
+    }
+
+
+
     @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleJsonParseError(Exception ex) {
         return ResponseEntity.badRequest().body(
