@@ -5,12 +5,15 @@ import lombok.*;
 @Entity
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Table(name = "user_group")
 public class UserGroup {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long groupId; // 채팅방 구별용 ID
+    @Column(name = "group_id", nullable = false)
+    private Long groupId;
 
-    private String groupName; // 채팅방명
+    @Column(name = "group_name", nullable = false, columnDefinition = "VARCHAR(50)")
+    private String groupName;
 }
