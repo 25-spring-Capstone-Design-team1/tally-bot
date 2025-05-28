@@ -28,7 +28,7 @@ interface SettlementListProps {
  * @param settlements - 표시할 정산 목록 아이템 배열
  */
 export default function SettlementList({ settlements }: SettlementListProps): ReactElement {
-  const { groupId } = useParams();
+  const { groupId } = useParams() as { groupId: string };
   
 
   if (settlements.length === 0) {
@@ -44,39 +44,44 @@ export default function SettlementList({ settlements }: SettlementListProps): Re
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {settlements.map((settlement) => (
         <Card
-          key={settlement.calculateId}
-          className={cn(
-            "flex flex-col justify-between hover:shadow-md transition-all duration-200 ease-in-out rounded-lg border border-border hover:border-primary/40",
-            settlement.status === 'COMPLETED' && "opacity-70 bg-muted/30"
-          )}
-        >
-          <CardHeader>
-            <div className="flex justify-between items-start">
+        key={settlement.calculateId}
+        className={cn(
+          "relative flex flex-col justify-between hover:shadow-md transition-all duration-200 ease-in-out rounded-lg border border-border hover:border-primary/40",
+          settlement.status === 'COMPLETED' && "opacity-70 bg-muted/30"
+        )}
+      >
+        <CardHeader>
+          <div className="flex justify-between items-start">
             <CardTitle className="text-2xl font-semibold text-primary mr-2">
               <div className="flex flex-col text-left leading-snug">
-              <span>{format(new Date(settlement.startTime), 'yyyy/MM/dd HH:mm')}</span>
-              <span className="ml-1">~ {format(new Date(settlement.endTime), 'yyyy/MM/dd HH:mm')}</span>
+                <span>{format(new Date(settlement.startTime), 'yyyy/MM/dd HH:mm')}</span>
+                <span className="ml-1">~ {format(new Date(settlement.endTime), 'yyyy/MM/dd HH:mm')}</span>
               </div>
             </CardTitle>
-              {settlement.status === 'COMPLETED' && (
-                <Badge variant="secondary" className="text-sm bg-green-100 text-green-800 border-green-300">
-                  <CheckCircle className="mr-1 h-3 w-3" />
-                  완료됨
-                </Badge>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="flex-grow" /> {/* 내용 생략 */}
-
-          <CardFooter className="border-t pt-4">
-            <Link href={`/${groupId}/settlements/${settlement.calculateId}`} legacyBehavior passHref>
-              <Button variant="outline" size="sm" className="w-full">
-                상세 보기
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </CardFooter>
-        </Card>
+          </div>
+        </CardHeader>
+      
+        <CardContent className="flex-grow min-h-[40px] relative">
+          {settlement.status === 'COMPLETED' && (
+            <Badge
+              variant="secondary"
+              className="absolute bottom-2 right-2 text-sm bg-green-100 text-green-800 border-green-300"
+            >
+              <CheckCircle className="mr-1 h-3 w-3" />
+              완료됨
+            </Badge>
+          )}
+        </CardContent>
+      
+        <CardFooter className="border-t pt-4">
+          <Link href={`/${groupId}/settlements/${settlement.calculateId}`} legacyBehavior passHref>
+            <Button variant="outline" size="sm" className="w-full">
+              상세 보기
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
+        </CardFooter>
+      </Card>
       ))}
     </div>
   );

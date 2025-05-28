@@ -69,6 +69,12 @@ export interface GroupMember {
   nickname: string;
 }
 
+export interface RawTransfer {
+  payerId: number;
+  payeeId: number;
+  amount: number;
+}
+
 
 /**
  * 정산 목록 요약 정보를 비동기적으로 가져옵니다.
@@ -120,13 +126,22 @@ export async function getSettlement(calculateId: string): Promise<Settlement> {
     item: s.item,
   }));
 
+  const transferRes = await fetch(`/api/proxy/transfer-result?id=${calculateId}`);
+  if (!transferRes.ok) throw new Error('송금 결과 불러오기 실패');
+  const transferData = await transferRes.json();
+  const optimizedTransfers = transferData.transfers.map((t: any) => ({
+    from: t.payerId.toString(),
+    to: t.payeeId.toString(),
+    amount: t.amount,
+  }));
+
   return {
     settlementId: calculateId,
     title: `정산 ${calculateId}`,
-    createdAt: '', // 별도 필요시 추가 API
+    createdAt: '',
     participants,
     payments,
-    optimizedTransfers: [],
+    optimizedTransfers,
     isCompleted: false,
   };
 }
@@ -136,7 +151,6 @@ export async function getGroupMembers(groupId: string): Promise<GroupMember[]> {
   if (!res.ok) throw new Error('멤버 목록 불러오기 실패');
   return await res.json();
 }
-
 
 /**
  * 주어진 ID의 정산 정보를 비동기적으로 업데이트합니다.
@@ -158,18 +172,42 @@ export async function updateSettlement(id: string, settlement: Settlement): Prom
 }
 
 /**
+ * 특정 결제 항목을 수정하거나 삭제하거나 추가합니다.
+ *
+ * @param payload - 백엔드에 그대로 전달할 update 요청 바디
+ */
+export async function updateSettlementField(payload: any): Promise<Settlement> {
+  const res = await fetch('/api/proxy/settlement-update', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    throw new Error(`정산 수정 실패 (status ${res.status})`);
+  }
+
+  return await res.json();
+}
+
+/**
  * 주어진 ID의 정산을 비동기적으로 재계산하도록 요청합니다.
  * Mock 저장소의 데이터를 사용하여 재계산하고 결과를 저장소에 반영합니다.
  *
  * @param id - 재계산할 정산의 ID.
  * @returns 재계산된 정산 상세 정보를 포함하는 Settlement 객체의 Promise.
  */
-export async function recalculateSettlement(id: string): Promise<Settlement> {
-  const res = await fetch(`http://tally-bot-web-backend-alb-243058276.ap-northeast-2.elb.amazonaws.com/api/settlements/${id}/recalculate`, {
+export async function recalculateSettlement(calculateId: string): Promise<Settlement> {
+  const res = await fetch('/api/proxy/settlement-recalculate', {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ calculateId }),
   });
 
-  if (!res.ok) throw new Error('정산 재계산 실패');
+  if (!res.ok) {
+    throw new Error(`재계산 실패 (status ${res.status})`);
+  }
+
   return await res.json();
 }
 
@@ -283,65 +321,4 @@ export async function markSettlementComplete(id: string): Promise<Settlement> {
 
   if (!res.ok) throw new Error('정산 완료 처리 실패');
   return await res.json();
-}
-
-
-/**
- * 송금 그래프의 노드를 나타냅니다. (참여자)
- */
-export interface GraphNode {
-  /** 노드 ID (참여자 이름) */
-  id: string;
-}
-
-/**
- * 송금 그래프의 엣지(연결선)를 나타냅니다. (송금)
- */
-export interface GraphEdge {
-  /** 시작 노드 ID (돈을 보내는 사람) */
-  source: string;
-  /** 끝 노드 ID (돈을 받는 사람) */
-  target: string;
-  /** 송금 금액 */
-  amount: number;
-}
-
-/**
- * 송금 그래프 전체 데이터를 나타냅니다.
- */
-export interface TransferGraph {
-  /** 그래프의 모든 노드(참여자) 목록 */
-  nodes: GraphNode[];
-  /** 그래프의 모든 엣지(최적화된 송금) 목록 */
-  edges: GraphEdge[];
-}
-
-/**
- * 주어진 ID에 해당하는 정산의 *최적화된* 송금 그래프 정보를 비동기적으로 가져옵니다.
- * 이 함수는 `recalculateSettlement` 결과의 `optimizedTransfers`를 기반으로 그래프 데이터를 생성해야 합니다.
- *
- * @param id - 그래프를 조회할 정산의 ID.
- * @returns 최적화된 송금 정보를 기반으로 구성된 TransferGraph 객체의 Promise.
- */
-export async function getTransferGraph(calculateId: string): Promise<TransferGraph> {
-  const res = await fetch(`http://tally-bot-web-backend-alb-243058276.ap-northeast-2.elb.amazonaws.com/api/calculate/${calculateId}/transfers`);
-  if (!res.ok) throw new Error('송금 관계 조회 실패');
-  const data = await res.json();
-
-  // payerId, payeeId를 모아 중복 제거 후 string[] 생성
-  const uniqueIds = Array.from(
-    new Set(
-      data.transfers.flatMap((t: any) => [t.payerId, t.payeeId])
-    )
-  ) as number[];
-
-  const nodes: GraphNode[] = uniqueIds.map(id => ({ id: id.toString() }));
-
-  const edges: GraphEdge[] = data.transfers.map((t: any) => ({
-    source: t.payerId.toString(),
-    target: t.payeeId.toString(),
-    amount: t.amount,
-  }));
-
-  return { nodes, edges };
 }

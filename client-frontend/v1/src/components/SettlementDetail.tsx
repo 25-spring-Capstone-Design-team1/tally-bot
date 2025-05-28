@@ -11,6 +11,7 @@ import { PlusCircle, Lock } from 'lucide-react'; // Lock 아이콘 임포트
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area'; // 스크롤 가능한 영역 컴포넌트
 import { getGroupMembers, GroupMember } from '@/services/settlement';
+import { updateSettlementField } from '@/services/settlement'; 
 
 
 /**
@@ -23,6 +24,8 @@ interface SettlementDetailProps {
   isCompleted: boolean;
   groupId: string; 
 }
+
+
 
 /**
  * 정산 상세 내역을 표시하고 관리하는 컴포넌트.
@@ -73,34 +76,91 @@ export default function SettlementDetail({ payments, participants, onPaymentsCha
    * EditablePaymentItem 컴포넌트에서 '저장' 시 호출됩니다. 정산 완료 시 비활성화됩니다.
    * @param updatedPayment - 수정된 결제 항목 데이터
    */
-  const handleUpdatePayment = (updatedPayment: Payment) => {
-    if (isCompleted) return; // 완료된 정산이면 수정 불가
-
-    // 기존 결제 목록에서 해당 ID를 가진 항목을 찾아 업데이트
-    const updatedPayments = payments.map(p =>
-      p.id === updatedPayment.id ? updatedPayment : p
-    );
-    // 변경된 결제 목록을 부모 컴포넌트로 전달
-    onPaymentsChange(updatedPayments);
-    // 수정 모드 해제
-    setEditingItemId(null);
+  const handleUpdatePayment = async (updatedPayment: Payment) => {
+    if (isCompleted) return;
+  
+    try {
+      const ratioArray = updatedPayment.ratio ?? updatedPayment.target.map(() => 1);
+  
+      // constants & ratios 키를 문자열로 변환
+      const constants = JSON.parse(JSON.stringify(Object.fromEntries(
+        updatedPayment.target.map((t, i) => [
+          String(t), // 확실하게 문자열 키
+          updatedPayment.constant?.[i] ?? 0,
+        ])
+      )));
+      
+      const ratios = JSON.parse(JSON.stringify(Object.fromEntries(
+        updatedPayment.target.map((t, i) => [
+          String(t), // 확실하게 문자열 키
+          ratioArray[i],
+        ])
+      )));
+  
+      // 디버깅용 로그
+      console.log("🧾 Payload to updateSettlementField:", {
+        calculateId: Number(groupId),
+        settlementId: Number(updatedPayment.id),
+        field: 'update',
+        newValue: {
+          payer: Number(updatedPayment.payer),
+          amount: updatedPayment.amount,
+          item: updatedPayment.item,
+          place: '없음',
+          participants: updatedPayment.target.map(Number),
+        },
+        constants,
+        ratios,
+        sum: updatedPayment.amount,
+      });
+  
+      // 서버 호출
+      await updateSettlementField({
+        calculateId: Number(groupId),
+        settlementId: Number(updatedPayment.id),
+        field: 'update',
+        newValue: {
+          payer: Number(updatedPayment.payer),
+          amount: updatedPayment.amount,
+          item: updatedPayment.item,
+          place: '없음',
+          participants: updatedPayment.target.map(Number),
+        },
+        constants,
+        ratios,
+        sum: updatedPayment.amount,
+      });
+  
+      // 상태 업데이트
+      const updatedPayments = payments.map(p =>
+        p.id === updatedPayment.id ? updatedPayment : p
+      );
+      await onPaymentsChange(updatedPayments);
+      setEditingItemId(null);
+    } catch (err) {
+      console.error('❌ 정산 항목 업데이트 실패:', err);
+    }
   };
 
-  /**
-   * 정산 항목 삭제 핸들러.
-   * EditablePaymentItem 컴포넌트에서 '삭제 확인' 시 호출됩니다. 정산 완료 시 비활성화됩니다.
-   * @param paymentId - 삭제할 결제 항목의 ID
-   */
-  const handleDeletePayment = (paymentId: number) => {
-    if (isCompleted) return; // 완료된 정산이면 삭제 불가
-
-    // 해당 ID를 가진 항목을 제외한 새 결제 목록 생성
-    const updatedPayments = payments.filter(p => p.id !== paymentId);
-    // 변경된 결제 목록을 부모 컴포넌트로 전달
-    onPaymentsChange(updatedPayments);
-    // 만약 삭제된 항목이 현재 수정 중인 항목이었다면, 수정 모드 해제
-    if (editingItemId === paymentId) {
-        setEditingItemId(null);
+  const handleDeletePayment = async (paymentId: number) => {
+    if (isCompleted) return;
+  
+    try {
+      await updateSettlementField({
+        calculateId: groupId,
+        settlementId: paymentId,
+        field: 'delete',
+        newValue: null,
+        constants: null,
+        ratios: null,
+        sum: null,
+      });
+  
+      // 프론트 상태에서 제거
+      const updatedPayments = payments.filter(p => p.id !== paymentId);
+      await onPaymentsChange(updatedPayments);
+    } catch (err) {
+      console.error('정산 항목 삭제 실패:', err);
     }
   };
 
@@ -147,7 +207,7 @@ export default function SettlementDetail({ payments, participants, onPaymentsCha
         <CardDescription>
             {isCompleted
                 ? "이 정산은 완료되어 수정할 수 없습니다."
-                : "각 항목을 클릭하여 수정하거나 삭제할 수 있습니다."}
+                : "각 항목을 클릭하여 수정 / 삭제를 할 수 있습니다."}
         </CardDescription>
       </CardHeader>
       <CardContent>
