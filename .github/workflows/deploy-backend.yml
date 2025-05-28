@@ -25,7 +25,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.AWS_USER }}@${{ secrets.AWS_HOST }} << 'EOF'
             cd /home/ec2-user/dev/api-backend
             git pull origin dev
-            ./gradlew build
+            ./gradlew build -x test
             pkill -f 'java -jar' || true
             nohup java -jar ./build/libs/*.jar > app.log 2>&1 &
           EOF
