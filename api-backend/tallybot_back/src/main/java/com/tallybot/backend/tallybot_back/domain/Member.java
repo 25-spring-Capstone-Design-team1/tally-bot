@@ -6,18 +6,21 @@ import lombok.*;
 @Entity
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode
+@Table(name = "member")
 public class Member {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long memberId; // 멤버 식별용 ID
+    @Column(name = "member_id", nullable = false)
+    private Long memberId;
 
-    private String nickname; // 사용자 닉네임
+    @Column(name = "nickname", nullable = false, columnDefinition = "VARCHAR(20)")
+    private String nickname;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "group_id") // db 컬럼명으로 수정하기
+    @JoinColumn(name = "group_id", nullable = false)
     private UserGroup userGroup;
 }

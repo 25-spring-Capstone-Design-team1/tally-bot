@@ -1,29 +1,35 @@
 {
     "chatroom_name": "2025 유럽여행 인생샷 멤버들",
-    "members": ["지훈", "준호", "소연", "유진", "민우"],
+    "members": [{"0":"지훈", "1":"준호", "2":"소연", "3":"유진", "4":"민우"}],
     "messages": [
         {
             "unique_chat_id": "chat_001",
-            "speaker": "지훈",
+            "speaker": "0",
             "message_content": "식비 10만원 나왔는데 내가 3만원 낼테니까 나머지가 n빵해",
             "timestamp": "2025-05-01T21:23:15"
         },
         {
             "unique_chat_id": "chat_002",
-            "speaker": "준호",
+            "speaker": "1",
             "message_content": "렌트비 15만원 나왔고 나랑 소연이가 6만원씩 낼테니까 나머지는 알아서 나눠서 내",
             "timestamp": "2025-05-01T21:23:15"
         },
         {
             "unique_chat_id": "chat_003",
-            "speaker": "소연",
+            "speaker": "2",
             "message_content": "치킨 5만원이던데 내가 지훈이랑 준호꺼까지 낼게",
             "timestamp": "2025-05-01T21:23:15"
         },
         {
             "unique_chat_id": "chat_004",
-            "speaker": "유진",
+            "speaker": "3",
             "message_content": "초밥 3만원 나왔는데 같이 먹은 지훈이랑 민우만 내면 될 것 같아",
+            "timestamp": "2025-05-01T21:23:15"
+        },
+        {
+            "unique_chat_id": "chat_005",
+            "speaker": "2",
+            "message_content": "김준호 나한테 5만원 ㄱ",
             "timestamp": "2025-05-01T21:23:15"
         }
     ]

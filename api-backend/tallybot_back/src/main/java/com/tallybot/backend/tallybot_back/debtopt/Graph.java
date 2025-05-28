@@ -110,7 +110,8 @@ public class Graph {
     public void plusWeight(int source, int destination, int diffWeight) {
         int weight = adjacencyList.get(source).getOrDefault(destination, 0) + diffWeight;
         removeEdge(source, destination);
-        addEdge(source, destination, weight);
+        if(weight != 0)
+          addEdge(source, destination, weight);
     }
 
     public void computeWeight(int source, int destination, UnaryOperator<Integer> remappingFunction) {

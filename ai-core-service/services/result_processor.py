@@ -42,7 +42,7 @@ def map_place_to_complex_items(complex_items, secondary_result):
         mapped_complex_items.append(mapped_item)
     return mapped_complex_items
 
-def process_complex_results(complex_results, mapped_complex_items):
+def process_complex_results(complex_results, mapped_complex_items, name_to_id=None):
     """복잡한 결과에 place, item, amount 매핑 및 특수 케이스 처리"""
     processed_results = []
     for i, result in enumerate(complex_results):
@@ -57,10 +57,46 @@ def process_complex_results(complex_results, mapped_complex_items):
             if original.get("hint_type") == "1인당고정" and "payer" in result:
                 result = process_fixed_per_person_case(result, original)
             
+            # 이름을 ID로 변환 처리
+            if name_to_id:
+                result = convert_names_to_ids(result, name_to_id)
+            
             # 필드 순서 재정렬
             ordered_result = reorder_result_fields(result)
             processed_results.append(ordered_result)
     return processed_results
+
+def convert_names_to_ids(result, name_to_id):
+    """결과 내의 이름을 ID로 변환"""
+    # payer가 이름인 경우 ID로 변환
+    if "payer" in result and result["payer"] in name_to_id:
+        result["payer"] = name_to_id[result["payer"]]
+    
+    # participants 리스트의 이름을 ID로 변환
+    if "participants" in result:
+        result["participants"] = [
+            name_to_id.get(participant, participant) 
+            for participant in result["participants"]
+        ]
+    
+    # constants와 ratios 딕셔너리의 키가 이름인 경우 ID로 변환
+    for field in ["constants", "ratios"]:
+        if field in result:
+            new_dict = {}
+            for name, value in result[field].items():
+                member_id = name_to_id.get(name, name)
+                new_dict[member_id] = value
+            result[field] = new_dict
+    
+    # hint_phrases에 이름이 포함된 경우 ID로 변환
+    if "hint_phrases" in result:
+        for i, phrase in enumerate(result["hint_phrases"]):
+            for name, member_id in name_to_id.items():
+                # "ID" 접두사 없이 단순 id로 교체
+                phrase = phrase.replace(name, member_id)
+            result["hint_phrases"][i] = phrase
+    
+    return result
 
 def process_fixed_per_person_case(result, original):
     """1인당고정 케이스의 특수 처리"""
@@ -103,11 +139,17 @@ def prepare_standard_calculation_items(converted_result, secondary_result):
         "amount": item.get("amount", 0)
     } for item in converted_result if item["hint_type"] == "n분의1"]
 
-def process_all_results(converted_result, secondary_result, complex_results, members):
+def process_all_results(converted_result, secondary_result, complex_results, member_names, id_to_name=None, name_to_id=None):
     """모든 결과를 처리하고 합치기"""
     # 단순 계산 (n분의1) 처리
     standard_items = prepare_standard_calculation_items(converted_result, secondary_result)
-    standard_results = generate_standard_calculation(standard_items, members)
+    standard_results = generate_standard_calculation(standard_items, member_names, id_to_name)
+    
+    # 이름을 ID로 변환 (복잡한 결과가 아직 변환되지 않은 경우)
+    if name_to_id and complex_results:
+        for i, result in enumerate(complex_results):
+            if not any(key.startswith("<ID:") for key in result.get("constants", {})):
+                complex_results[i] = convert_names_to_ids(result, name_to_id)
     
     # 복잡한 결과가 있으면 합치기
     if complex_results:

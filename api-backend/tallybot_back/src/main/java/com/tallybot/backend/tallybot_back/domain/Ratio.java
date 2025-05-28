@@ -1,12 +1,20 @@
 package com.tallybot.backend.tallybot_back.domain;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 @Embeddable
+@Builder
 @Getter
+@EqualsAndHashCode
 public class Ratio {
+    @Column(name = "numerator", nullable = false, columnDefinition = "INT")
     private int numerator;
+
+    @Column(name = "denominator", nullable = false, columnDefinition = "INT")
     private int denominator;
 
     public static int gcd(int a, int b) {
