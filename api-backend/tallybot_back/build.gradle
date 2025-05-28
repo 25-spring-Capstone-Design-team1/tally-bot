@@ -6,12 +6,13 @@ plugins {
 
 group = 'com.tallybot.backend'
 version = '0.0.1-SNAPSHOT'
-//
-//java {
-//	toolchain {
-//		languageVersion = JavaLanguageVersion.of(17)
-//	}
-//}
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(17)
+	}
+}
+
 
 configurations {
 	compileOnly {
@@ -26,23 +27,37 @@ repositories {
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
-	compileOnly 'org.projectlombok:lombok'
-	developmentOnly 'org.springframework.boot:spring-boot-devtools'
-//	runtimeOnly 'com.mysql:mysql-connector-j'
-	annotationProcessor 'org.projectlombok:lombok'
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-	testImplementation 'org.mockito:mockito-core:5.2.0'
-	implementation 'com.fasterxml.jackson.core:jackson-databind'
-	testImplementation 'org.mockito:mockito-core:5.2.0'
-//	implementation 'jakarta.validation:jakarta.validation-api:3.0.2'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'com.fasterxml.jackson.core:jackson-databind'
 	implementation 'org.hibernate.validator:hibernate-validator:8.0.1.Final'
+
+	// MySQL 관련
 	implementation 'mysql:mysql-connector-java:8.0.33'
+
+	// H2 (개발용)
 	implementation 'com.h2database:h2'
 	runtimeOnly 'com.h2database:h2'
+
+	// Lombok
+	implementation 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+
+	// 개발 도구
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+	// 테스트
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'com.fasterxml.jackson.core:jackson-annotations'
+	testImplementation 'org.mockito:mockito-core:5.2.0'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	// TestContainers
+	testImplementation 'org.testcontainers:testcontainers:1.21.0'
+	testImplementation 'org.testcontainers:junit-jupiter:1.21.0' // 버전 통일
+	testImplementation 'org.testcontainers:mysql:1.21.0' // 버전 명시
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
+	jvmArgs '-Xshare:off' // JVM 아규먼트 설정
 }
