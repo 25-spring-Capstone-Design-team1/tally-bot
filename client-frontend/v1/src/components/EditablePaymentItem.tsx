@@ -193,7 +193,7 @@ export default function EditablePaymentItem({
         }
       }}
     >
-      <CardContent className="p-4">
+      <CardContent className="p-4 w-full overflow-x-auto">
         {isEditing && !isCompleted ? ( // 수정 모드이고 완료되지 않았을 때만 수정 UI 표시
           // --- 수정 모드 UI ---
           <div className="space-y-4">
@@ -307,7 +307,7 @@ export default function EditablePaymentItem({
                               amount: total
                             }))
                           }}
-                           className="w-24 h-8 text-sm"
+                           className="w-full sm:w-24 h-8 text-sm"
                            placeholder="금액"
                          />
                        )}
@@ -321,7 +321,7 @@ export default function EditablePaymentItem({
             </div>
 
              {/* 수정/취소/삭제 버튼 */}
-             <div className="flex justify-end gap-2 pt-2">
+             <div className="flex flex-wrap justify-end gap-2 pt-2">
                <Button onClick={handleSave} size="sm" disabled={isCompleted}>
                  <Save className="mr-1 h-4 w-4" /> 저장
                </Button>
