@@ -10,6 +10,6 @@ public class HomeController {
 
     @GetMapping
     public String checkHealth() {
-        return "final test : git action";
+        return "test : git action";
     }
 }
