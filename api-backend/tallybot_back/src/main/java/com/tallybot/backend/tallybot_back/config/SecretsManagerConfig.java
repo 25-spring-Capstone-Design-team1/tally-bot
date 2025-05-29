@@ -51,7 +51,11 @@ public class SecretsManagerConfig {
             // DB 연결 정보 추출
             String host = getJsonValue(secretJson, "host");
             String port = getJsonValue(secretJson, "port", "3306");
-            String dbname = getJsonValue(secretJson, "dbname", "tallybot");
+            String dbname = getJsonValue(secretJson, "database", "tallybot_test");  // database 키 시도
+            if (dbname.equals("tallybot_test")) {
+                // database 키가 없거나 기본값이면 다른 가능한 키들 시도
+                dbname = getJsonValue(secretJson, "db_name", "tallybot_test");
+            }
             String username = getJsonValue(secretJson, "username");
             String password = getJsonValue(secretJson, "password");
 
