@@ -40,6 +40,23 @@ class CalculateRepositoryTest extends DatabaseTestBase {
     @Test
     @DisplayName("calculate 조회")
     void saveAndCaculateQuery() {
+        // 디버깅용 코드 추가
+        System.out.println("=== 테스트 시작 전 상태 ===");
+        System.out.println("Calculate 개수: " + calculateRepository.count());
+        System.out.println("UserGroup 개수: " + groupRepository.count());
+
+        List<Calculate> existingCalculates = calculateRepository.findAll();
+        System.out.println("기존 Calculate들: " + existingCalculates);
+
+        // given
+        UserGroup userGroup0 = new UserGroup(1753L,"새로운 톡방");
+        groupRepository.save(userGroup0);
+
+        // UserGroup 저장 후 상태 확인
+        System.out.println("UserGroup 저장 후 Calculate 개수: " + calculateRepository.count());
+
+        // ... 나머지 코드
+
         // given
         UserGroup userGroup0 = new UserGroup(1753L,"새로운 톡방");
         groupRepository.save(userGroup0);
