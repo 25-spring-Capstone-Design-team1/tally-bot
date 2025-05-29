@@ -20,10 +20,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-@Order(1)
 @SpringBootTest
-@ActiveProfiles({"test", "repository-test"})  // 다른 프로파일 조합으로 별도 컨텍스트 생성
+@ActiveProfiles("repository-test") // 다른 프로파일 조합으로 별도 컨텍스트 생성
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Transactional
 @Rollback

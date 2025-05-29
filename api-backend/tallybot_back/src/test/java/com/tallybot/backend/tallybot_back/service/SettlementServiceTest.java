@@ -26,7 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@ActiveProfiles({"test", "mock-data"})  // 이 프로파일 조합으로 별도 컨텍스트 생성
+@ActiveProfiles("mock-data")  // 이 프로파일 조합으로 별도 컨텍스트 생성
 public class SettlementServiceTest {
 
     @Mock

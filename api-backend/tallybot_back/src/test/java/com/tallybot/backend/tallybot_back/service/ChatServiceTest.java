@@ -19,7 +19,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)
-@ActiveProfiles({"test", "mock-data"})  // 이 프로파일 조합으로 별도 컨텍스트 생성
+@ActiveProfiles("mock-data")  // 이 프로파일 조합으로 별도 컨텍스트 생성
 class ChatServiceTest {
 
     private GroupRepository groupRepository;

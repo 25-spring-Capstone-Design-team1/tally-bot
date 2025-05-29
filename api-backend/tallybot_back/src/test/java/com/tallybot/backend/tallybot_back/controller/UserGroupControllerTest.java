@@ -33,7 +33,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(GroupController.class)
-@ActiveProfiles({"test", "mock-data"})  // 이 프로파일 조합으로 별도 컨텍스트 생성
+@ActiveProfiles("mock-data")  // 이 프로파일 조합으로 별도 컨텍스트 생성
 class UserGroupControllerTest {
 
     @Autowired

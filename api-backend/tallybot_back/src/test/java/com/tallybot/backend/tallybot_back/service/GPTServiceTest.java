@@ -22,7 +22,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
-@ActiveProfiles({"test", "mock-data"})  // 이 프로파일 조합으로 별도 컨텍스트 생성
+@ActiveProfiles("mock-data")  // 이 프로파일 조합으로 별도 컨텍스트 생성
 public class GPTServiceTest {
     private RestTemplate restTemplate;
     private GPTService gptService;

@@ -17,7 +17,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
-@ActiveProfiles({"test", "mock-data"})  // 이 프로파일 조합으로 별도 컨텍스트 생성
+@ActiveProfiles("mock-data")  // 이 프로파일 조합으로 별도 컨텍스트 생성
 class UserGroupServiceTest {
 
     private GroupRepository groupRepository;
