@@ -51,15 +51,6 @@ class CalculateRepositoryTest extends DatabaseTestBase {
         // given
         UserGroup userGroup0 = new UserGroup(1753L,"새로운 톡방");
         groupRepository.save(userGroup0);
-
-        // UserGroup 저장 후 상태 확인
-        System.out.println("UserGroup 저장 후 Calculate 개수: " + calculateRepository.count());
-
-        // ... 나머지 코드
-
-        // given
-        UserGroup userGroup0 = new UserGroup(1753L,"새로운 톡방");
-        groupRepository.save(userGroup0);
         UserGroup userGroup1 = new UserGroup(2782L, "2019 17기 Withme");
         groupRepository.save(userGroup1);
         UserGroup userGroup2 = new UserGroup(33038L, "삼겹살집 번개모임");
