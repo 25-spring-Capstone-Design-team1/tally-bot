@@ -50,15 +50,14 @@ dependencies {
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
 	// 테스트
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testImplementation 'com.fasterxml.jackson.core:jackson-annotations'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test"
 	testImplementation 'org.mockito:mockito-core:5.2.0'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-	// TestContainers
-	// testImplementation 'org.testcontainers:testcontainers:1.21.0'
-	// testImplementation 'org.testcontainers:junit-jupiter:1.21.0' // 버전 통일
-	// testImplementation 'org.testcontainers:mysql:1.21.0' // 버전 명시
+	// Jackson
+	implementation 'com.fasterxml.jackson.core:jackson-annotations'
+	implementation 'com.fasterxml.jackson.core:jackson-databind'
+	implementation 'com.fasterxml.jackson.core:jackson-core'
 }
 
 tasks.named('test') {
