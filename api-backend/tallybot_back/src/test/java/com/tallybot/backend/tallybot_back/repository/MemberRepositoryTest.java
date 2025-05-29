@@ -39,8 +39,6 @@ class MemberRepositoryTest extends DatabaseTestBase {
 
     @BeforeEach
     void setUp() {
-        memberRepository.deleteAll();
-        groupRepository.deleteAll();
     }
 
     @Test

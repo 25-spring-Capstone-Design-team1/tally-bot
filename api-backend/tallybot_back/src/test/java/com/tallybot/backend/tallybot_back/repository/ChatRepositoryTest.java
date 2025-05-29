@@ -46,10 +46,6 @@ class ChatRepositoryTest extends DatabaseTestBase {
 
     @BeforeEach
     void setUp() {
-        // 필요한 경우 테스트 데이터 초기화
-        groupRepository.deleteAll();
-        memberRepository.deleteAll();
-        chatRepository.deleteAll();
     }
 
     @Test

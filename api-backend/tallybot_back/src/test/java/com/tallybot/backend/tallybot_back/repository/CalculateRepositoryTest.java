@@ -35,8 +35,6 @@ class CalculateRepositoryTest extends DatabaseTestBase {
 
     @BeforeEach
     void setUp() {
-        groupRepository.deleteAll();
-        calculateRepository.deleteAll();
     }
 
     @Test

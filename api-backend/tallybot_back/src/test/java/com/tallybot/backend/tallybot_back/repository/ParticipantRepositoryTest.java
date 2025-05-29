@@ -43,11 +43,6 @@ public class ParticipantRepositoryTest extends DatabaseTestBase {
 
     @BeforeEach
     void setUp() {
-        calculateRepository.deleteAll();
-        settlementRepository.deleteAll();
-        participantRepository.deleteAll();
-        groupRepository.deleteAll();
-        memberRepository.deleteAll();
     }
 
     @Test
