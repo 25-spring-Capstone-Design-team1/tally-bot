@@ -5,9 +5,7 @@ import com.tallybot.backend.tallybot_back.domain.Member;
 import com.tallybot.backend.tallybot_back.domain.UserGroup;
 import com.tallybot.backend.tallybot_back.fixture.GenericBulkFactory;
 import config.DatabaseTestBase;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -22,6 +20,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@Order(1)
 @SpringBootTest
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)

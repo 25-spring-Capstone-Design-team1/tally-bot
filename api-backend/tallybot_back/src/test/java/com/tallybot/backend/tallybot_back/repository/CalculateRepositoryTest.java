@@ -2,9 +2,7 @@ package com.tallybot.backend.tallybot_back.repository;
 
 import com.tallybot.backend.tallybot_back.domain.*;
 import config.DatabaseTestBase;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -20,6 +18,8 @@ import java.util.List;
 import java.util.Optional;
 
 // 실제 테스트
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@Order(1)
 @SpringBootTest
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
