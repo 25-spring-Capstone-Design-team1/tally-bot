@@ -45,7 +45,6 @@ logging:
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
     org.hibernate.tool.schema: DEBUG
     org.springframework.jdbc.core: DEBUG
-    org.testcontainers: DEBUG
     com.tallybot.backend.tallybot_back: DEBUG
   pattern:
     console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

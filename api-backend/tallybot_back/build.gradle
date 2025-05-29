@@ -56,9 +56,9 @@ dependencies {
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
 	// TestContainers
-	testImplementation 'org.testcontainers:testcontainers:1.21.0'
-	testImplementation 'org.testcontainers:junit-jupiter:1.21.0' // 버전 통일
-	testImplementation 'org.testcontainers:mysql:1.21.0' // 버전 명시
+	// testImplementation 'org.testcontainers:testcontainers:1.21.0'
+	// testImplementation 'org.testcontainers:junit-jupiter:1.21.0' // 버전 통일
+	// testImplementation 'org.testcontainers:mysql:1.21.0' // 버전 명시
 }
 
 tasks.named('test') {
