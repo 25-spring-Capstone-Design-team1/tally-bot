@@ -1,0 +1,11 @@
+# src/test/resources/application-mock-data.yml
+spring:
+  profiles:
+    include: test  # test 프로파일 설정을 상속
+  # Mock 데이터 테스트 전용 설정 (필요시)
+  test:
+    mock-data:
+      enabled: true
+logging:
+  level:
+    com.tallybot: DEBUG  # Mock 테스트 디버깅용

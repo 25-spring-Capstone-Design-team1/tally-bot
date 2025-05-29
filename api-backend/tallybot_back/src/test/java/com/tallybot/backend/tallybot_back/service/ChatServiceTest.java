@@ -9,6 +9,7 @@ import com.tallybot.backend.tallybot_back.repository.MemberRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -18,6 +19,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)
+@ActiveProfiles({"test", "mock-data"})  // 이 프로파일 조합으로 별도 컨텍스트 생성
 class ChatServiceTest {
 
     private GroupRepository groupRepository;

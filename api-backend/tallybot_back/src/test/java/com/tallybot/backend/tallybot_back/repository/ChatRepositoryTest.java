@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @SpringBootTest
-@ActiveProfiles("test")
+@ActiveProfiles({"test", "repository-test"})  // 다른 프로파일 조합으로 별도 컨텍스트 생성
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Transactional
 @Rollback

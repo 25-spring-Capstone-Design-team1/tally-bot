@@ -1,0 +1,11 @@
+# src/test/resources/application-repository-test.yml
+spring:
+  profiles:
+    include: test  # test 프로파일 설정을 상속
+  # Repository 테스트 전용 설정 (필요시)
+  test:
+    repository:
+      enabled: true
+logging:
+  level:
+    org.hibernate.SQL: DEBUG  # Repository 테스트 디버깅용
