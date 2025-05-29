@@ -11,6 +11,8 @@ import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+// Spring Boot 3.x에서는 jakarta.persistence 사용
+import jakarta.persistence.EntityManager;
 import static org.assertj.core.api.Assertions.*;
 
 import java.time.LocalDateTime;
@@ -38,12 +40,28 @@ class CalculateDetailRepositoryTest extends DatabaseTestBase {
     @Autowired
     private GroupRepository groupRepository;
 
+    @Autowired
+    private EntityManager entityManager;
+
     @BeforeEach
     void setUp() {
-        calculateDetailRepository.deleteAll();
-        calculateRepository.deleteAll();
-        memberRepository.deleteAll();
-        groupRepository.deleteAll();
+        // 외래키 제약조건 비활성화
+        entityManager.createNativeQuery("SET FOREIGN_KEY_CHECKS = 0").executeUpdate();
+
+        // 모든 테이블 데이터 삭제 (자식→부모 순서)
+        entityManager.createNativeQuery("DELETE FROM calculate_detail").executeUpdate();
+        entityManager.createNativeQuery("DELETE FROM participant").executeUpdate();
+        entityManager.createNativeQuery("DELETE FROM settlement").executeUpdate();
+        entityManager.createNativeQuery("DELETE FROM calculate").executeUpdate();
+        entityManager.createNativeQuery("DELETE FROM chat").executeUpdate();
+        entityManager.createNativeQuery("DELETE FROM member").executeUpdate();
+        entityManager.createNativeQuery("DELETE FROM user_group").executeUpdate();
+
+        // 외래키 제약조건 재활성화
+        entityManager.createNativeQuery("SET FOREIGN_KEY_CHECKS = 1").executeUpdate();
+
+        entityManager.flush();
+        entityManager.clear();
     }
 
     @Test
@@ -58,9 +76,9 @@ class CalculateDetailRepositoryTest extends DatabaseTestBase {
         }
 
         UserGroup group = UserGroup.builder()
-                        .groupId(8810L)
-                        .groupName("새로운 톡방")
-                        .build();
+                .groupId(8810L)
+                .groupName("새로운 톡방")
+                .build();
 
         userGroups.set(0, groupRepository.save(group));
 
@@ -72,10 +90,10 @@ class CalculateDetailRepositoryTest extends DatabaseTestBase {
         userGroups.set(1, groupRepository.save(group));
 
         Member member = Member.builder()
-                        .memberId(null)
-                        .userGroup(userGroups.get(0))
-                        .nickname("철수")
-                        .build();
+                .memberId(null)
+                .userGroup(userGroups.get(0))
+                .nickname("철수")
+                .build();
 
         userGroupMembers.get(0).add(memberRepository.save(member));
 

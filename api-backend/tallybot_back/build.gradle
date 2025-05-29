@@ -37,6 +37,7 @@ dependencies {
 
 	// MySQL 관련
 	implementation 'mysql:mysql-connector-java:8.0.33'
+	implementation 'mysql:mysql-connector-java:runtime'
 
 	// H2 (개발용)
 	implementation 'com.h2database:h2'
@@ -58,6 +59,7 @@ dependencies {
 	implementation 'com.fasterxml.jackson.core:jackson-annotations'
 	implementation 'com.fasterxml.jackson.core:jackson-databind'
 	implementation 'com.fasterxml.jackson.core:jackson-core'
+
 }
 
 tasks.named('test') {

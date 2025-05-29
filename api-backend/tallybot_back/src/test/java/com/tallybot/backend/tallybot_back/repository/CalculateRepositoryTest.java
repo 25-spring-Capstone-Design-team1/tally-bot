@@ -11,6 +11,8 @@ import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+// Spring Boot 3.x에서는 jakarta.persistence 사용
+import jakarta.persistence.EntityManager;
 import static org.assertj.core.api.Assertions.*;
 
 import java.time.LocalDateTime;
@@ -28,13 +30,32 @@ class CalculateRepositoryTest extends DatabaseTestBase {
 
     @Autowired
     private GroupRepository groupRepository;
+
     @Autowired
     private CalculateRepository calculateRepository;
 
+    @Autowired
+    private EntityManager entityManager;
+
     @BeforeEach
     void setUp() {
-        calculateRepository.deleteAll();
-        groupRepository.deleteAll();
+        // 외래키 제약조건 비활성화
+        entityManager.createNativeQuery("SET FOREIGN_KEY_CHECKS = 0").executeUpdate();
+
+        // 모든 테이블 데이터 삭제 (자식→부모 순서)
+        entityManager.createNativeQuery("DELETE FROM calculate_detail").executeUpdate();
+        entityManager.createNativeQuery("DELETE FROM participant").executeUpdate();
+        entityManager.createNativeQuery("DELETE FROM settlement").executeUpdate();
+        entityManager.createNativeQuery("DELETE FROM calculate").executeUpdate();
+        entityManager.createNativeQuery("DELETE FROM chat").executeUpdate();
+        entityManager.createNativeQuery("DELETE FROM member").executeUpdate();
+        entityManager.createNativeQuery("DELETE FROM user_group").executeUpdate();
+
+        // 외래키 제약조건 재활성화
+        entityManager.createNativeQuery("SET FOREIGN_KEY_CHECKS = 1").executeUpdate();
+
+        entityManager.flush();
+        entityManager.clear();
     }
 
     @Test
@@ -162,6 +183,5 @@ class CalculateRepositoryTest extends DatabaseTestBase {
         assertThat(cid4).isPresent();
         assertThat(cid4).get().isEqualTo(cal4);
         assertThat(cidNo).isEmpty();
-
     }
 }

@@ -14,6 +14,8 @@ import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+// Spring Boot 3.x에서는 jakarta.persistence 사용
+import jakarta.persistence.EntityManager;
 import static org.assertj.core.api.Assertions.*;
 
 import java.time.LocalDateTime;
@@ -37,6 +39,9 @@ class ChatRepositoryTest extends DatabaseTestBase {
     @Autowired
     private ChatRepository chatRepository;
 
+    @Autowired
+    private EntityManager entityManager;
+
     private GenericBulkFactory.Builder4<Chat, UserGroup, LocalDateTime, Member, String> chatFactory
             = new GenericBulkFactory.Builder4<>(
             (UserGroup a, LocalDateTime b, Member c, String d)
@@ -44,9 +49,23 @@ class ChatRepositoryTest extends DatabaseTestBase {
 
     @BeforeEach
     void setUp() {
-        groupRepository.deleteAll();
-        memberRepository.deleteAll();
-        chatRepository.deleteAll();
+        // 외래키 제약조건 비활성화
+        entityManager.createNativeQuery("SET FOREIGN_KEY_CHECKS = 0").executeUpdate();
+
+        // 모든 테이블 데이터 삭제 (자식→부모 순서)
+        entityManager.createNativeQuery("DELETE FROM calculate_detail").executeUpdate();
+        entityManager.createNativeQuery("DELETE FROM participant").executeUpdate();
+        entityManager.createNativeQuery("DELETE FROM settlement").executeUpdate();
+        entityManager.createNativeQuery("DELETE FROM calculate").executeUpdate();
+        entityManager.createNativeQuery("DELETE FROM chat").executeUpdate();  // 이 테스트의 핵심 테이블
+        entityManager.createNativeQuery("DELETE FROM member").executeUpdate();  // 이 테스트의 핵심 테이블
+        entityManager.createNativeQuery("DELETE FROM user_group").executeUpdate();  // 이 테스트의 핵심 테이블
+
+        // 외래키 제약조건 재활성화
+        entityManager.createNativeQuery("SET FOREIGN_KEY_CHECKS = 1").executeUpdate();
+
+        entityManager.flush();
+        entityManager.clear();
     }
 
     @Test
