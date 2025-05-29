@@ -30,6 +30,7 @@ class GroupRepositoryTest extends DatabaseTestBase {
 
     @BeforeEach
     void setUp() {
+        groupRepository.deleteAll();
     }
 
     @Test

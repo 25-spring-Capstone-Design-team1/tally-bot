@@ -44,6 +44,9 @@ class ChatRepositoryTest extends DatabaseTestBase {
 
     @BeforeEach
     void setUp() {
+        groupRepository.deleteAll();
+        memberRepository.deleteAll();
+        chatRepository.deleteAll();
     }
 
     @Test

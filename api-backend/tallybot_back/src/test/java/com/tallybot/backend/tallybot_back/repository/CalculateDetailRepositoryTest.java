@@ -40,6 +40,10 @@ class CalculateDetailRepositoryTest extends DatabaseTestBase {
 
     @BeforeEach
     void setUp() {
+        calculateDetailRepository.deleteAll();
+        calculateRepository.deleteAll();
+        memberRepository.deleteAll();
+        groupRepository.deleteAll();
     }
 
     @Test

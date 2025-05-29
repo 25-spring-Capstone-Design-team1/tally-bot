@@ -40,6 +40,10 @@ public class SettlementRepositoryTest extends DatabaseTestBase {
 
     @BeforeEach
     void setUp() {
+        groupRepository.deleteAll();
+        memberRepository.deleteAll();
+        calculateRepository.deleteAll();
+        settlementRepository.deleteAll();
     }
 
     @Test
