@@ -1,37 +1,26 @@
 package config;
 
-import com.github.dockerjava.api.model.ExposedPort;
-import com.github.dockerjava.api.model.PortBinding;
-import com.github.dockerjava.api.model.Ports;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
-import org.testcontainers.shaded.com.fasterxml.jackson.databind.JsonNode;
-import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.Objects;
 
 @SpringBootTest
-@Testcontainers
 @ActiveProfiles("test")
 @EntityScan("com.tallybot.backend.tallybot_back.domain")
 @Transactional
 public abstract class DatabaseTestBase {
-    private static MySQLContainer<?> initialize() {
+
+    private static DatabaseConfig getDatabaseConfig() {
         String secretName = "tallybot-test-db";
         Region region = Region.of("ap-northeast-2");
 
@@ -48,9 +37,7 @@ public abstract class DatabaseTestBase {
         try {
             getSecretValueResponse = client.getSecretValue(getSecretValueRequest);
         } catch (Exception e) {
-            // For a list of exceptions thrown, see
-            // https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
-            throw e;
+            throw new RuntimeException("AWS Secrets Manager에서 데이터베이스 설정을 가져오는데 실패했습니다.", e);
         }
 
         String secret = getSecretValueResponse.secretString();
@@ -63,50 +50,56 @@ public abstract class DatabaseTestBase {
             String password = jsonNode.get("password").asText();
             String host = jsonNode.get("host").asText();
 
-            try (MySQLContainer<?> container = new MySQLContainer<>("mysql:8.0")) {
-                        container.withCreateContainerCmdModifier(cmd -> {
-                            String ip;
-                            try {
-                                ip = InetAddress.getByName(host).getHostAddress();
-                            } catch (UnknownHostException e) {
-                                throw new RuntimeException(e);
-                            }
+            // 포트와 데이터베이스명 추가 (필요시)
+            String port = jsonNode.has("port") ? jsonNode.get("port").asText() : "3306";
+            String database = jsonNode.has("database") ? jsonNode.get("database").asText() : "tallybot_test";
 
-                            Objects.requireNonNull(cmd.getHostConfig()).withPortBindings(
-                                    new PortBinding(Ports.Binding.bindIpAndPort(ip, 3306),
-                                            ExposedPort.tcp(3306))
-                            );
-                        })
-                        .withDatabaseName("tallybot_test")
-                        .withUsername(username)
-                        .withPassword(password)
-                        .withCommand(
-                                "--character-set-server=utf8mb4",
-                                "--collation-server=utf8mb4_bin",
-                                "--lower_case_table_names=1"  // 테이블명 대소문자 구분 제거
-                        );
-                return container;
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
+            return new DatabaseConfig(username, password, host, port, database);
 
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("JSON 파싱 중 오류가 발생했습니다.", e);
         }
     }
-
-    @Container
-    protected static final MySQLContainer<?> mysql = initialize();
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
         System.out.println("=== DatabaseTestBase 설정 시작 ===");
-        System.out.println("MySQL URL: " + mysql.getJdbcUrl());
+
+        DatabaseConfig config = getDatabaseConfig();
+
+        String jdbcUrl = String.format("jdbc:mysql://%s:%s/%s?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul",
+                config.host, config.port, config.database);
+
+        System.out.println("MySQL URL: " + jdbcUrl);
+
         // 기본 데이터소스 설정
-        registry.add("spring.datasource.url", mysql::getJdbcUrl);
-        registry.add("spring.datasource.username", mysql::getUsername);
-        registry.add("spring.datasource.password", mysql::getPassword);
+        registry.add("spring.datasource.url", () -> jdbcUrl);
+        registry.add("spring.datasource.username", () -> config.username);
+        registry.add("spring.datasource.password", () -> config.password);
         registry.add("spring.datasource.driver-class-name", () -> "com.mysql.cj.jdbc.Driver");
+
+        // JPA 설정 (테스트 환경에 맞게 조정)
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+        registry.add("spring.jpa.show-sql", () -> "true");
+        registry.add("spring.jpa.properties.hibernate.format_sql", () -> "true");
+
         System.out.println("=== DatabaseTestBase 설정 완료 ===");
+    }
+
+    // 내부 클래스로 설정 정보 관리
+    private static class DatabaseConfig {
+        final String username;
+        final String password;
+        final String host;
+        final String port;
+        final String database;
+
+        DatabaseConfig(String username, String password, String host, String port, String database) {
+            this.username = username;
+            this.password = password;
+            this.host = host;
+            this.port = port;
+            this.database = database;
+        }
     }
 }
