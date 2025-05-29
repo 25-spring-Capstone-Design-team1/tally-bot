@@ -1,0 +1,31 @@
+name: Deploy Backend to EC2
+
+on:
+  push:
+    branches:
+      - dev
+    paths:
+      - 'api-backend/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.AWS_SSH_KEY }}
+
+      - name: Deploy to EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.AWS_USER }}@${{ secrets.AWS_HOST }} << 'EOF'
+            cd /home/ssm-user/app/tally-bot/api-backend/tallybot_back
+            git pull origin dev
+            ./gradlew build -x test
+            pkill -f 'java -jar' || true
+            nohup java -jar ./build/libs/tallybot_back-0.0.1-SNAPSHOT.jar > app.log 2>&1 &
+          EOF

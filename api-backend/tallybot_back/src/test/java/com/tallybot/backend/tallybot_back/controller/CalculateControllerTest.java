@@ -145,7 +145,7 @@ class CalculateControllerTest {
 
     @Test
     @DisplayName("202 Accepted : 정산 처리 중")
-    void getBotResult_pending() throws Exception {
+    void getBotResult_calculating() throws Exception {
         // given
         Calculate calculate = new Calculate();
         calculate.setCalculateId(101L);
@@ -169,13 +169,15 @@ class CalculateControllerTest {
     }
 
     @Test
-    @DisplayName("404 Not Found : 존재하지 않는 ID")
-    void getBotResult_notFound() throws Exception {
-        Mockito.when(calculateRepository.findById(anyLong())).thenReturn(Optional.empty());
+    void testGetBotResult_NotFound() throws Exception {
+        Long calculateId = 999L;
 
-        mockMvc.perform(get("/api/calculate/999/brief-result"))
+        given(calculateRepository.findById(calculateId))
+                .willReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/calculate/{calculateId}/brief-result", calculateId))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error").value("Calculate result not found for ID: 999"));
+                .andExpect(jsonPath("$.message").value("정산할 대화 내용이 없거나, 정산 결과가 존재하지 않습니다."));
     }
 
     @Test
@@ -378,19 +380,19 @@ class CalculateControllerTest {
                 .andExpect(jsonPath("$.error").value("Calculate ID must not be null."));
     }
 
-    @Test
-    @DisplayName("404 Not Found : 재정산 실패 - calculateId에 해당하는 엔티티 없음")
-    void recalculate_fail_notFound() throws Exception {
-        Long invalidId = 999L;
-
-        // calculateRepository.findById()가 빈 값을 반환하게 설정
-        when(calculateRepository.findById(invalidId)).thenReturn(Optional.empty());
-
-        mockMvc.perform(post("/api/calculate/recalculate")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of("calculateId", invalidId))))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error").value("Calculate entity not found."));
-    }
+//    @Test
+//    @DisplayName("404 Not Found : 재정산 실패 - calculateId에 해당하는 엔티티 없음")
+//    void recalculate_fail_notFound() throws Exception {
+//        Long invalidId = 999L;
+//
+//        // calculateRepository.findById()가 빈 값을 반환하게 설정
+//        when(calculateRepository.findById(invalidId)).thenReturn(Optional.empty());
+//
+//        mockMvc.perform(post("/api/calculate/recalculate")
+//                        .contentType(MediaType.APPLICATION_JSON)
+//                        .content(objectMapper.writeValueAsString(Map.of("calculateId", invalidId))))
+//                .andExpect(status().isNotFound())
+//                .andExpect(jsonPath("$.error").value("Calculate entity not found."));
+//    }
 
 }

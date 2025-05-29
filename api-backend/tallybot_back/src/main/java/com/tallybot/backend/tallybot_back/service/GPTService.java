@@ -2,6 +2,7 @@ package com.tallybot.backend.tallybot_back.service;
 
 import com.tallybot.backend.tallybot_back.domain.*;
 import com.tallybot.backend.tallybot_back.dto.SettlementDto;
+import com.tallybot.backend.tallybot_back.exception.NoSettlementResultException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -18,18 +19,17 @@ public class GPTService {
         this.restTemplate = restTemplate;
     }
 
+
     public List<SettlementDto> returnResults(List<Chat> chats) {
-        // Chat → GPT에 전달할 포맷으로 변환
         List<Map<String, String>> conversation = new ArrayList<>();
 
         // 시스템 메시지 - 멤버 목록 전송
-        String systemMessage = createSystemMessage(chats);  // 아래 설명 있음
+        String systemMessage = createSystemMessage(chats);
         conversation.add(Map.of(
                 "speaker", "system",
                 "message_content", systemMessage
         ));
 
-        // 일반 유저 메시지
         for (Chat chat : chats) {
             conversation.add(Map.of(
                     "speaker", "user",
@@ -37,21 +37,37 @@ public class GPTService {
             ));
         }
 
-        //  요청 바디 구성
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("conversation", conversation);
         requestBody.put("prompt_file", "resources/input_prompt.yaml");
 
-        // FastAPI 서버로 요청
         String url = "http://localhost:8000/api/process";
-        ResponseEntity<SettlementDto[]> response = restTemplate.postForEntity(
-                url,
-                requestBody,
-                SettlementDto[].class
-        );
 
-        return Arrays.asList(response.getBody());
+        try {
+            ResponseEntity<SettlementDto[]> response = restTemplate.postForEntity(
+                    url,
+                    requestBody,
+                    SettlementDto[].class
+            );
+
+            SettlementDto[] responseBody = response.getBody();
+
+            // 응답이 null이거나 길이가 0인 경우
+            if (responseBody == null || responseBody.length == 0) {
+                throw new NoSettlementResultException("정산 결과가 존재하지 않습니다.");
+            }
+
+            return Arrays.asList(responseBody);
+
+        } catch (NoSettlementResultException e) {
+            throw e; // 예외 그대로 던지기
+        } catch (Exception e) {
+            System.err.println("GPT 요청 실패: " + e.getMessage());
+            throw new RuntimeException("GPT 서버 응답 처리 중 오류가 발생했습니다.", e);
+        }
+
     }
+
 
     private String createSystemMessage(List<Chat> chats) {
         Set<String> memberNames = chats.stream()

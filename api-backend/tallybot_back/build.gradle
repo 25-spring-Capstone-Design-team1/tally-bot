@@ -30,6 +30,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'com.fasterxml.jackson.core:jackson-databind'
 	implementation 'org.hibernate.validator:hibernate-validator:8.0.1.Final'
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
 	// AWS secrets manager
 	implementation 'software.amazon.awssdk:secretsmanager:2.20.26'
