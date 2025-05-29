@@ -31,6 +31,9 @@ dependencies {
 	implementation 'com.fasterxml.jackson.core:jackson-databind'
 	implementation 'org.hibernate.validator:hibernate-validator:8.0.1.Final'
 
+	// AWS secrets manager
+	implementation 'software.amazon.awssdk:secretsmanager:2.20.26'
+
 	// MySQL 관련
 	implementation 'mysql:mysql-connector-java:8.0.33'
 
