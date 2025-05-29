@@ -189,6 +189,7 @@ export default function SettlementDetail({ payments, participants, onPaymentsCha
     <Card className="shadow-sm rounded-lg">
       <CardHeader>
         {/* 헤더 제목 및 항목 추가 버튼 */}
+        {/*
         <div className="flex justify-between items-center">
            <CardTitle className="text-lg font-semibold">상세 정산 내역</CardTitle>
            {!isCompleted ? ( // 완료되지 않았을 때만 항목 추가 버튼 활성화
@@ -203,6 +204,7 @@ export default function SettlementDetail({ payments, participants, onPaymentsCha
               </Button>
            )}
         </div>
+        */}
         {/* 설명 */}
         <CardDescription>
             {isCompleted

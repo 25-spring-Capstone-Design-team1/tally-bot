@@ -36,7 +36,9 @@ import { format } from 'date-fns';
 export default function SettlementPage(): ReactElement {
   const router = useRouter();
   const { toast } = useToast();
-  const { groupId, calculateId } = useParams();
+  const params = useParams();
+  const groupId = params?.groupId;
+  const calculateId = params?.calculateId;
   const settlementId = calculateId as string;
 
   const [settlement, setSettlement] = useState<Settlement | null>(null); // 정산 데이터 상태
@@ -288,8 +290,9 @@ navigator.clipboard.writeText(currentUrl)
 
   {/* 액션 버튼 그룹 */}
   <div className="w-full flex flex-wrap justify-end gap-2">
-
+    
     {/* ✅ 삭제 버튼: 항상 보임 */}
+    {/*
     <AlertDialog>
       <AlertDialogTrigger asChild>
         <Button size="sm" variant="destructive">
@@ -316,6 +319,7 @@ navigator.clipboard.writeText(currentUrl)
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+    */}
 
     {/* 저장 버튼 */}
     {!isSettlementCompleted && (

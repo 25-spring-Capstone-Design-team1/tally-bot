@@ -19,7 +19,7 @@ export default function Home() {
     setError(null);
     try {
       const data = await getSettlementsList(groupId as string);
-      setSettlements(data);
+      setSettlements(data.reverse());
     } catch (err) {
       setError('정산 목록을 불러오는 데 실패했습니다.');
       console.error(err);

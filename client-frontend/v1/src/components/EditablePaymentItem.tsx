@@ -205,9 +205,10 @@ export default function EditablePaymentItem({
                 <Input
                   id={`item-${payment.id}`}
                   value={editedPayment.item}
-                  onChange={(e) => handleChange('item', e.target.value)}
+                  onChange={(e) => handleChange('item', e.target.value.slice(0, 30))}
+                  maxLength={30}
                   className={cn(errors.item && "border-destructive")}
-                  disabled={isCompleted} // 완료 시 비활성화
+                  disabled={isCompleted}
                 />
                 {errors.item && <p className="text-xs text-destructive mt-1">{errors.item}</p>}
               </div>
@@ -282,34 +283,37 @@ export default function EditablePaymentItem({
 
                        {splitMethod === 'custom' && (
                          <Input
-                           type="number"
-                           step={1000}
-                           disabled={!isTarget || isCompleted}
-                           value={editedPayment.constant?.[index] ?? ''}
-                           onChange={(e) => {
-                            const value = parseInt(e.target.value)
-                            if (isNaN(value) || value < 0) return
-                          
-                            const newConst = [...(editedPayment.constant || [])]
-                            newConst[index] = value
-                          
-                            const total = newConst.reduce(
-                              (sum, val, i) =>
-                                editedPayment.target.includes(participants[i]) && typeof val === 'number'
-                                  ? sum + val
-                                  : sum,
-                              0
-                            )
-                          
-                            setEditedPayment(prev => ({
-                              ...prev,
-                              constant: newConst,
-                              amount: total
-                            }))
-                          }}
-                           className="w-full sm:w-24 h-8 text-sm"
-                           placeholder="금액"
-                         />
+                         type="number"
+                         step={1000}
+                         disabled={!isTarget || isCompleted}
+                         value={editedPayment.constant?.[index] ?? ''}
+                         onChange={(e) => {
+                           const rawValue = e.target.value;
+                           if (rawValue.length > 8) return;
+                       
+                           const value = parseInt(rawValue);
+                           if (isNaN(value) || value < 0) return;
+                       
+                           const newConst = [...(editedPayment.constant || [])];
+                           newConst[index] = value;
+                       
+                           const total = newConst.reduce(
+                             (sum, val, i) =>
+                               editedPayment.target.includes(participants[i]) && typeof val === 'number'
+                                 ? sum + val
+                                 : sum,
+                             0
+                           );
+                       
+                           setEditedPayment(prev => ({
+                             ...prev,
+                             constant: newConst,
+                             amount: total
+                           }));
+                         }}
+                         className="w-28 h-8 text-sm"
+                         placeholder="금액"
+                       />
                        )}
                      </div>
                    )
