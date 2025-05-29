@@ -10,22 +10,50 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
+        
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.7.0
         with:
           ssh-private-key: ${{ secrets.AWS_SSH_KEY }}
-
+          
       - name: Deploy to EC2
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.AWS_USER }}@${{ secrets.AWS_HOST }} << 'EOF'
             cd /home/ssm-user/app/tally-bot/api-backend/tallybot_back
             git pull origin dev
             ./gradlew build -x test
-            pkill -f 'java -jar' || true
-            nohup java -jar ./build/libs/tallybot_back-0.0.1-SNAPSHOT.jar > app.log 2>&1 &
+            
+            # 기존 프로세스 종료 (PID 파일 기반)
+            if [ -f app.pid ]; then
+              echo "Stopping existing application (PID: $(cat app.pid))"
+              kill $(cat app.pid) || true
+              sleep 5
+              kill -9 $(cat app.pid) 2>/dev/null || true
+              rm -f app.pid
+            fi
+            
+            # 백업: 패턴 매칭으로 남은 프로세스 정리
+            pkill -f 'java.*tallybot_back.*jar' || true
+            pkill -f './build/libs/tallybot_back' || true
+            sleep 2
+            
+            # 새 애플리케이션 시작
+            nohup java -jar ./build/libs/tallybot_back-0.0.1-SNAPSHOT.jar \
+              --spring.profiles.active=rds \
+              > app.log 2>&1 &
+            
+            # PID 저장 및 확인
+            echo $! > app.pid
+            echo "Application started with PID: $(cat app.pid)"
+            
+            # 헬스 체크
+            sleep 10
+            if curl -f http://localhost:8080/actuator/health; then
+              echo "✅ Deployment successful!"
+            else
+              echo "⚠️ Health check failed, check app.log"
+            fi
           EOF
