@@ -37,7 +37,6 @@ dependencies {
 
 	// MySQL 관련
 	implementation 'mysql:mysql-connector-java:8.0.33'
-	implementation 'mysql:mysql-connector-java:runtime'
 
 	// H2 (개발용)
 	implementation 'com.h2database:h2'
