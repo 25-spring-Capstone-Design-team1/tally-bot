@@ -11,9 +11,9 @@
 1. Python 3.8 이상이 필요합니다.
 2. 가상 환경 생성 및 활성화:
    ```bash
-   python -m venv venv
-   source venv/bin/activate  # Linux/Mac
-   venv\Scripts\activate     # Windows
+   python -m venv .venv
+   source .venv/bin/activate  # Linux/Mac
+   .venv\Scripts\activate     # Windows
    ```
 
 3. 의존성 설치:
@@ -33,6 +33,18 @@
 uvicorn main:app --reload
 
 nohup uvicorn main:app --host 0.0.0.0 --port 8000 &
+```
+
+### 로그 확인
+
+```bash
+tail -f nohup.out
+```
+
+## 서버 도메인
+
+```bash
+http://tally-bot-ai-backend-alb-2092930451.ap-northeast-2.elb.amazonaws.com/api/process
 ```
 
 서버는 기본적으로 http://localhost:8000 에서 실행됩니다.
