@@ -44,6 +44,7 @@ public class CalculateService {
      * 이 때, 대화 분석이 GPTService를 통해 이루어지며,
      * 각자의 정산 몫 분배와 최적화는 백에서 이루어진다.
      */
+    @Transactional
     public Long startCalculate(CalculateRequestDto request) {
         UserGroup userGroup = groupRepository.findById(request.getGroupId())
                 .orElseThrow(() -> new IllegalArgumentException("Group not found"));
