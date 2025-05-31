@@ -1,0 +1,25 @@
+### GPT 서버 mock 응답 테스트 (http://localhost:8000/api/process)
+POST http://localhost:8080/api/process
+Content-Type: application/json
+
+{
+  "chatroom_id": 2,
+  "members": [
+    { "2": "지훈" },
+    { "3": "준호" }
+  ],
+  "messages": [
+    {
+      "unique_chat_id": "101000",
+      "speaker": "2",
+      "message_content": "정산 ㄱ",
+      "timestamp": "2025-05-30T13:20:00"
+    },
+    {
+      "unique_chat_id": "101001",
+      "speaker": "3",
+      "message_content": "내가 낼게",
+      "timestamp": "2025-05-30T13:21:00"
+    }
+  ]
+}

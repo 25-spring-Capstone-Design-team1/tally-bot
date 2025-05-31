@@ -74,7 +74,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneric(Exception ex) {
+        ex.printStackTrace(); // 콘솔에 스택트레이스 출력
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ErrorResponse("Internal server error occurred while saving chat data."));
+                .body(new ErrorResponse("Internal server error occurred."));
     }
 }

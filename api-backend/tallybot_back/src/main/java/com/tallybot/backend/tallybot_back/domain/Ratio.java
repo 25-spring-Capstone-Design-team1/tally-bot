@@ -111,7 +111,29 @@ public class Ratio {
         return (double)numerator / denominator;
     }
 
+//    public int toInt() {
+//        return numerator / denominator;
+//    }
+//    public int toInt() {
+//        return (int) Math.round((double) numerator / denominator * 100);
+//    }
+
+//    public int toInt() {
+//        return (int) Math.round((double) numerator / denominator);
+//    }
+
+//    public int toInt2() {
+//        return (int) Math.round((double) numerator / denominator * 100);
+//    }
+
     public int toInt() {
-        return numerator / denominator;
+        if (numerator % denominator == 0) {
+            return numerator / denominator;
+        } else {
+            return (int) Math.round((double) numerator / denominator * 100);
+        }
     }
+
+
+
 }

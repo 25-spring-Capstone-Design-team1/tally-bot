@@ -6,7 +6,9 @@ import com.tallybot.backend.tallybot_back.domain.*;
 import com.tallybot.backend.tallybot_back.dto.*;
 import com.tallybot.backend.tallybot_back.exception.NoSettlementResultException;
 import com.tallybot.backend.tallybot_back.repository.*;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.h2.value.Transfer;
 import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -27,6 +29,8 @@ public class CalculateService {
     private final SettlementRepository settlementRepository;
     private final SettlementService settlementService;
     private final ParticipantRepository participantRepository;
+    private final OptimizationService optimizationService;
+
 
     public boolean groupExists(Long groupId) {
         return groupRepository.existsById(groupId);
@@ -60,11 +64,56 @@ public class CalculateService {
 
         // 나머지 GPT 처리 로직은 비동기로 실행
         Long finalCalculateId = calculateId; // 비동기에서 접근 가능하도록 final 변수로 복사
+
+//        CompletableFuture.runAsync(() -> {
+//            try {
+//                List<SettlementDto> results = gptService.returnResults(request.getGroupId(), chats);
+//
+//
+//                List<Settlement> settlements = settlementService.toSettlements(results, finalCalculateId);
+//
+//                for (Settlement settlement : settlements) {
+//                    Settlement savedSettlement = settlementRepository.save(settlement);
+//                    for (Participant participant : settlement.getParticipants()) {
+//                        participant.getParticipantKey().setSettlement(savedSettlement);
+//                        participantRepository.save(participant);
+//                    }
+//                }
+//
+//                calculateAndOptimize(settlements);
+//                pendingCalculate(calculateId);
+//
+//            } catch (NoSettlementResultException ex) {
+//                // GPT가 정산 결과를 반환하지 않은 경우 → calculate 삭제
+////                calculateRepository.deleteById(finalCalculateId);
+//                System.err.println("정산 결과 없음 - calculate 삭제됨: " + ex.getMessage());
+//                return;
+//            } catch (Exception ex) {
+//                // 기타 오류 → calculate 삭제
+////                calculateRepository.deleteById(finalCalculateId);
+//                System.err.println("GPT 처리 중 오류 발생 - calculate 삭제됨: " + ex.getMessage());
+//                return;
+//            }
+//        });
+
+
+        List<ChatForGptDto> chatDtos = chats.stream()
+                .map(chat -> new ChatForGptDto(
+                        chat.getChatId(),
+                        chat.getMember().getMemberId(),
+                        chat.getMember().getNickname(),
+                        chat.getMessage(),
+                        chat.getTimestamp()
+                ))
+                .toList();
+
+
         CompletableFuture.runAsync(() -> {
             try {
-                List<SettlementDto> results = gptService.returnResults(chats);
+                List<SettlementDto> results = gptService.returnResults(request.getGroupId(), chatDtos);
 
                 List<Settlement> settlements = settlementService.toSettlements(results, finalCalculateId);
+
 
                 for (Settlement settlement : settlements) {
                     Settlement savedSettlement = settlementRepository.save(settlement);
@@ -78,39 +127,77 @@ public class CalculateService {
                 pendingCalculate(calculateId);
 
             } catch (NoSettlementResultException ex) {
-                // GPT가 정산 결과를 반환하지 않은 경우 → calculate 삭제
                 calculateRepository.deleteById(finalCalculateId);
                 System.err.println("정산 결과 없음 - calculate 삭제됨: " + ex.getMessage());
                 return;
             } catch (Exception ex) {
-                // 기타 오류 → calculate 삭제
                 calculateRepository.deleteById(finalCalculateId);
                 System.err.println("GPT 처리 중 오류 발생 - calculate 삭제됨: " + ex.getMessage());
+//                ex.printStackTrace();
                 return;
             }
         });
+
 
         return calculateId;
     }
 
 
-    public void calculateAndOptimize(List<Settlement> settlementList)
-    {
-        // Calculate Detail 생성
-        List<CalculateDetail> lcd = calculateShare(settlementList);
-        lcd = optimize(lcd);
-        calculateDetailRepository.saveAll(lcd);
+//    public void calculateAndOptimize(List<Settlement> settlementList)
+//    {
+//        // Calculate Detail 생성
+//        List<CalculateDetail> lcd = calculateShare(settlementList);
+//        lcd = optimizationService.optimize(lcd);
+//        calculateDetailRepository.saveAll(lcd);
+//
+//    }
+
+
+    public void calculateAndOptimize(List<Settlement> settlementList) {
+        optimizationService.calculateAndOptimize(settlementList);
     }
 
+
     /// 로직 테스트 필요
+//    public void recalculate(Long calculateId) {
+//        Calculate calculate = calculateRepository.findByCalculateId(calculateId)
+//                .orElseThrow(() -> new IllegalArgumentException("해당 Calculate ID가 존재하지 않습니다."));
+//
+//        calculateDetailRepository.deleteByCalculate(calculate);
+//        List<Settlement> settlementList = settlementRepository.findByCalculate(calculate);
+//
+//        calculateAndOptimize(settlementList);
+//        pendingCalculate(calculateId);
+//    }
+
+    @Transactional
     public void recalculate(Long calculateId) {
-        Calculate calculate = calculateRepository.findByCalculateId(calculateId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 Calculate ID가 존재하지 않습니다."));
+        Calculate calculate = calculateRepository.findById(calculateId)
+                .orElseThrow(() -> new IllegalArgumentException("계산 ID 존재하지 않음"));
+
+        // 1. 기존 CalculateDetail 삭제
+        calculateDetailRepository.deleteByCalculate(calculate);
+
+//        // 2. 기존 Settlement 삭제
+//        settlementRepository.deleteByCalculate(calculate);
+//
+//        // 3. 새 정산 계산 → Settlement 생성
+//        List<Settlement> settlements = calculateSettlementFromChat(calculate);
+//        settlementRepository.saveAll(settlements);
+
+
+//        // 4. 새 송금관계(CalculateDetail) 생성
+//        List<CalculateDetail> details = optimizationService.summarizeTransfers(settlements, calculate);
+//        calculateDetailRepository.saveAll(details);
 
         List<Settlement> settlementList = settlementRepository.findByCalculate(calculate);
         calculateAndOptimize(settlementList);
-        pendingCalculate(calculateId);
+        // 5. 상태 초기화
+        calculate.setStatus(CalculateStatus.PENDING);
+        calculateRepository.save(calculate);
     }
+
+
 
 
 
@@ -142,7 +229,9 @@ public class CalculateService {
             // 남은 금액을 각 비율로 나눈다.
             final int finalAmount = amount;
             for(Participant pc: s.getParticipants()) {
-                Pair<Member, Member> p = Pair.of(pc.getParticipantKey().getMember(), s.getPayer());
+                Pair<Member, Member> p = Pair.of(s.getPayer(), pc.getParticipantKey().getMember());
+
+//                Pair<Member, Member> p = Pair.of(pc.getParticipantKey().getMember(), s.getPayer());
                 m.put(p, m.getOrDefault(p, 0) + pc.getConstant() + pc.getRatio().mul(new Ratio(amount)).toInt());
             }
         }
@@ -160,42 +249,42 @@ public class CalculateService {
     /*
      * 그래프 간소화를 이용하여 산정된 정산 몫을 최적화한다.
      */
-    public List<CalculateDetail> optimize(List<CalculateDetail> lcd) {
-        // 그래프 형태로 만든다.
-        Set<Member> members = new HashSet<>();
-        Calculate calculate = lcd.get(0).getCalculate();
-        for(CalculateDetail cd: lcd) {
-            members.add(cd.getPayer());
-            members.add(cd.getPayee());
-        }
-
-        // index compression
-        List<Member> memberList = members.stream().toList();
-        Graph graph = new Graph(memberList.size());
-        for(CalculateDetail cd: lcd) {
-            int payerNum = memberList.indexOf(cd.getPayer());
-            int payeeNum = memberList.indexOf(cd.getPayee());
-            graph.addEdge(payerNum, payeeNum, cd.getAmount());
-        }
-
-        // 그래프 간소화를 실현하되, 그것이 오히려 간선을 늘리는 경우 원복한다.
-        Graph graph2 = Graph.summarize(graph);
-        if(graph2.getEdgeCount() < graph.getEdgeCount()) {
-            graph = graph2;
-        }
-
-        // 그래프 형태를 되돌린다.
-        List<CalculateDetail> lcd2 = new ArrayList<>();
-        for(int i = 0; i < graph.getVertexCount(); i++) {
-            for(Integer j: graph.getAdjacencyList().get(i).keySet()) {
-                if(graph.getAdjacencyList().get(i).get(j) < 0) continue;
-                lcd2.add(new CalculateDetail(null, calculate, memberList.get(i), memberList.get(j),
-                        graph.getAdjacencyList().get(i).get(j)));
-            }
-        }
-
-        return lcd2;
-    }
+//    public List<CalculateDetail> optimize(List<CalculateDetail> lcd) {
+//        // 그래프 형태로 만든다.
+//        Set<Member> members = new HashSet<>();
+//        Calculate calculate = lcd.get(0).getCalculate();
+//        for(CalculateDetail cd: lcd) {
+//            members.add(cd.getPayer());
+//            members.add(cd.getPayee());
+//        }
+//
+//        // index compression
+//        List<Member> memberList = members.stream().toList();
+//        Graph graph = new Graph(memberList.size());
+//        for(CalculateDetail cd: lcd) {
+//            int payerNum = memberList.indexOf(cd.getPayer());
+//            int payeeNum = memberList.indexOf(cd.getPayee());
+//            graph.addEdge(payerNum, payeeNum, cd.getAmount());
+//        }
+//
+//        // 그래프 간소화를 실현하되, 그것이 오히려 간선을 늘리는 경우 원복한다.
+//        Graph graph2 = Graph.summarize(graph);
+//        if(graph2.getEdgeCount() < graph.getEdgeCount()) {
+//            graph = graph2;
+//        }
+//
+//        // 그래프 형태를 되돌린다.
+//        List<CalculateDetail> lcd2 = new ArrayList<>();
+//        for(int i = 0; i < graph.getVertexCount(); i++) {
+//            for(Integer j: graph.getAdjacencyList().get(i).keySet()) {
+//                if(graph.getAdjacencyList().get(i).get(j) < 0) continue;
+//                lcd2.add(new CalculateDetail(null, calculate, memberList.get(i), memberList.get(j),
+//                        graph.getAdjacencyList().get(i).get(j)));
+//            }
+//        }
+//
+//        return lcd2;
+//    }
 
 
     public BotResponseDto botResultReturn(Calculate calculate) {

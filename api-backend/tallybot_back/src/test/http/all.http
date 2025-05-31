@@ -1,0 +1,158 @@
+### [1] 그룹 생성 (초기 멤버: 지훈)
+POST http://localhost:8080/api/group/create
+Content-Type: application/json
+
+{
+  "groupId": 2,
+  "groupName": "테스트 그룹",
+  "member": "지훈"
+}
+
+### [2] 그룹에 멤버 추가 - 준호
+POST http://localhost:8080/api/group/create
+Content-Type: application/json
+
+{
+  "groupId": 2,
+  "groupName": "테스트 그룹",
+  "member": "준호"
+}
+
+### [3] 그룹에 멤버 추가 - 민지
+POST http://localhost:8080/api/group/create
+Content-Type: application/json
+
+{
+  "groupId": 2,
+  "groupName": "테스트 그룹",
+  "member": "민지"
+}
+
+### [4] 그룹에 멤버 추가 - 수빈
+POST http://localhost:8080/api/group/create
+Content-Type: application/json
+
+{
+  "groupId": 2,
+  "groupName": "테스트 그룹",
+  "member": "수빈"
+}
+
+### 그룹 정보 조회
+GET http://localhost:8080/api/group/2
+
+### 그룹 멤버 목록 조회
+GET http://localhost:8080/api/group/2/members
+
+
+### [5] 채팅 업로드
+POST http://localhost:8080/api/chat/upload
+Content-Type: application/json
+
+[
+  {
+    "groupId": 2,
+    "timestamp": "2025-05-30 13:20:00",
+    "memberId": 4,
+    "message": "정산 ㄱ"
+  },
+  {
+    "groupId": 2,
+    "timestamp": "2025-05-30 13:21:00",
+    "memberId": 5,
+    "message": "내가 낼게"
+  }
+]
+
+### [6] 정산 시작
+POST http://localhost:8080/api/calculate/start
+Content-Type: application/json
+
+{
+  "groupId": 2,
+  "startTime": "2025-05-30 13:00:00",
+  "endTime": "2025-05-30 14:00:00"
+}
+
+### calculate 확인
+GET http://localhost:8080/api/group/2/calculates
+
+### settlement 확인
+GET http://localhost:8080/api/calculate/4/settlements
+
+### transfer 확인
+GET http://localhost:8080/api/calculate/4/transfers
+
+### 정산 내역 삭제 요청
+POST http://localhost:8080/api/update/settlement
+Content-Type: application/json
+
+{
+  "calculateId": 4,
+  "settlementId": 10,
+  "field": "delete"
+}
+
+### 정산 내역 수정 요청1
+POST http://localhost:8080/api/update/settlement
+Content-Type: application/json
+
+{
+"calculateId": 4,
+"settlementId": 11,
+"field": "update",
+"newValue": {
+"place": "스타벅스"
+}
+}
+
+### 정산 내역 수정 요청2
+POST http://localhost:8080/api/update/settlement
+Content-Type: application/json
+
+{
+"calculateId": 4,
+"settlementId": 10,
+"field": "update",
+"newValue": {
+"amount": 12000
+}
+}
+
+
+
+
+### 재정산 요청
+POST /api/calculate/recalculate HTTP/1.1
+Host: localhost:8080
+Content-Type: application/json
+
+{
+  "calculateId": 4
+}
+
+### settlement 확인
+GET http://localhost:8080/api/calculate/4/settlements
+
+### transfer 확인
+GET http://localhost:8080/api/calculate/4/transfers
+
+### 정산 완료 처리
+POST /api/calculate/complete HTTP/1.1
+Host: localhost:8080
+Content-Type: application/json
+
+{
+"calculateId": 4
+}
+
+
+### calculate 확인
+GET http://localhost:8080/api/group/2/calculates
+
+
+### 결과 확인
+GET http://localhost:8080/api/calculate/4/brief-result
+
+
+

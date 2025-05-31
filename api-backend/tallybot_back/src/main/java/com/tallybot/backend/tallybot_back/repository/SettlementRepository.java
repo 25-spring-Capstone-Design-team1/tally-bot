@@ -12,5 +12,6 @@ import java.util.List;
 public interface SettlementRepository extends JpaRepository<Settlement, Long> {
     List<Settlement> findByCalculate(Calculate calculate);
     List<Settlement> findByUserGroup(UserGroup userGroup);
+    void deleteByCalculate(Calculate calculate);
 
 }
