@@ -4,7 +4,6 @@ build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
-**/test/java/config/DatabaseTestBase.java
 
 ### STS ###
 .apt_generated
