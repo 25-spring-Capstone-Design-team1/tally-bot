@@ -74,7 +74,7 @@ jobs:
                 "groupId": 2,
                 "timestamp": "2025-05-30 13:21:00",
                 "memberId": 5,
-                "message": "내가 낼게"
+                "message": "5000원임"
               }
             ]'
             echo
