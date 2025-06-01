@@ -314,11 +314,17 @@ async function recalculateSettlementInternal(settlement: Settlement): Promise<Se
  * @param id - 완료 처리할 정산의 ID.
  * @returns 업데이트된 정산 상세 정보를 포함하는 Settlement 객체의 Promise.
  */
-export async function markSettlementComplete(id: string): Promise<Settlement> {
-  const res = await fetch(`http://http://tally-bot-web-backend-alb-243058276.ap-northeast-2.elb.amazonaws.com/api/settlements/${id}/complete`, {
+export async function markSettlementComplete(calculateId: string): Promise<Partial<Settlement>> {
+  const res = await fetch('/api/proxy/settlement-complete', {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ calculateId: Number(calculateId) }),
   });
 
-  if (!res.ok) throw new Error('정산 완료 처리 실패');
-  return await res.json();
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`정산 완료 처리 실패: ${text}`);
+  }
+
+  return await res.json(); // Partial<Settlement> 형식임 (완전하지 않음)
 }

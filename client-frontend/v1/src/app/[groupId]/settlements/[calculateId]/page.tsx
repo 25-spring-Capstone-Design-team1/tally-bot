@@ -29,6 +29,7 @@ import { format } from 'date-fns';
 
 
 
+
 /**
  * 정산 페이지 컴포넌트.
  * 요약, 상세 내역, 송금 그래프 탭을 포함하며, 데이터 로딩, 수정, 재계산, 완료 기능을 제공합니다.
@@ -121,6 +122,7 @@ export default function SettlementPage(): ReactElement {
     try {
       const saved = await updateSettlement(settlementId, updatedSettlement);
       setSettlement(saved);
+      setIsSettlementCompleted(saved.isCompleted);
     } catch (err) {
       console.error("자동 저장 실패", err);
       toast({
@@ -166,29 +168,34 @@ export default function SettlementPage(): ReactElement {
    * @param showToast - 재계산 성공/실패 시 토스트 메시지 표시 여부 (기본값 true)
    */
   const handleRecalculate = async (showToast = true) => {
-    if (!settlementId || settlement?.isCompleted) return; // ID 없거나 완료되었으면 중단
-    setIsRecalculating(true); // 재계산 중 상태로 변경
+    if (!settlementId || settlement?.isCompleted) return;
+    setIsRecalculating(true);
+  
     try {
-      // TODO: 백엔드 준비 시 실제 API 호출로 교체
-      const recalculatedData = await recalculateSettlement(settlementId); // API 호출 (재계산)
-      setSettlement(recalculatedData); // 재계산된 데이터로 상태 갱신
+      const recalculatedData = await recalculateSettlement(settlementId);
+  
+      // ✅ 이전 상태와 병합하여 누락된 필드 보완
+      setSettlement(prev => ({
+        ...prev!,
+        ...recalculatedData,
+        payments: prev?.payments ?? [],
+        participants: prev?.participants ?? [],
+        title: prev?.title ?? `정산 ${settlementId}`,
+        createdAt: prev?.createdAt ?? new Date().toISOString(),
+        isCompleted: prev?.isCompleted ?? false,
+      }));
+  
       if (showToast) {
-          toast({
-              title: "성공",
-              description: "정산이 재계산되었습니다.",
-          });
+        toast({ title: '성공', description: '정산이 재계산되었습니다.' });
       }
+      setIsSettlementCompleted(false);
     } catch (err) {
       console.error(err);
-       if (showToast) {
-           toast({
-                title: "오류",
-                description: "정산 재계산에 실패했습니다.",
-                variant: "destructive",
-           });
-       }
+      if (showToast) {
+        toast({ title: '오류', description: '정산 재계산에 실패했습니다.', variant: 'destructive' });
+      }
     } finally {
-      setIsRecalculating(false); // 재계산 중 상태 해제
+      setIsRecalculating(false);
     }
   };
 
@@ -220,25 +227,30 @@ navigator.clipboard.writeText(currentUrl)
    * '완료' 버튼 클릭 시 호출됩니다.
    */
   const handleCompleteSettlement = async () => {
-      if (!settlement || settlement.isCompleted) return; // 데이터 없거나 이미 완료면 중단
-      setIsCompleting(true);
-      try {
-          const completedSettlement = await markSettlementComplete(settlementId);
-          setSettlement(completedSettlement); // 상태 업데이트
-          toast({
-              title: "정산 완료",
-              description: "정산이 완료 처리되었습니다. 더 이상 수정할 수 없습니다.",
-          });
-      } catch (err) {
-          console.error('정산 완료 처리 실패:', err);
-          toast({
-              title: "오류",
-              description: "정산 완료 처리에 실패했습니다.",
-              variant: "destructive",
-          });
-      } finally {
-          setIsCompleting(false);
-      }
+    if (!settlement || settlement.isCompleted) return;
+    setIsCompleting(true);
+  
+    try {
+      await markSettlementComplete(settlementId);
+  
+      toast({
+        title: "정산 완료",
+        description: "정산이 완료 처리되었습니다.",
+      });
+  
+      // ✅ 화면 즉시 리렌더링
+      router.refresh();
+      setIsSettlementCompleted(true);
+    } catch (err) {
+      console.error('정산 완료 처리 실패:', err);
+      toast({
+        title: "오류",
+        description: "정산 완료 처리에 실패했습니다.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCompleting(false);
+    }
   };
 
 
@@ -338,7 +350,7 @@ navigator.clipboard.writeText(currentUrl)
     )}
 
     {/* 재계산 버튼 */}
-    {!isSettlementCompleted && (
+    {(
       <Button
         onClick={() => handleRecalculate()}
         size="sm"

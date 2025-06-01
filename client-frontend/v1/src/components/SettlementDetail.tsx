@@ -147,10 +147,10 @@ export default function SettlementDetail({ payments, participants, onPaymentsCha
   
     try {
       await updateSettlementField({
-        calculateId: groupId,
-        settlementId: paymentId,
+        calculateId: Number(groupId),        
+        settlementId: Number(paymentId),
         field: 'delete',
-        newValue: null,
+        newValue: null,           
         constants: null,
         ratios: null,
         sum: null,
