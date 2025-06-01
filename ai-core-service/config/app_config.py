@@ -24,20 +24,12 @@ def create_app() -> FastAPI:
         ### 📊 지원 기능
         - 한국어 복합 금액 처리 (47만 8천원 → 478000)
         - 외화 처리 (19유로 → 19 EUR)
-        - 정산 방식 분류 (n분의1, 금액대납, 비율대납)
+        - 정산 방식 분류 (n분의1, 금액대납, 고정+n분의1)
         """,
         version="1.0.0",
         docs_url="/docs",  # Swagger UI URL
         redoc_url="/redoc",  # ReDoc URL
         openapi_url="/openapi.json",  # OpenAPI JSON URL
-        contact={
-            "name": "Tally Bot Team",
-            "email": "support@tallybot.com",
-        },
-        license_info={
-            "name": "MIT License",
-            "url": "https://opensource.org/licenses/MIT",
-        },
         servers=[
             {
                 "url": "http://localhost:8000",
