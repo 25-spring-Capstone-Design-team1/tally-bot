@@ -41,20 +41,18 @@ class SettlementEvaluator:
             "participant_accuracy": self._evaluate_participant_accuracy(actual_items, expected_items),
             "hallucination_detection": self._detect_hallucinations(actual_items, expected_items),
             "data_completeness": self._evaluate_data_completeness(actual_items),
-            "consistency_check": self._check_internal_consistency(actual_items),
-            "currency_format": self._evaluate_currency_format(actual_items, expected_items)
+            "consistency_check": self._check_internal_consistency(actual_items)
         }
         
         # 종합 점수 계산 (가중 평균)
         weights = {
             "item_count": 0.15,
-            "place_item_similarity": 0.20,
-            "amount_accuracy": 0.25,
-            "participant_accuracy": 0.15,
+            "place_item_similarity": 0.05,
+            "amount_accuracy": 0.36,
+            "participant_accuracy": 0.26,
             "hallucination_detection": 0.10,
             "data_completeness": 0.05,
-            "consistency_check": 0.05,
-            "currency_format": 0.05
+            "consistency_check": 0.03
         }
         
         total_score = sum(
@@ -448,41 +446,6 @@ class SettlementEvaluator:
             "duplicates": duplicates,
             "ratio_issues": ratio_issues,
             "issues": issues
-        }
-    
-    def _evaluate_currency_format(self, actual: List, expected: List) -> Dict[str, Any]:
-        """통화 형식 정확도 평가"""
-        if not expected:
-            return {"score": 1.0, "issues": []}
-        
-        # 예상 통화 형식 분석
-        expected_currencies = set()
-        for item in expected:
-            if 'currency' in item:
-                expected_currencies.add(item['currency'])
-        
-        # 실제 통화 형식 검사
-        currency_accuracy = []
-        format_issues = []
-        
-        for i, item in enumerate(actual):
-            if 'currency' in item:
-                if item['currency'] in expected_currencies:
-                    currency_accuracy.append(1.0)
-                else:
-                    currency_accuracy.append(0.0)
-                    format_issues.append(f"항목 {i}: 예상치 못한 통화 {item['currency']}")
-            else:
-                # 통화 정보가 없는 경우 (한국 원화로 가정)
-                currency_accuracy.append(0.8)
-        
-        avg_accuracy = sum(currency_accuracy) / len(currency_accuracy) if currency_accuracy else 1.0
-        
-        return {
-            "score": avg_accuracy,
-            "currency_accuracy": avg_accuracy,
-            "expected_currencies": list(expected_currencies),
-            "issues": format_issues
         }
     
     def _calculate_text_similarity(self, text1: str, text2: str) -> float:

@@ -556,19 +556,18 @@ async def evaluate_with_processing(
                     dashboard_output = f"종합점수: {score:.1%} (등급: {grade}) | 정산분석: {settlement_score:.1%} | 고급메트릭: {advanced_score:.1%} | 항목수: {len(processing_result['final_result'])}/{len(request.expected_output)}"
                     dashboard_expected = f"목표: A등급 (90% 이상)"
                     
-                    # GEval 메트릭 생성 (실제 점수를 criteria에 포함)
+                    # GEval 메트릭 생성 (실제 평가 기준으로 수정)
                     geval_metric = GEval(
                         name="정산_종합_평가",
-                        criteria=f"정산 처리 종합 평가 점수가 {score:.1%}로 측정되었으며, 이는 {grade}등급에 해당합니다. 정산분석 {settlement_score:.1%}, 고급메트릭 {advanced_score:.1%}를 종합한 결과입니다.",
+                        criteria="정산 처리 결과를 다음 기준으로 평가하세요: 1) 금액 정확성 (가장 중요) 2) 참여자 식별 정확성 3) 항목 개수 일치 4) 정산 로직 정확성 5) 데이터 완성도. 각 기준을 종합하여 90% 이상이면 A등급, 80% 이상이면 B등급으로 판단하세요.",
                         evaluation_steps=[
-                            f"종합 점수 {score:.1%} 확인",
-                            f"등급 {grade} 달성 여부 판단",
-                            "정산 정확도 및 품질 평가"
+                            "실제 출력과 예상 출력의 금액 정확성 비교",
+                            "참여자 및 정산 로직 정확성 검증", 
+                            "항목 개수 및 데이터 완성도 확인",
+                            "종합 정확도를 바탕으로 등급 판정"
                         ],
                         evaluation_params=[LLMTestCaseParams.ACTUAL_OUTPUT, LLMTestCaseParams.EXPECTED_OUTPUT]
                     )
-                    
-                    print(f"🎯 GEval 대시보드 업로드 준비 - 종합점수: {score:.1%}, 등급: {grade}")
                     
                 else:
                     fallback_eval = evaluation_results["fallback_evaluation"]
@@ -582,10 +581,11 @@ async def evaluate_with_processing(
                     # GEval 메트릭 생성
                     geval_metric = GEval(
                         name="정산_기본_평가",
-                        criteria=f"정산 처리 기본 평가 정확도가 {score:.1%}로 측정되었으며, 이는 {grade}등급에 해당합니다.",
+                        criteria="정산 처리 기본 평가를 수행하세요: 1) 항목 수 일치 여부 2) 총 금액 정확성 3) 기본 데이터 형식 적절성. 70% 이상이면 B등급 이상으로 판단하세요.",
                         evaluation_steps=[
-                            f"정확도 {score:.1%} 확인",
-                            f"등급 {grade} 달성 여부 판단"
+                            "항목 수 정확도 확인",
+                            "총 금액 정확도 확인", 
+                            "기본 평가 등급 판정"
                         ],
                         evaluation_params=[LLMTestCaseParams.ACTUAL_OUTPUT, LLMTestCaseParams.EXPECTED_OUTPUT]
                     )
@@ -605,60 +605,46 @@ async def evaluate_with_processing(
                 max_retries = 2
                 for attempt in range(max_retries + 1):
                     try:
-                        print(f"📤 GEval 대시보드 업로드 시도 {attempt + 1}/{max_retries + 1}...")
-                        
                         # GEval evaluate 호출
                         result = await asyncio.wait_for(
                             asyncio.to_thread(evaluate, [dashboard_test_case], [geval_metric]),
                             timeout=30.0
                         )
                         
-                        print(f"🔍 GEval 결과: {result}")
-                        
                         # 결과 검증
                         if result and hasattr(result, 'confident_link') and result.confident_link:
                             dashboard_success = True
                             dashboard_message = f"대시보드 업로드 성공 (GEval, 점수: {score:.1%})"
-                            print(f"✅ GEval 대시보드 업로드 완료! 점수 {score:.1%}가 반영되었습니다.")
-                            print(f"🌐 대시보드 확인: https://app.confident-ai.com")
                             break
                         else:
-                            print("⚠️  confident_link가 없음, 재시도...")
                             if attempt < max_retries:
                                 await asyncio.sleep(2)
                                 continue
                             else:
                                 dashboard_message = "업로드 실패: confident_link 없음"
-                                print("❌ 대시보드 업로드 최종 실패")
                         
                     except asyncio.TimeoutError:
                         if attempt < max_retries:
-                            print(f"⏱️  시간 초과, 재시도 중...")
                             await asyncio.sleep(1)
                             continue
                         dashboard_message = "업로드 시간 초과"
-                        print("❌ 대시보드 업로드 최종 실패: 시간 초과")
                         
                     except Exception as e:
                         error_msg = str(e)
-                        print(f"🔍 GEval 오류: {error_msg}")
                         
                         if "length limit" in error_msg.lower():
                             dashboard_message = "토큰 제한으로 업로드 실패"
-                            print("❌ 대시보드 업로드 실패: 토큰 제한")
                             break
                         elif attempt < max_retries:
-                            print(f"⚠️  GEval 오류, 재시도 중: {error_msg[:50]}")
                             await asyncio.sleep(1)
                             continue
                         else:
                             dashboard_message = f"GEval 오류: {error_msg[:50]}"
-                            print(f"❌ 대시보드 업로드 최종 실패: {error_msg[:50]}")
+                        
                         break
                 
             except Exception as e:
                 dashboard_message = f"업로드 예외: {str(e)[:50]}"
-                print(f"❌ 대시보드 업로드 예외: {dashboard_message}")
         
         return {
             "processing_result": processing_result,
