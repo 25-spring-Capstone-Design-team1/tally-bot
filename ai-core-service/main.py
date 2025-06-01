@@ -2,28 +2,27 @@ import json
 from fastapi import HTTPException, BackgroundTasks
 
 from config.app_config import create_app
-from models.conversation import ConversationRequest, ConversationResponse
-from handlers.process_handler import process_conversation_logic, load_resources
+from config.service_config import ensure_api_key, get_api_keys
+from models.conversation import ConversationRequest, ConversationResponse, EvaluationRequest
+from handlers.process_handler import (
+    process_conversation_logic,
+    load_resources,
+    process_conversation_with_sequential_chain
+)
+# 새로운 평가 유틸리티 import
+from utils.settlement_evaluator import evaluate_settlement_results
+from utils.advanced_metrics import evaluate_advanced_metrics
 
 # FastAPI 앱 생성
 app = create_app()
 
 def create_member_mapping(members_data):
-    """
-    멤버 데이터에서 ID-이름 매핑과 이름-ID 매핑을 생성합니다.
-    
-    Args:
-        members_data: [{"0":"지훈", "1":"준호", "2":"소연", "3":"유진", "4":"민우"}]
-        
-    Returns:
-        tuple: (id_to_name, name_to_id) 매핑 딕셔너리
-    """
+    """멤버 데이터에서 ID-이름 매핑을 생성합니다"""
     id_to_name = {}
     name_to_id = {}
     
-    if members_data and isinstance(members_data[0], dict):
-        members_dict = members_data[0]
-        for member_id, member_name in members_dict.items():
+    for member_dict in members_data:
+        for member_id, member_name in member_dict.items():
             id_to_name[member_id] = member_name
             name_to_id[member_name] = member_id
     
@@ -151,7 +150,488 @@ async def process_conversation_from_file(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
+@app.post("/api/process-chain", response_model=ConversationResponse)
+async def process_api_with_chain(request: ConversationRequest, background_tasks: BackgroundTasks):
+    """SequentialChain을 사용한 효율적인 대화 처리 API (개선된 버전)"""
+    try:
+        # 강화된 캐시 클리어 및 상태 초기화 (이전 요청의 데이터 오염 방지)
+        from load.conversation_loader import conversation_cache
+        from load.prompt_loader import prompt_cache
+        import gc
+        import sys
+        import hashlib
+        import time
+        
+        # 요청별 고유 식별자 생성
+        request_data = f"{len(request.messages)}_{json.dumps(request.members, ensure_ascii=False)}"
+        request_hash = hashlib.md5(request_data.encode()).hexdigest()[:8]
+        timestamp = int(time.time() * 1000)
+        
+        # 기존 캐시 정보 로깅
+        cached_conversations = list(conversation_cache.keys())
+        cached_prompts = list(prompt_cache.keys())
+        
+        # 1. 모든 캐시 클리어
+        conversation_cache.clear()
+        prompt_cache.clear()
+        
+        # 2. 모듈 캐시에서 관련 모듈 제거 (완전한 상태 격리)
+        modules_to_clear = [
+            'config.service_config',
+            'services.chain_ai_service',
+            'services.ai_service',
+            'services.result_processor',
+            'langchain.llms',
+            'langchain.chat_models',
+            'langchain.schema'
+        ]
+        
+        for module_name in modules_to_clear:
+            if module_name in sys.modules:
+                del sys.modules[module_name]
+        
+        # 3. Python 내부 캐시 클리어
+        if hasattr(sys, '_clear_type_cache'):
+            sys._clear_type_cache()
+        
+        # 4. 가비지 컬렉션 강제 실행 (여러 번)
+        for i in range(3):
+            collected = gc.collect()
+        
+        # 프롬프트 로드
+        input_prompt, secondary_prompt, final_prompt, _ = await load_resources(
+            request.prompt_file,
+            request.secondary_prompt_file,
+            request.final_prompt_file
+        )
+        
+        # ID-이름 매핑 생성
+        id_to_name, name_to_id = create_member_mapping(request.members)
+        
+        # sample_conversation.json 형식에서 필요한 대화 형식으로 변환
+        conversation = [{
+            'speaker': 'system', 
+            'message_content': f"""member_count: {len(id_to_name)}
+member_mapping: {json.dumps(id_to_name, ensure_ascii=False)}
+
+【요청 격리 정보】
+요청 식별자: {request_hash}
+처리 시각: {timestamp}
+메시지 수: {len(request.messages)}
+
+【상태 격리 규칙】
+1. 이 요청은 완전히 새로운 독립적인 처리입니다.
+2. 이전에 처리한 어떤 요청이나 데이터와도 무관합니다.
+3. 오직 현재 제공된 대화 내용만을 분석하세요.
+4. 다른 요청이나 이전 처리 결과를 절대 참조하지 마세요.
+5. 현재 대화에 없는 정보는 절대 추가하지 마세요."""
+        }]
+        
+        # 실제 대화 내용 추가
+        conversation.extend([
+            {
+                'speaker': msg.speaker,
+                'message_content': msg.message_content
+            }
+            for msg in request.messages
+        ])
+        
+        # 대화 길이 확인 및 청크 처리 옵션 설정
+        use_chunking = len(request.messages) > 15
+        
+        # SequentialChain을 사용한 대화 처리
+        result = await process_conversation_with_sequential_chain(
+            conversation=conversation,
+            input_prompt=input_prompt,
+            secondary_prompt=secondary_prompt,
+            final_prompt=final_prompt,
+            member_names=list(id_to_name.values()),
+            id_to_name=id_to_name,
+            name_to_id=name_to_id,
+            use_chunking=use_chunking
+        )
+        
+        return result
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+@app.post("/api/process-file-chain")
+async def process_conversation_from_file_with_chain(
+    background_tasks: BackgroundTasks,
+    conversation_file: str = "resources/sample_conversation.json",
+    prompt_file: str = "resources/input_prompt.yaml",
+    secondary_prompt_file: str = "resources/secondary_prompt.yaml",
+    final_prompt_file: str = "resources/final_prompt.yaml",
+    use_chunking: bool = True
+):
+    """SequentialChain을 사용한 파일 기반 대화 처리 API (개선된 버전)"""
+    try:
+        # 강화된 캐시 클리어 및 상태 초기화 (이전 요청의 데이터 오염 방지)
+        from load.conversation_loader import conversation_cache
+        from load.prompt_loader import prompt_cache
+        import gc
+        import sys
+        import hashlib
+        import time
+        
+        # 파일별 고유 식별자 생성
+        file_hash = hashlib.md5(conversation_file.encode()).hexdigest()[:8]
+        timestamp = int(time.time() * 1000)
+        
+        # 기존 캐시 정보 로깅
+        cached_conversations = list(conversation_cache.keys())
+        cached_prompts = list(prompt_cache.keys())
+        
+        # 1. 모든 캐시 클리어
+        conversation_cache.clear()
+        prompt_cache.clear()
+        
+        # 2. 모듈 캐시에서 관련 모듈 제거 (완전한 상태 격리)
+        modules_to_clear = [
+            'config.service_config',
+            'services.chain_ai_service',
+            'services.ai_service',
+            'services.result_processor',
+            'langchain.llms',
+            'langchain.chat_models',
+            'langchain.schema'
+        ]
+        
+        for module_name in modules_to_clear:
+            if module_name in sys.modules:
+                del sys.modules[module_name]
+        
+        # 3. Python 내부 캐시 클리어
+        if hasattr(sys, '_clear_type_cache'):
+            sys._clear_type_cache()
+        
+        # 4. 가비지 컬렉션 강제 실행 (여러 번)
+        for i in range(3):
+            collected = gc.collect()
+        
+        # 프롬프트와 대화 로드
+        input_prompt, secondary_prompt, final_prompt, conversation = await load_resources(
+            prompt_file,
+            secondary_prompt_file,
+            final_prompt_file,
+            conversation_file
+        )
+        
+        # member 정보 추출 및 매핑 생성
+        members_text = conversation[0]['message_content']
+        
+        # members 정보에서 member_count와 member_mapping 추출
+        member_count = None
+        member_mapping = {}
+        
+        for line in members_text.split('\n'):
+            if line.startswith('member_count:'):
+                member_count = int(line.split(':')[1].strip())
+            elif line.startswith('members:'):
+                # members: [{"0":"지훈", "1":"준호", "2":"소연", "3":"유진", "4":"민우"}] 형식 파싱
+                members_str = line.split(':', 1)[1].strip()
+                try:
+                    members_list = eval(members_str)  # JSON 파싱
+                    if isinstance(members_list, list) and len(members_list) > 0:
+                        member_mapping = members_list[0]  # 첫 번째 딕셔너리 사용
+                except:
+                    pass
+        
+        # ID-이름 매핑 생성
+        id_to_name = member_mapping
+        name_to_id = {name: id for id, name in member_mapping.items()}
+        member_names = list(member_mapping.values())
+        
+        # SequentialChain을 사용한 대화 처리
+        result = await process_conversation_with_sequential_chain(
+            conversation=conversation,
+            input_prompt=input_prompt,
+            secondary_prompt=secondary_prompt,
+            final_prompt=final_prompt,
+            member_names=member_names,
+            id_to_name=id_to_name,
+            name_to_id=name_to_id,
+            use_chunking=use_chunking
+        )
+        
+        return result
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+async def process_conversation_internal(request: ConversationRequest):
+    """내부적으로 대화를 처리하는 헬퍼 함수"""
+    # 프롬프트 로드
+    input_prompt, secondary_prompt, final_prompt, _ = await load_resources(
+        request.prompt_file,
+        request.secondary_prompt_file,
+        request.final_prompt_file
+    )
+    
+    # ID-이름 매핑 생성
+    id_to_name, name_to_id = create_member_mapping(request.members)
+    
+    # sample_conversation.json 형식에서 필요한 대화 형식으로 변환
+    conversation = [{
+        'speaker': 'system', 
+        'message_content': f"member_count: {len(id_to_name)}\nmember_mapping: {json.dumps(id_to_name, ensure_ascii=False)}"
+    }]
+    
+    # 실제 대화 내용 추가
+    conversation.extend([
+        {
+            'speaker': msg.speaker,
+            'message_content': msg.message_content
+        }
+        for msg in request.messages
+    ])
+    
+    # 대화 처리 수행
+    result = await process_conversation_logic(
+        conversation=conversation,
+        input_prompt=input_prompt,
+        secondary_prompt=secondary_prompt,
+        final_prompt=final_prompt,
+        member_names=list(id_to_name.values()),
+        id_to_name=id_to_name,
+        name_to_id=name_to_id,
+        use_chunking=len(request.messages) > 15
+    )
+    
+    return result
+
+@app.post("/api/evaluate-with-processing")
+async def evaluate_with_processing(
+    request: EvaluationRequest,
+    background_tasks: BackgroundTasks
+):
+    """대화를 처리하고 동시에 평가를 수행합니다"""
+    try:
+        # DeepEval 로그인
+        try:
+            import deepeval
+            api_key = "rkKIxlkAjFly3QeD4nIPnWDoDJVL1BvV6VZrV6Co4Yk="
+            deepeval.login_with_confident_api_key(api_key)
+        except Exception as e:
+            print(f"⚠️  DeepEval 로그인 경고: {e}")
+        
+        # 1. 대화 처리
+        conversation_request = ConversationRequest(
+            chatroom_name=request.chatroom_name,
+            members=request.members,
+            messages=request.messages,
+            prompt_file=request.prompt_file,
+            secondary_prompt_file=request.secondary_prompt_file,
+            final_prompt_file=request.final_prompt_file
+        )
+        
+        processing_result = await process_conversation_internal(conversation_request)
+        
+        # 2. 평가 수행 (expected_output이 있는 경우에만)
+        evaluation_results = {}
+        dashboard_success = False
+        dashboard_message = ""
+        
+        if request.expected_output:
+            try:
+                # 종합 평가 시스템
+                settlement_evaluation = evaluate_settlement_results(
+                    processing_result['final_result'], 
+                    request.expected_output
+                )
+                
+                conversation_for_evaluation = [{
+                    'speaker': msg.speaker,
+                    'message_content': msg.message_content
+                } for msg in request.messages]
+                
+                advanced_evaluation = evaluate_advanced_metrics(
+                    conversation_for_evaluation,
+                    processing_result['final_result'],
+                    request.expected_output
+                )
+                
+                evaluation_results = {
+                    "comprehensive_evaluation": {
+                        "settlement_analysis": settlement_evaluation,
+                        "advanced_metrics": advanced_evaluation,
+                        "overall_score": (settlement_evaluation["overall_score"] * 0.7 + 
+                                        advanced_evaluation["overall_score"] * 0.3),
+                        "evaluation_method": "comprehensive_utils_based"
+                    }
+                }
+                
+                print(f"✅ 종합 평가 완료 - 점수: {evaluation_results['comprehensive_evaluation']['overall_score']:.1%}")
+                
+            except Exception as e:
+                print(f"⚠️  종합 평가 실패, 기본 평가로 대체: {str(e)[:100]}")
+                
+                # 폴백: 기본 수치 비교
+                actual_summary = {
+                    "total_items": len(processing_result['final_result']),
+                    "total_amount": sum(item.get('amount', 0) for item in processing_result['final_result'])
+                }
+                
+                expected_summary = {
+                    "total_items": len(request.expected_output),
+                    "total_amount": sum(item.get('amount', 0) for item in request.expected_output)
+                }
+                
+                item_accuracy = 1.0 - abs(actual_summary['total_items'] - expected_summary['total_items']) / expected_summary['total_items'] if expected_summary['total_items'] > 0 else 1.0
+                amount_accuracy = 1.0 - abs(actual_summary['total_amount'] - expected_summary['total_amount']) / expected_summary['total_amount'] if expected_summary['total_amount'] > 0 else 1.0
+                overall_accuracy = (item_accuracy + amount_accuracy) / 2
+                
+                evaluation_results = {
+                    "fallback_evaluation": {
+                        "overall_accuracy": overall_accuracy,
+                        "performance_grade": "A" if overall_accuracy >= 0.9 else "B" if overall_accuracy >= 0.7 else "C" if overall_accuracy >= 0.5 else "D",
+                        "evaluation_method": "fallback_basic"
+                    }
+                }
+            
+            # 대시보드 업로드 (GEval 사용)
+            try:
+                from deepeval import evaluate
+                from deepeval.test_case import LLMTestCase, LLMTestCaseParams
+                from deepeval.metrics import GEval
+                
+                # 평가 결과에 따른 데이터 준비
+                if "comprehensive_evaluation" in evaluation_results:
+                    comp_eval = evaluation_results["comprehensive_evaluation"]
+                    score = comp_eval["overall_score"]
+                    grade = comp_eval["settlement_analysis"]["grade"]
+                    settlement_score = comp_eval["settlement_analysis"]["overall_score"]
+                    advanced_score = comp_eval["advanced_metrics"]["overall_score"]
+                    
+                    dashboard_input = f"정산 종합 평가: {request.chatroom_name} ({len(request.messages)}개 메시지)"
+                    dashboard_output = f"종합점수: {score:.1%} (등급: {grade}) | 정산분석: {settlement_score:.1%} | 고급메트릭: {advanced_score:.1%} | 항목수: {len(processing_result['final_result'])}/{len(request.expected_output)}"
+                    dashboard_expected = f"목표: A등급 (90% 이상)"
+                    
+                    # GEval 메트릭 생성 (실제 점수를 criteria에 포함)
+                    geval_metric = GEval(
+                        name="정산_종합_평가",
+                        criteria=f"정산 처리 종합 평가 점수가 {score:.1%}로 측정되었으며, 이는 {grade}등급에 해당합니다. 정산분석 {settlement_score:.1%}, 고급메트릭 {advanced_score:.1%}를 종합한 결과입니다.",
+                        evaluation_steps=[
+                            f"종합 점수 {score:.1%} 확인",
+                            f"등급 {grade} 달성 여부 판단",
+                            "정산 정확도 및 품질 평가"
+                        ],
+                        evaluation_params=[LLMTestCaseParams.ACTUAL_OUTPUT, LLMTestCaseParams.EXPECTED_OUTPUT]
+                    )
+                    
+                    print(f"🎯 GEval 대시보드 업로드 준비 - 종합점수: {score:.1%}, 등급: {grade}")
+                    
+                else:
+                    fallback_eval = evaluation_results["fallback_evaluation"]
+                    score = fallback_eval["overall_accuracy"]
+                    grade = fallback_eval["performance_grade"]
+                    
+                    dashboard_input = f"정산 기본 평가: {request.chatroom_name}"
+                    dashboard_output = f"정확도: {score:.1%} (등급: {grade}) | 항목수: {len(processing_result['final_result'])}/{len(request.expected_output)}"
+                    dashboard_expected = f"목표: B등급 이상 (70% 이상)"
+                    
+                    # GEval 메트릭 생성
+                    geval_metric = GEval(
+                        name="정산_기본_평가",
+                        criteria=f"정산 처리 기본 평가 정확도가 {score:.1%}로 측정되었으며, 이는 {grade}등급에 해당합니다.",
+                        evaluation_steps=[
+                            f"정확도 {score:.1%} 확인",
+                            f"등급 {grade} 달성 여부 판단"
+                        ],
+                        evaluation_params=[LLMTestCaseParams.ACTUAL_OUTPUT, LLMTestCaseParams.EXPECTED_OUTPUT]
+                    )
+                
+                # 테스트 케이스 생성
+                dashboard_test_case = LLMTestCase(
+                    input=dashboard_input,
+                    actual_output=dashboard_output,
+                    expected_output=dashboard_expected,
+                    context=[f"정산 처리 결과: {len(processing_result['final_result'])}개 항목"],
+                    retrieval_context=[f"채팅방: {request.chatroom_name}", f"메시지 수: {len(request.messages)}개"]
+                )
+                
+                # GEval로 대시보드 업로드
+                import asyncio
+                
+                max_retries = 2
+                for attempt in range(max_retries + 1):
+                    try:
+                        print(f"📤 GEval 대시보드 업로드 시도 {attempt + 1}/{max_retries + 1}...")
+                        
+                        # GEval evaluate 호출
+                        result = await asyncio.wait_for(
+                            asyncio.to_thread(evaluate, [dashboard_test_case], [geval_metric]),
+                            timeout=30.0
+                        )
+                        
+                        print(f"🔍 GEval 결과: {result}")
+                        
+                        # 결과 검증
+                        if result and hasattr(result, 'confident_link') and result.confident_link:
+                            dashboard_success = True
+                            dashboard_message = f"대시보드 업로드 성공 (GEval, 점수: {score:.1%})"
+                            print(f"✅ GEval 대시보드 업로드 완료! 점수 {score:.1%}가 반영되었습니다.")
+                            print(f"🌐 대시보드 확인: https://app.confident-ai.com")
+                            break
+                        else:
+                            print("⚠️  confident_link가 없음, 재시도...")
+                            if attempt < max_retries:
+                                await asyncio.sleep(2)
+                                continue
+                            else:
+                                dashboard_message = "업로드 실패: confident_link 없음"
+                                print("❌ 대시보드 업로드 최종 실패")
+                        
+                    except asyncio.TimeoutError:
+                        if attempt < max_retries:
+                            print(f"⏱️  시간 초과, 재시도 중...")
+                            await asyncio.sleep(1)
+                            continue
+                        dashboard_message = "업로드 시간 초과"
+                        print("❌ 대시보드 업로드 최종 실패: 시간 초과")
+                        
+                    except Exception as e:
+                        error_msg = str(e)
+                        print(f"🔍 GEval 오류: {error_msg}")
+                        
+                        if "length limit" in error_msg.lower():
+                            dashboard_message = "토큰 제한으로 업로드 실패"
+                            print("❌ 대시보드 업로드 실패: 토큰 제한")
+                            break
+                        elif attempt < max_retries:
+                            print(f"⚠️  GEval 오류, 재시도 중: {error_msg[:50]}")
+                            await asyncio.sleep(1)
+                            continue
+                        else:
+                            dashboard_message = f"GEval 오류: {error_msg[:50]}"
+                            print(f"❌ 대시보드 업로드 최종 실패: {error_msg[:50]}")
+                        break
+                
+            except Exception as e:
+                dashboard_message = f"업로드 예외: {str(e)[:50]}"
+                print(f"❌ 대시보드 업로드 예외: {dashboard_message}")
+        
+        return {
+            "processing_result": processing_result,
+            "evaluation_results": evaluation_results,
+            "evaluation_model": request.evaluation_model,
+            "dashboard_info": {
+                "uploaded": dashboard_success,
+                "dashboard_url": "https://app.confident-ai.com",
+                "message": dashboard_message if dashboard_message else "평가 완료",
+                "evaluation_summary": {
+                    "actual_items": len(processing_result.get('final_result', [])),
+                    "expected_items": len(request.expected_output) if request.expected_output else 0,
+                    "comprehensive_evaluation": "comprehensive_evaluation" in evaluation_results
+                }
+            }
+        }
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
 # FastAPI가 uvicorn을 통해 실행될 때 사용
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True) 
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
