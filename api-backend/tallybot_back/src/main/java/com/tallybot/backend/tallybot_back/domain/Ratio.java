@@ -111,20 +111,6 @@ public class Ratio {
         return (double)numerator / denominator;
     }
 
-//    public int toInt() {
-//        return numerator / denominator;
-//    }
-//    public int toInt() {
-//        return (int) Math.round((double) numerator / denominator * 100);
-//    }
-
-//    public int toInt() {
-//        return (int) Math.round((double) numerator / denominator);
-//    }
-
-//    public int toInt2() {
-//        return (int) Math.round((double) numerator / denominator * 100);
-//    }
 
     public int toInt() {
         if (numerator % denominator == 0) {
@@ -132,6 +118,13 @@ public class Ratio {
         } else {
             return (int) Math.round((double) numerator / denominator * 100);
         }
+    }
+
+    public int scaleTo(int commonDenominator) {
+        if (commonDenominator % this.denominator != 0) {
+            throw new IllegalArgumentException("commonDenominator must be a multiple of denominator");
+        }
+        return this.numerator * (commonDenominator / this.denominator);
     }
 
 

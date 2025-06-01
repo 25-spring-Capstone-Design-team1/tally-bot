@@ -66,36 +66,6 @@ public class CalculateService {
         // 나머지 GPT 처리 로직은 비동기로 실행
         Long finalCalculateId = calculateId; // 비동기에서 접근 가능하도록 final 변수로 복사
 
-//        CompletableFuture.runAsync(() -> {
-//            try {
-//                List<SettlementDto> results = gptService.returnResults(request.getGroupId(), chats);
-//
-//
-//                List<Settlement> settlements = settlementService.toSettlements(results, finalCalculateId);
-//
-//                for (Settlement settlement : settlements) {
-//                    Settlement savedSettlement = settlementRepository.save(settlement);
-//                    for (Participant participant : settlement.getParticipants()) {
-//                        participant.getParticipantKey().setSettlement(savedSettlement);
-//                        participantRepository.save(participant);
-//                    }
-//                }
-//
-//                calculateAndOptimize(settlements);
-//                pendingCalculate(calculateId);
-//
-//            } catch (NoSettlementResultException ex) {
-//                // GPT가 정산 결과를 반환하지 않은 경우 → calculate 삭제
-////                calculateRepository.deleteById(finalCalculateId);
-//                System.err.println("정산 결과 없음 - calculate 삭제됨: " + ex.getMessage());
-//                return;
-//            } catch (Exception ex) {
-//                // 기타 오류 → calculate 삭제
-////                calculateRepository.deleteById(finalCalculateId);
-//                System.err.println("GPT 처리 중 오류 발생 - calculate 삭제됨: " + ex.getMessage());
-//                return;
-//            }
-//        });
 
 
         List<ChatForGptDto> chatDtos = chats.stream()
@@ -144,32 +114,12 @@ public class CalculateService {
     }
 
 
-//    public void calculateAndOptimize(List<Settlement> settlementList)
-//    {
-//        // Calculate Detail 생성
-//        List<CalculateDetail> lcd = calculateShare(settlementList);
-//        lcd = optimizationService.optimize(lcd);
-//        calculateDetailRepository.saveAll(lcd);
-//
-//    }
 
 
     public void calculateAndOptimize(List<Settlement> settlementList) {
         optimizationService.calculateAndOptimize(settlementList);
     }
 
-
-    /// 로직 테스트 필요
-//    public void recalculate(Long calculateId) {
-//        Calculate calculate = calculateRepository.findByCalculateId(calculateId)
-//                .orElseThrow(() -> new IllegalArgumentException("해당 Calculate ID가 존재하지 않습니다."));
-//
-//        calculateDetailRepository.deleteByCalculate(calculate);
-//        List<Settlement> settlementList = settlementRepository.findByCalculate(calculate);
-//
-//        calculateAndOptimize(settlementList);
-//        pendingCalculate(calculateId);
-//    }
 
     @Transactional
     public void recalculate(Long calculateId) {
@@ -179,24 +129,19 @@ public class CalculateService {
         // 1. 기존 CalculateDetail 삭제
         calculateDetailRepository.deleteByCalculate(calculate);
 
-//        // 2. 기존 Settlement 삭제
-//        settlementRepository.deleteByCalculate(calculate);
-//
-//        // 3. 새 정산 계산 → Settlement 생성
-//        List<Settlement> settlements = calculateSettlementFromChat(calculate);
-//        settlementRepository.saveAll(settlements);
+        // 2. Settlement는 유지하고, 내부 계산만 다시 진행
+//        List<Settlement> settlementList = settlementRepository.findByCalculate(calculate);
+        List<Settlement> settlementList = settlementRepository.findByCalculateWithParticipants(calculate);
 
 
-//        // 4. 새 송금관계(CalculateDetail) 생성
-//        List<CalculateDetail> details = optimizationService.summarizeTransfers(settlements, calculate);
-//        calculateDetailRepository.saveAll(details);
+        // 3. Participants의 ratio & constant 정보를 바탕으로 계산 수행
+        calculateAndOptimize(settlementList);  // 내부적으로 그래프 재생성 포함
 
-        List<Settlement> settlementList = settlementRepository.findByCalculate(calculate);
-        calculateAndOptimize(settlementList);
-        // 5. 상태 초기화
+        // 4. 상태 초기화
         calculate.setStatus(CalculateStatus.PENDING);
         calculateRepository.save(calculate);
     }
+
 
 
 
@@ -229,12 +174,15 @@ public class CalculateService {
 
             // 남은 금액을 각 비율로 나눈다.
             final int finalAmount = amount;
-            for(Participant pc: s.getParticipants()) {
+            for (Participant pc : s.getParticipants()) {
                 Pair<Member, Member> p = Pair.of(s.getPayer(), pc.getParticipantKey().getMember());
 
-//                Pair<Member, Member> p = Pair.of(pc.getParticipantKey().getMember(), s.getPayer());
-                m.put(p, m.getOrDefault(p, 0) + pc.getConstant() + pc.getRatio().mul(new Ratio(amount)).toInt());
+                int shareAmount = pc.getConstant()
+                        + (int) Math.round((double) amount * pc.getRatio().getNumerator() / pc.getRatio().getDenominator());
+
+                m.put(p, m.getOrDefault(p, 0) + shareAmount);
             }
+
         }
 
         Calculate calculate = sm.get(0).getCalculate();

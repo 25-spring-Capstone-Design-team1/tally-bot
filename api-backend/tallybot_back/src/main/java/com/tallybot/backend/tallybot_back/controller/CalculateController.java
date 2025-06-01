@@ -104,15 +104,41 @@ public class CalculateController {
                             Participant::getConstant
                     ));
 
-            // ratios map
-            Map<String, Integer> ratios = participants.stream()
+
+            // ratios map - 정수 비율로 변환
+            Map<Long, Ratio> rawRatioMap = participants.stream()
                     .collect(Collectors.toMap(
-                            p -> String.valueOf(p.getParticipantKey().getMember().getMemberId()),
-                            p -> p.getRatio().toInt()
+                            p -> p.getParticipantKey().getMember().getMemberId(),
+                            Participant::getRatio
                     ));
 
-            //sum 계산
+            // 최소공배수 계산 (정수화 비율용)
+            int lcm = rawRatioMap.values().stream()
+                    .map(Ratio::getDenominator)
+                    .reduce(1, (a, b) -> a * b / Ratio.gcd(a, b));
+
+            // 정수 ratio map 생성
+            Map<String, Integer> ratios = rawRatioMap.entrySet().stream()
+                    .collect(Collectors.toMap(
+                            e -> String.valueOf(e.getKey()),
+                            e -> e.getValue().getNumerator() * (lcm / e.getValue().getDenominator())
+                    ));
+
+            // ratioSum은 위에서 만든 정수 비율의 합
             int ratioSum = ratios.values().stream().mapToInt(Integer::intValue).sum();
+
+
+
+//// ratios map: 분자만 가져오면 됨 (정수화된 상태이므로)
+//            Map<String, Integer> ratios = participants.stream()
+//                    .collect(Collectors.toMap(
+//                            p -> String.valueOf(p.getParticipantKey().getMember().getMemberId()),
+//                            p -> p.getRatio().getNumerator()
+//                    ));
+//
+//            int ratioSum = ratios.values().stream().mapToInt(Integer::intValue).sum();
+
+
 
             return new FrontSettlementDto(
                     settlement.getSettlementId(),

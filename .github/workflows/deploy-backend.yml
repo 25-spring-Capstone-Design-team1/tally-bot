@@ -66,19 +66,6 @@ jobs:
             }'
             echo
 
-            curl -X POST "\$BASE_URL/api/group/create" -H "Content-Type: application/json" -d '{
-              "groupId": 2,
-              "groupName": "테스트 그룹",
-              "member": "민지"
-            }'
-            echo
-
-            curl -X POST "\$BASE_URL/api/group/create" -H "Content-Type: application/json" -d '{
-              "groupId": 2,
-              "groupName": "테스트 그룹",
-              "member": "수빈"
-            }'
-            echo
 
             curl -X POST "\$BASE_URL/api/chat/upload" -H "Content-Type: application/json" -d '[
               {

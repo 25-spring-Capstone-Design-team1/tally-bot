@@ -20,5 +20,8 @@ public interface SettlementRepository extends JpaRepository<Settlement, Long> {
             "JOIN FETCH p.participantKey.member " +
             "WHERE s.calculate.calculateId = :calculateId")
     List<Settlement> findWithParticipantsByCalculateId(@Param("calculateId") Long calculateId);
+    @Query("SELECT DISTINCT s FROM Settlement s JOIN FETCH s.participants WHERE s.calculate = :calculate")
+    List<Settlement> findByCalculateWithParticipants(@Param("calculate") Calculate calculate);
+
 
 }

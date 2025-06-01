@@ -7,6 +7,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -211,7 +212,14 @@ public class SettlementService {
                     /// participants 수정
                     case "participants" -> {
                         if (value instanceof List<?> rawList) {
-                            List<Long> partcipantIds = rawList.stream()
+                            // 기존 Participant 명시적으로 제거
+                            for (Participant old : new HashSet<>(settlement.getParticipants())) {
+                                old.getParticipantKey().setSettlement(null);  // 혹시 모르니 관계 끊기
+                                settlement.getParticipants().remove(old);     // 리스트에서 제거
+                            }
+
+                            // 새 participants 추가
+                            List<Long> participantIds = rawList.stream()
                                     .map(obj -> {
                                         if (obj instanceof Integer i) return i.longValue();
                                         else if (obj instanceof Long l) return l;
@@ -219,30 +227,24 @@ public class SettlementService {
                                     })
                                     .toList();
 
-                            List<Member> participants = memberRepository.findAllById(partcipantIds);
-                            Set<Participant> participantSet = new HashSet<>();
+                            List<Member> participants = memberRepository.findAllById(participantIds);
                             for (Member member : participants) {
                                 Participant.ParticipantKey participantKey = new Participant.ParticipantKey(settlement, member);
 
-                                // participants 수정 시 constant와 ratio 값을 `newValue`에서 가져오기
-                                Long memberId = member.getMemberId();  // memberId (Long 타입)
-
-                                // constant와 ratio 값을 constants와 ratios에서 가져오기
+                                Long memberId = member.getMemberId();
                                 String memberIdStr = String.valueOf(memberId);
-                                Integer constant = request.getConstants().get(memberIdStr);
-                                Integer ratioValue = request.getRatios().get(memberIdStr);
-                                Integer ratioSum = request.getSum();
+
+                                Integer constant = Optional.ofNullable(request.getConstants().get(memberIdStr)).orElse(0);
+                                Integer ratioValue = Optional.ofNullable(request.getRatios().get(memberIdStr)).orElse(1);
+                                Integer ratioSum = Optional.ofNullable(request.getSum()).orElse(participants.size());
+
                                 Ratio ratio = new Ratio(ratioValue, ratioSum);
-
-                                // Participant 객체에 추가
                                 Participant participant = new Participant(participantKey, constant, ratio);
-                                participantSet.add(participant);
+                                settlement.getParticipants().add(participant);
                             }
-
-                            settlement.setParticipants(participantSet);
                         }
-
                     }
+
                     default -> throw new IllegalArgumentException("지원하지 않는 수정 필드: " + key);
                 }
             }
@@ -311,7 +313,7 @@ public class SettlementService {
         settlement.setPayer(payer);
 
 
-        // 비율의 분모를 만들기 위해 합한다.
+//         비율의 분모를 만들기 위해 합한다.
         int sum = 0;
         for (Integer ratio : settlementDto.getRatios().values()) {
             sum += ratio;
@@ -330,6 +332,8 @@ public class SettlementService {
             Participant.ParticipantKey pk = new Participant.ParticipantKey(settlement, member);
             participants.add(new Participant(pk, constant, new Ratio(ratio, sum)));
         }
+
+
 
         settlement.setParticipants(participants);
         settlement.setCalculate(calculate);

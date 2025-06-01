@@ -115,7 +115,7 @@ Content-Type: application/json
 "settlementId": 10,
 "field": "update",
 "newValue": {
-"amount": 12000
+"amount": 15000
 }
 }
 
@@ -155,6 +155,30 @@ Content-Type: application/json
   },
   "sum": 4
 }
+
+### 정산 내역 추가 요청
+POST http://localhost:8080/api/update/settlement
+Content-Type: application/json
+
+{
+  "calculateId": 4,
+  "field": "add",
+  "newValue": {
+    "amount": 3000,
+    "payer": 5,
+    "participants": [4, 5]
+  },
+  "constants": {
+    "4": 0,
+    "5": 0
+  },
+  "ratios": {
+    "4": 1,
+    "5": 2
+  },
+  "sum": 3
+}
+
 
 
 
