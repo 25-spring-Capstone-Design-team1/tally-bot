@@ -24,7 +24,8 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.AWS_USER }}@${{ secrets.AWS_HOST }} << 'EOF'
             cd /home/ssm-user/app/tally-bot/api-backend/tallybot_back
             git pull origin dev
-            ./gradlew build -x test
+            ./gradlew clean build -x test
+
             
             # 기존 프로세스 종료 (PID 파일 기반)
             if [ -f app.pid ]; then
