@@ -4,11 +4,14 @@ import com.tallybot.backend.tallybot_back.domain.Chat;
 import com.tallybot.backend.tallybot_back.domain.UserGroup;
 import com.tallybot.backend.tallybot_back.domain.Member;
 import com.tallybot.backend.tallybot_back.dto.ChatDto;
+import com.tallybot.backend.tallybot_back.dto.ChatForGptDto;
+import com.tallybot.backend.tallybot_back.dto.ChatResponseDto;
 import com.tallybot.backend.tallybot_back.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -27,6 +30,13 @@ public class ChatService {
             }
         }
         return true;
+    }
+
+    public List<ChatResponseDto> getChatsByGroup(Long groupId) {
+        List<Chat> chats = chatRepository.findByUserGroup_GroupIdOrderByTimestampAsc(groupId);
+        return chats.stream()
+                .map(ChatResponseDto::from)
+                .collect(Collectors.toList());
     }
 
 

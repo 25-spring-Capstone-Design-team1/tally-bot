@@ -3,9 +3,7 @@ package com.tallybot.backend.tallybot_back.controller;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
-import com.tallybot.backend.tallybot_back.dto.ChatDto;
-import com.tallybot.backend.tallybot_back.dto.ErrorResponse;
-import com.tallybot.backend.tallybot_back.dto.MessageResponse;
+import com.tallybot.backend.tallybot_back.dto.*;
 import com.tallybot.backend.tallybot_back.service.ChatService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -36,4 +34,11 @@ public class ChatController {
         chatService.saveChats(chatDtoList); // 채팅 저장
         return ResponseEntity.ok(new MessageResponse("Upload successful. Chat count: " + chatDtoList.size()));
     }
+
+    @GetMapping("/group/{groupId}")
+    public ResponseEntity<List<ChatResponseDto>> getChatsByGroup(@PathVariable Long groupId) {
+        List<ChatResponseDto> chatList = chatService.getChatsByGroup(groupId);
+        return ResponseEntity.ok(chatList);
+    }
+
 }

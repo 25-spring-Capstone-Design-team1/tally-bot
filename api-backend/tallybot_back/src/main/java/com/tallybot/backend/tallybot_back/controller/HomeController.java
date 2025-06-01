@@ -10,6 +10,6 @@ public class HomeController {
 
     @GetMapping
     public String checkHealth() {
-        return "http mock data 추가만 반영";
+        return "chat api 추가";
     }
 }
