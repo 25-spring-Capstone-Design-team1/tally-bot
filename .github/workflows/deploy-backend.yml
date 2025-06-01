@@ -29,24 +29,27 @@ jobs:
             git reset --hard origin/dev
             git clean -fd
 
-            echo "🔨 [2] 빌드 실행"
-            ./gradlew clean build -x test --no-build-cache
+            echo "🔨 [2] 기존 빌드 결과 제거 및 재빌드"
+            rm -rf build/
+            ./gradlew clean build -x test
 
-            echo "🛑 [3] 기존 모든 Java 프로세스 종료"
+            echo "🔍 [3] 빌드된 JAR 확인"
+            ls -alh ./build/libs
+
+            echo "🛑 [4] 기존 모든 Java 프로세스 종료"
             pkill -f 'java' || true
             sleep 3
 
-            echo "🚀 [4] 새 애플리케이션 실행"
-            nohup java -jar ./build/libs/tallybot_back-0.0.1-SNAPSHOT.jar \
-              --spring.profiles.active=rds > app.log 2>&1 &
-
+            echo "🚀 [5] 새 애플리케이션 실행"
+            JAR_FILE=\$(ls ./build/libs/*.jar | grep 'tallybot_back' | head -n 1)
+            nohup java -jar "\$JAR_FILE" --spring.profiles.active=rds > app.log 2>&1 &
             echo \$! > app.pid
             sleep 10
 
-            echo "✅ [5] 헬스 체크"
+            echo "✅ [6] 헬스 체크"
             curl -f http://localhost:8080/app || echo "⚠️ Health check failed"
 
-            echo "🧪 [6] 테스트 시나리오 실행"
+            echo "🧪 [7] 테스트 시나리오 실행"
             BASE_URL="http://${{ secrets.AWS_HOST }}:8080"
 
             curl -X POST "\$BASE_URL/api/group/create" -H "Content-Type: application/json" -d '{
@@ -80,7 +83,7 @@ jobs:
             echo
 
             curl -X POST "\$BASE_URL/api/calculate/start" -H "Content-Type: application/json" -d '{
-              "groupId": 2,
+              "groupId": 3,
               "startTime": "2025-05-30 13:00:00",
               "endTime": "2025-05-30 14:00:00"
             }'
