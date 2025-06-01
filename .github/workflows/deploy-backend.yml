@@ -41,8 +41,8 @@ jobs:
             sleep 3
 
             echo "🚀 [5] 새 애플리케이션 실행"
-            JAR_FILE=\$(ls ./build/libs/*.jar | grep 'tallybot_back' | head -n 1)
-            nohup java -jar "\$JAR_FILE" --spring.profiles.active=rds > app.log 2>&1 &
+            JAR_FILE=$(ls ./build/libs/*.jar | grep 'tallybot_back' | head -n 1)
+            nohup java -jar "$JAR_FILE" --spring.profiles.active=rds > app.log 2>&1 &
             echo \$! > app.pid
             sleep 10
 
