@@ -22,6 +22,17 @@ class ConversationRequest(BaseModel):
     secondary_prompt_file: str = "resources/secondary_prompt.yaml"  # 2차 프롬프트 파일
     final_prompt_file: str = "resources/final_prompt.yaml"  # 3차 프롬프트 파일
 
+class EvaluationRequest(BaseModel):
+    # 평가를 위한 통합 요청 모델
+    chatroom_name: str
+    members: List[Dict[str, str]]
+    messages: List[ChatMessage]
+    expected_output: List[Dict[str, Any]]  # 예상 결과
+    prompt_file: str = "resources/input_prompt.yaml"
+    secondary_prompt_file: str = "resources/secondary_prompt.yaml"
+    final_prompt_file: str = "resources/final_prompt.yaml"
+    evaluation_model: str = "gpt-4o"  # 평가용 모델 (더 정확한 평가를 위해 4o 사용)
+
 class ConversationResponse(BaseModel):
     # API 응답 모델 - FastAPI 엔드포인트에서 response_model=ConversationResponse로 사용됩니다.
     # 이 모델을 통해 FastAPI는 응답 데이터의 유효성을 검증하고 JSON으로 직렬화합니다.

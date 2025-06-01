@@ -14,37 +14,44 @@ def extract_complex_items(converted_result):
     """n분의1이 아닌 복잡한 항목을 추출"""
     complex_items = []
     for item in converted_result:
-        if item["hint_type"] != "n분의1":
+        if item.get("hint_type") != "n분의1":
             extract = {
-                "speaker": item["speaker"],
-                "hint_type": item["hint_type"],
-                "item": item.get("item", ""),
-                "amount": item.get("amount", 0)
+                "speaker": item.get("speaker", ""),
+                "amount": item.get("amount", 0),
+                "hint_type": item.get("hint_type", ""),
+                "hint_phrases": item.get("hint_phrases", [])
             }
-            if "hint_phrases" in item:
-                extract["hint_phrases"] = item["hint_phrases"]
             complex_items.append(extract)
     return complex_items
 
-def map_place_to_complex_items(complex_items, secondary_result):
-    """2차 결과(place 정보)를 complex_items에 매핑"""
+def map_place_to_complex_items(complex_items, secondary_result, converted_result):
+    """2차 결과(place 정보)를 complex_items에 매핑하고 최종 처리를 위한 정보 준비"""
     mapped_complex_items = []
-    for item in complex_items:
-        item_place = next((s.get("place", "") for s in secondary_result if s.get("item") == item.get("item", "")), "")
-        mapped_item = {
-            "place": item_place,
-            "speaker": item["speaker"],
-            "item": item.get("item", ""),
-            "amount": item.get("amount", 0),
-            "hint_type": item["hint_type"],
-            "hint_phrases": item.get("hint_phrases", [])
-        }
-        mapped_complex_items.append(mapped_item)
+    complex_index = 0
+    
+    for item in converted_result:
+        if item.get("hint_type") != "n분의1":
+            if complex_index < len(complex_items):
+                # final 프롬프트용 입력 (speaker, amount, hint_type, hint_phrases만)
+                final_input = complex_items[complex_index]
+                
+                # 추가 매핑 정보 (place, item)
+                item_place = next((s.get("place", "") for s in secondary_result if s.get("item") == item.get("item", "")), "")
+                
+                mapped_item = {
+                    **final_input,  # speaker, amount, hint_type, hint_phrases
+                    "place": item_place,
+                    "item": item.get("item", "")
+                }
+                mapped_complex_items.append(mapped_item)
+                complex_index += 1
+    
     return mapped_complex_items
 
 def process_complex_results(complex_results, mapped_complex_items, name_to_id=None):
     """복잡한 결과에 place, item, amount 매핑 및 특수 케이스 처리"""
     processed_results = []
+    
     for i, result in enumerate(complex_results):
         if i < len(mapped_complex_items):
             original = mapped_complex_items[i]
@@ -53,10 +60,6 @@ def process_complex_results(complex_results, mapped_complex_items, name_to_id=No
             result["item"] = original.get("item", "")
             result["amount"] = original.get("amount", 0)
             
-            # hint_type이 "1인당고정"인 경우 특수 처리
-            if original.get("hint_type") == "1인당고정" and "payer" in result:
-                result = process_fixed_per_person_case(result, original)
-            
             # 이름을 ID로 변환 처리
             if name_to_id:
                 result = convert_names_to_ids(result, name_to_id)
@@ -64,6 +67,7 @@ def process_complex_results(complex_results, mapped_complex_items, name_to_id=No
             # 필드 순서 재정렬
             ordered_result = reorder_result_fields(result)
             processed_results.append(ordered_result)
+    
     return processed_results
 
 def convert_names_to_ids(result, name_to_id):
@@ -98,30 +102,6 @@ def convert_names_to_ids(result, name_to_id):
     
     return result
 
-def process_fixed_per_person_case(result, original):
-    """1인당고정 케이스의 특수 처리"""
-    payer = result["payer"]
-    
-    # participants에서 payer 제거
-    if "participants" in result and payer in result["participants"]:
-        result["participants"].remove(payer)
-    
-    # constants에서 payer 제거
-    if "constants" in result and payer in result["constants"]:
-        del result["constants"][payer]
-    
-    # ratios에서 payer 제거
-    if "ratios" in result and payer in result["ratios"]:
-        del result["ratios"][payer]
-    
-    # participants 수를 세고 amount에 곱하기
-    if "participants" in result:
-        participants_count = len(result["participants"])
-        if participants_count > 0:
-            result["amount"] = original.get("amount", 0) * participants_count
-    
-    return result
-
 def reorder_result_fields(result):
     """결과 필드를 지정된 순서로 재정렬"""
     ordered_result = {}
@@ -137,7 +117,7 @@ def prepare_standard_calculation_items(converted_result, secondary_result):
         "place": next((s.get("place", "") for s in secondary_result if s.get("item") == item.get("item")), ""),
         "item": item.get("item", ""),
         "amount": item.get("amount", 0)
-    } for item in converted_result if item["hint_type"] == "n분의1"]
+    } for item in converted_result if item.get("hint_type") == "n분의1"]
 
 def process_all_results(converted_result, secondary_result, complex_results, member_names, id_to_name=None, name_to_id=None):
     """모든 결과를 처리하고 합치기"""
@@ -153,6 +133,7 @@ def process_all_results(converted_result, secondary_result, complex_results, mem
     
     # 복잡한 결과가 있으면 합치기
     if complex_results:
-        return standard_results + complex_results
+        final_result = standard_results + complex_results
+        return final_result
     else:
         return standard_results 

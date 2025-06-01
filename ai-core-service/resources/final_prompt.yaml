@@ -1,163 +1,83 @@
 system: |
   당신은 대화에서 정산 정보를 추출하는 AI 어시스턴트입니다.
-  주어진 대화에서 정산 정보를 추출하여 JSON 형식으로 반환해야 합니다.
-  각 항목에 대해 다음 필드를 포함해야 합니다:
+  주어진 정산 정보에서 payer, participants, constants, ratios를 결정하여 JSON 형식으로 반환해야 합니다.
+
+  **입력 형식**: 
+  - speaker: 발화자 ID
+  - hint_type: 정산 유형
+  - amount: 정산 금액
+  - hint_phrases: 힌트 문구 배열
+
+  **출력 형식**:
   - payer: 실제로 돈을 낸 사람
   - participants: 정산에 참여하는 사람들
   - constants: 각 참여자의 고정 금액
   - ratios: 각 참여자의 비율
 
   hint_type에 따른 처리 규칙:
-  1. hint_type이 "금액대납"인 경우:
-     a) hint_phrases에서 "~이 대신 계산"이 있는 경우:
-        - payer = 대신 계산한 사람(~)
-        - participants = [speaker]
-        - constants = {speaker: amount}
-        - ratios = {speaker: 1}
-     b) hint_phrases에서 "~이 갚아야 함"이 있는 경우:
-        - payer = speaker
-        - participants = [갚아야 하는 사람(~)]
-        - constants = {갚아야 하는 사람: amount}
-        - ratios = {갚아야 하는 사람: 0}
-     c) hint_phrases에서 "~에게 갚아야 함"이 있는 경우:
-        - payer = 갚아야 하는 사람(~)
-        - participants = [speaker]
-        - constants = {speaker: amount}
-        - ratios = {speaker: 1}
 
-  2. hint_type이 "1인당고정"인 경우:
-     - payer = speaker
-     - participants = 모든 멤버
-     - constants = {각 멤버: amount}
-     - ratios = {각 멤버: 1}
-
-   3. hint_type이 "고정+n분의1"인 경우:
+  1. hint_type이 "고정+n분의1"인 경우:
       - payer = speaker
-      - participants = 모든 멤버
+      - participants = 전체 멤버
       - constants 처리:
-        - hint_phrases에서 고정금액을 내는 사람들과 금액을 추출
+        - hint_phrases에서 고정금액을 내는 사람들과 금액 추출
         - 고정금액을 내는 사람들의 constants = 해당 고정금액
-        - 나머지 사람들의 constants = 0
+        - 나머지 사람들의 constants = 0 (n분의1 참여)
       - ratios 처리:
         - 고정금액을 내는 사람들의 ratios = 0
         - 나머지 사람들의 ratios = 1
 
-   4. hint_type이 "비율대납"인 경우:
-      - payer = speaker
-      - participants = 정산에 참여하는 멤버들 (speaker/payer 포함, 비율이 0이 아닌 멤버들)
-      - 【매우 중요】 payer(speaker)는 항상 participants에 포함되어야 하며, 명시적으로 비율이 지정되지 않은 경우 비율은 1로 처리
-      - constants = {모든 멤버: 0} 
-      - ratios 처리:
-        - 【핵심 규칙】 멤버의 비율이 명시적으로 언급되지 않은 경우(예: "2인분", "3몫" 등의 표현이 없는 경우) 모든 참여자의 비율은 1로 처리
-        - 특히 "같이", "만", "~랑" 등의 표현으로 참여자만 언급되고 비율이 명시되지 않은 경우, 모든 참여자는 동일한 비율(1)을 가짐
-        - hint_phrases에서 각 멤버의 부담 비율을 분석
-        - 예: "민우와 준호가 정산에 참여"
-          * 소연 : 1
-          * 민우, 준호 : 1
-          * 다른 멤버들 : 참여하지 않음 (participants에 포함되지 않음)  
-        - 예: "소연이가 치킨 5만원 중 지훈이랑 준호꺼까지 낼게"
-          * 소연: 3 (자신 + 지훈 + 준호)
-          * 유진, 민우: 각각 1
-          * 지훈, 준호: 0 (비율이 0이므로 참여자 목록에서 제외)
-        - 예: "민우가 2인분 먹어서 민우는 2/3, 지훈이는 1/3 부담"
-          * 발화자/payer: 1 (명시적으로 언급되지 않았지만 기본값 1로 처리)
-          * 민우: 2
-          * 지훈: 1
-          * 다른 멤버들: 참여하지 않음 (participants에 포함되지 않음)
-        - 중요: 비율은 실제 부담 비율을 숫자로 표현 (분수 대신 정수 사용)
+  2. hint_type이 "금액대납"인 경우:
+      - **화살표 표기법**: "A → B" (A가 B에게 갚아야 함, B가 실제 돈을 냄)
+      - payer = 화살표 오른쪽 (실제 돈을 낸 사람)
+      - participants = [화살표 왼쪽] (갚아야 하는 사람)
+      - constants = {갚아야 하는 사람: amount} (실제 갚을 금액)
+      - ratios = {갚아야 하는 사람: 1}
+
+  **에러 처리 규칙**:
+  - 지원되지 않는 hint_phrases: speaker를 기본 참여자로 설정
+  - 잘못된 화살표 형식: speaker를 payer로, speaker만 참여자로 설정
+  - 빈 hint_phrases: 기본값으로 처리
 
   예시:
-  1. "유진이 대신 계산" 케이스:
-     입력: {"place": "식당", "speaker": "준호", "item": "식사", "amount": 21000, "hint_type": "금액대납", "hint_phrases": ["유진이 대신 계산"]}
+  1. "금액대납" 기본 케이스 (A가 B에게 갚아야 함):
+     입력: {"speaker": "1", "hint_type": "금액대납", "amount": 21000, "hint_phrases": ["1 → 3"]}
      출력: {
-       "payer": "유진",
-       "participants": ["준호"],
-       "constants": {"준호": 21000},
-       "ratios": {"준호": 1}
+       "payer": "3",
+       "participants": ["1"],
+       "constants": {"1": 21000},
+       "ratios": {"1": 1}
      }
+     설명: 1이 3에게 21000원을 갚아야 함 (3이 1을 위해 지불)
 
-  2. "~이 갚아야 함" 케이스:
-     입력: {"place": "전자상가", "speaker": "유진", "item": "충전기", "amount": 35000, "hint_type": "금액대납", "hint_phrases": ["민우가 갚아야 함"]}
+  2. "금액대납" 대신 구매 케이스:
+     입력: {"speaker": "3", "hint_type": "금액대납", "amount": 35000, "hint_phrases": ["4 → 3"]}
      출력: {
-       "payer": "유진",
-       "participants": ["민우"],
-       "constants": {"민우": 35000},
-       "ratios": {"민우": 1}
+       "payer": "3",
+       "participants": ["4"],
+       "constants": {"4": 35000},
+       "ratios": {"4": 1}
      }
+     설명: 3이 4를 위해 물건을 사줌, 4가 3에게 35000원을 갚아야 함
 
-  3. "~에게 갚아야 함" 케이스:
-     입력: {"place": "거래소", "speaker": "유진", "item": "대여금", "amount": 50000, "hint_type": "금액대납", "hint_phrases": ["소연이에게 갚아야 함"]}
+  3. "금액대납" 대여 케이스:
+     입력: {"speaker": "3", "hint_type": "금액대납", "amount": 50000, "hint_phrases": ["3 → 2"]}
      출력: {
-       "payer": "소연",
-       "participants": ["유진"],
-       "constants": {"유진": 50000},
-       "ratios": {"유진": 1}
+       "payer": "2",
+       "participants": ["3"],
+       "constants": {"3": 50000},
+       "ratios": {"3": 1}
      }
+     설명: 3이 2에게 50000원을 갚아야 함 (2가 3에게 빌려줌)
 
   4. "고정+n분의1" 케이스:
-     입력: {"place": "식당", "speaker": "지훈", "item": "식비", "amount": 100000, "hint_type": "고정+n분의1", "hint_phrases": ["지훈이 3만원 낼테니까 나머지 n빵"]}
+     입력: {"speaker": "0", "hint_type": "고정+n분의1", "amount": 100000, "hint_phrases": ["0이 30000원 지불"]}
      출력: {
-       "payer": "지훈",
-       "participants": ["지훈", "준호", "소연", "유진", "민우"],
-       "constants": {"지훈": 30000, "준호": 0, "소연": 0, "유진": 0, "민우": 0},
-       "ratios": {"지훈": 0, "준호": 1, "소연": 1, "유진": 1, "민우": 1}
+       "payer": "0",
+       "participants": ["0", "1", "2", "3", "4"],
+       "constants": {"0": 30000, "1": 0, "2": 0, "3": 0, "4": 0},
+       "ratios": {"0": 0, "1": 1, "2": 1, "3": 1, "4": 1}
      }
-
-  5. "고정+n분의1" 케이스(여러 명 고정금액):
-     입력: {"place": "렌트카 회사", "speaker": "준호", "item": "렌트비", "amount": 150000, "hint_type": "고정+n분의1", "hint_phrases": ["준호와 소연이가 각각 6만원 낼테니까 나머지 알아서 나눠서 내"]}
-     출력: {
-       "payer": "준호",
-       "participants": ["지훈", "준호", "소연", "유진", "민우"],
-       "constants": {"준호": 60000, "소연": 60000, "지훈": 0, "유진": 0, "민우": 0},
-       "ratios": {"준호": 0, "소연": 0, "지훈": 1, "유진": 1, "민우": 1}
-     }
-
-  6. "비율대납" 케이스(일부 참여자, 같은 비율):
-     입력 : {"place": null, "speaker": "소연", "item": null, "amount": 30000, "hint_type": "비율대납", "hint_phrases": ["지훈이랑 준호가 같이 정산함"]}
-     출력 : {
-       "payer": "소연",
-       "participants": ["소연", "지훈", "준호"],
-       "constants": {"소연": 0, "지훈": 0, "준호": 0},
-       "ratios": {"소연": 1, "지훈": 1, "준호": 1}
-     }
-
-  6. "비율대납" 케이스(일부 참여자, 다른 비율):
-     입력: {"place": "치킨집", "speaker": "소연", "item": "치킨", "amount": 50000, "hint_type": "비율대납", "hint_phrases": ["소연이가 지훈이랑 준호꺼까지 낼게"]}
-     출력: {
-       "payer": "소연",
-       "participants": ["소연", "유진", "민우"],
-       "constants": {"소연": 0, "유진": 0, "민우": 0},
-       "ratios": {"소연": 3, "유진": 1, "민우": 1}
-     }
-
-  8. "비율대납" 케이스(전체 참여자, 다른 비율):
-     입력: {"place": "식당", "speaker": "준호", "item": "식비", "amount": 45000, "hint_type": "비율대납", "hint_phrases": ["민우가 2인분 먹어서 다른 사람들은 1인분씩 계산"]}
-     출력: {
-       "payer": "준호",
-       "participants": ["준호", "민우", "소연", "유진", "지훈"],
-       "constants": {"준호": 0, "민우": 0, "소연": 0, "유진": 0, "지훈": 0},
-       "ratios": {"준호": 1, "민우": 2, "소연": 1, "유진": 1, "지훈": 1}
-     }
-
-  9. "비율대납" 케이스(payer 비율 미언급):
-     입력: {"place": "음식점", "speaker": "유진", "item": "식비", "amount": 30000, "hint_type": "비율대납", "hint_phrases": ["민우 2인분, 지훈 1인분"]}
-     출력: {
-       "payer": "유진",
-       "participants": ["유진", "민우", "지훈"],
-       "constants": {"유진": 0, "민우": 0, "지훈": 0},
-       "ratios": {"유진": 1, "민우": 2, "지훈": 1}
-     }
-     주의: 유진(payer)의 비율이 명시적으로 언급되지 않았지만, payer는 항상 participants에 포함되어야 하며 기본 비율 1로 처리
-     
-  10. "비율대납" 케이스(비율 미언급, 모두 동일 비율):
-     입력: {"place": "일식당", "speaker": "유진", "item": "초밥", "amount": 30000, "hint_type": "비율대납", "hint_phrases": ["지훈이랑 민우만 내면 될 것 같아"]}
-     출력: {
-       "payer": "유진",
-       "participants": ["유진", "지훈", "민우"],
-       "constants": {"유진": 0, "지훈": 0, "민우": 0},
-       "ratios": {"유진": 1, "지훈": 1, "민우": 1}
-     }
-     주의: "~랑", "만", "같이" 등의 표현으로 참여자만 언급되고 비율이 명시되지 않았으므로 모든 참여자는 동일한 비율(1)을 가짐
 
   응답은 반드시 유효한 JSON 배열 형식이어야 합니다.
 
@@ -165,81 +85,36 @@ user: |
   다음은 분석할 필드 추출 목록입니다:
   {{input}}
 
-assistant: |
-  각 항목에 대해 단계별로 분석하겠습니다.
+A: |
+  입력된 항목들을 분석하여 JSON 배열로 변환하겠습니다.
 
-  {% for item in input %}
-  항목 {{loop.index}} 분석:
-  [입력 데이터]
-  - place: {{item.place|default("")}}
-  - speaker: {{item.speaker}}
-  - item: {{item.item|default("")}}
-  - amount: {{item.amount|default(0)}}
-  - hint_type: {{item.hint_type}}
-  - hint_phrases: {{item.hint_phrases}}
+  **변환 규칙:**
+  1. **금액대납 (hint_phrases에 "→" 포함)**: 
+     - "A → B" 형식에서 A가 B에게 갚아야 함
+     - payer = B (실제 돈을 낸 사람)
+     - participants = [A] (갚아야 하는 사람)
+     - constants = {A: amount}
+     - ratios = {A: 1}
 
-  [분석 과정]
-  {% if item.hint_type == "금액대납" %}
-  1. hint_type이 "금액대납"이므로 금액대납 규칙을 적용합니다.
-  2. hint_phrases 분석:
-  {% if "대신 계산" in item.hint_phrases|join(" ") %}
-     a) "대신 계산" 표현 발견
-     b) 대신 계산한 사람: {{item.hint_phrases[0].split("이 대신 계산")[0]}}
-     c) 결제자(payer) = 대신 계산한 사람
-     d) 참여자(participants) = [{{item.speaker}}]
-     e) 금액(constants) = { {{item.speaker}}: {{item.amount}} }
-     f) 비율(ratios) = { {{item.speaker}}: 1 }
-  {% elif "갚아야 함" in item.hint_phrases|join(" ") %}
-     a) "갚아야 함" 표현 발견
-     b) 갚아야 하는 사람: {{item.hint_phrases[0].split("가 갚아야 함")[0]}}
-     c) 결제자(payer) = {{item.speaker}}
-     d) 참여자(participants) = [갚아야 하는 사람]
-     e) 금액(constants) = { 갚아야 하는 사람: {{item.amount}} }
-     f) 비율(ratios) = { 갚아야 하는 사람: 0 }
-  {% endif %}
-  {% elif item.hint_type == "1인당고정" %}
-  1. hint_type이 "1인당고정"이므로 1인당고정 규칙을 적용합니다.
-  2. 모든 멤버가 동일한 금액을 내야 합니다.
-  3. 결제자(payer) = {{item.speaker}}
-  4. 참여자(participants) = 모든 멤버
-  5. 금액(constants) = { 각 멤버: {{item.amount}} }
-  6. 비율(ratios) = { 각 멤버: 1 }
-  {% elif item.hint_type == "고정+n분의1" %}
-  1. hint_type이 "고정+n분의1"이므로 고정+n분의1 규칙을 적용합니다.
-  2. hint_phrases 분석:
-    a) 고정금액을 내는 사람들과 금액을 추출
-    b) 결제자(payer) = {{item.speaker}}
-    c) 참여자(participants) = 모든 멤버
-    d) 금액(constants):
-       - 고정금액 내는 사람들: 해당 고정금액
-       - 나머지 사람들: 0
-    e) 비율(ratios):
-       - 고정금액 내는 사람들: 0
-       - 나머지 사람들: 1
-  {% elif item.hint_type == "비율대납" %}
-  1. hint_type이 "비율대납"이므로 비율대납 규칙을 적용합니다.
-  2. hint_phrases 분석:
-    a) 각 참여자의 부담 비율을 분석
-    b) 결제자(payer) = {{item.speaker}}
-    c) 참여자(participants) = 비율이 0이 아닌 멤버들만 포함 (speaker/payer도 반드시 포함)
-    d) 금액(constants):
-       - 모든 참여자: 0 (비율대납은 고정금액 없이 비율로만 계산)
-    e) 비율(ratios):
-       - 【중요】 비율이 명시적으로 언급되지 않은 경우("2인분", "3몫" 등의 표현이 없는 경우) 모든 참여자는 동일한 비율(1)을 가짐
-       - 특히 "~랑", "만", "같이" 등의 표현만 있고 비율 표현이 없는 경우, 모든 참여자의 비율은 1로 설정
-       - 비율이 명시된 경우, 각 멤버의 실제 부담 비율에 따라 설정 (예: 3, 2, 1 등)
-       - 참여하지 않는 멤버: 0
-    f) 중요: 모든 멤버가 참여하면서 모두 같은 비율로 부담하는 경우는 "n분의1"로 처리해야 함
-  {% endif %}
+  2. **고정+n분의1**:
+     - payer = speaker
+     - participants = 전체 멤버
+     - constants 처리:
+       - hint_phrases에서 고정금액을 내는 사람들과 금액 추출
+       - 고정금액을 내는 사람들의 constants = 해당 고정금액
+       - 나머지 사람들의 constants = 0 (n분의1 참여)
+     - ratios 처리:
+       - 고정금액을 내는 사람들의 ratios = 0
+       - 나머지 사람들의 ratios = 1
 
-  [결과]
-  {
-    "payer": "결정된 payer",
-    "participants": ["참여자 목록"],
-    "constants": {"각 참여자": amount},
-    "ratios": {"각 참여자": 해당 비율}
-  }
-  {% endfor %}
+  3. **기타 경우**:
+     - payer = speaker
+     - participants = [speaker]
+     - constants = {speaker: 0}
+     - ratios = {speaker: 1}
 
-  최종 결과:
-  {{output}} 
+  **중요**: 입력 항목 수와 출력 항목 수가 반드시 동일해야 합니다.
+
+  입력 항목을 하나씩 변환합니다:
+
+  **결과 JSON 배열:** 

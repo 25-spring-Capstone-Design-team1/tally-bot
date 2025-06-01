@@ -4,7 +4,9 @@ from fastapi import HTTPException
 
 from load import load_prompt, load_conversation
 from services.ai_service import process_conversation, process_summary, process_final
+from services.chain_ai_service import ChainAIService
 from utils.logging_utils import log_processing_stage
+from utils.message_merger import merge_conversation_dict
 from services.result_processor import (
     preprocess_conversation_results, 
     extract_items_only,
@@ -90,7 +92,7 @@ async def split_and_process_conversation(
             chunk_conversation = current_messages
         
         # 현재 청크 처리
-        chunk_result = await process_conversation(chunk_conversation, input_prompt, callback=None)
+        chunk_result = await process_conversation(chunk_conversation, input_prompt, callback=None, members=members)
         if chunk_result:
             # 결과 변환 및 병합
             converted_chunk = await preprocess_conversation_results(chunk_result)
@@ -107,10 +109,16 @@ async def split_and_process_conversation(
     log_processing_stage("청크 처리 후 전체 결과 내용", all_results)
 
     tablets = []
+    filtered_out_count = 0
     for result in all_results:
         if result.get("hint_type") != "미정":
             tablets.append(result)
+        else:
+            filtered_out_count += 1
+            log_processing_stage(f"미정 항목 제외", f"item: {result.get('item', 'Unknown')}, speaker: {result.get('speaker', 'Unknown')}")
     
+    log_processing_stage("필터링 결과", f"처리 대상: {len(tablets)}개, 제외된 미정 항목: {filtered_out_count}개")
+
     if tablets:
         return await process_secondary_and_final(
             tablets,
@@ -169,13 +177,24 @@ async def process_secondary_and_final(
     
     # 복잡한 항목이 있는 경우에만 3차 처리
     if complex_items:
-        mapped_complex_items = map_place_to_complex_items(complex_items, secondary_result)
+        mapped_complex_items = map_place_to_complex_items(complex_items, secondary_result, converted_result)
+        
+        # 3차 프롬프팅을 위한 입력 데이터 준비 (final 프롬프트에 필요한 필드만)
+        final_input_data = []
+        for item in mapped_complex_items:
+            final_input = {
+                "speaker": item["speaker"],
+                "amount": item["amount"],
+                "hint_type": item["hint_type"],
+                "hint_phrases": item.get("hint_phrases", [])
+            }
+            final_input_data.append(final_input)
         
         # 3차 프롬프팅을 위한 대화 구성
         members_info = f"member_count: {len(id_to_name)}\nmember_mapping: {json.dumps(id_to_name, ensure_ascii=False)}"
         final_conversation = [
             {'speaker': 'system', 'message_content': f"{members_info}\n\n다음은 분석할 필드 추출 목록입니다."},
-            {'speaker': 'user', 'message_content': json.dumps(mapped_complex_items, ensure_ascii=False)}
+            {'speaker': 'user', 'message_content': json.dumps(final_input_data, ensure_ascii=False)}
         ]
         
         # 3차 프롬프팅 처리
@@ -185,13 +204,16 @@ async def process_secondary_and_final(
             # 복잡한 결과 후처리
             processed_complex_results = process_complex_results(complex_results, mapped_complex_items, name_to_id)
             log_processing_stage("복잡한 항목 목록", processed_complex_results)
+            log_processing_stage("복잡한 항목 후처리 결과 항목 수", f"{len(processed_complex_results)}개")
             
             # 모든 결과 처리 및 합치기
             final_result = process_all_results(converted_result, secondary_result, processed_complex_results, member_names, id_to_name, name_to_id)
         else:
+            log_processing_stage("3차 프롬프팅 결과 없음", "표준 결과만 처리")
             # 복잡한 결과가 없는 경우 표준 결과만 처리
             final_result = process_all_results(converted_result, secondary_result, None, member_names, id_to_name, name_to_id)
     else:
+        log_processing_stage("복잡한 항목 없음", "표준 결과만 처리")
         # 복잡한 항목이 없는 경우 표준 결과만 처리
         final_result = process_all_results(converted_result, secondary_result, None, member_names, id_to_name, name_to_id)
     
@@ -221,6 +243,23 @@ async def process_conversation_logic(
 ):
     """대화 처리에 필요한 공통 로직을 처리합니다."""
     
+    # 메시지 결합 전처리 추가
+    original_conversation = conversation
+    if isinstance(conversation, dict):
+        # 딕셔너리 형태인 경우 메시지 결합
+        original_messages = conversation.get("messages", [])
+        conversation = merge_conversation_dict(conversation)
+        merged_messages = conversation.get("messages", [])
+        
+        messages = merged_messages
+    else:
+        # 리스트 형태인 경우 직접 메시지 결합
+        from utils.message_merger import merge_conversation_messages
+        merged_conversation = merge_conversation_messages(conversation)
+        
+        conversation = merged_conversation
+        messages = merged_conversation
+    
     # conversation이 리스트인지 딕셔너리인지 확인
     if isinstance(conversation, dict):
         # 딕셔너리인 경우 (chatroom_name, members, messages 구조)
@@ -245,7 +284,9 @@ async def process_conversation_logic(
         )
     
     # 1. 1차 대화 처리
-    result = await process_conversation(conversation, input_prompt, callback=None)
+    # conversation에서 members 정보 추출
+    members = conversation.get("members", []) if isinstance(conversation, dict) else []
+    result = await process_conversation(conversation, input_prompt, callback=None, members=members)
     if not result:
         raise HTTPException(status_code=400, detail="처리 결과가 없습니다.")
         
@@ -285,3 +326,74 @@ async def load_resources(
     else:
         input_prompt, secondary_prompt, final_prompt = await asyncio.gather(*tasks)
         return input_prompt, secondary_prompt, final_prompt, conversation 
+
+async def process_conversation_with_sequential_chain(
+    conversation, 
+    input_prompt, 
+    secondary_prompt, 
+    final_prompt,
+    member_names,
+    id_to_name,
+    name_to_id,
+    use_chunking=True
+):
+    """SequentialChain을 사용한 효율적인 대화 처리 (개선된 버전)"""
+    
+    # 메시지 결합 전처리 추가
+    if isinstance(conversation, dict):
+        # 딕셔너리 형태인 경우 메시지 결합
+        original_messages = conversation.get("messages", [])
+        conversation = merge_conversation_dict(conversation)
+        merged_messages = conversation.get("messages", [])
+    else:
+        # 리스트 형태인 경우 직접 메시지 결합
+        from utils.message_merger import merge_conversation_messages
+        merged_conversation = merge_conversation_messages(conversation)
+        
+        conversation = merged_conversation
+    
+    # ChainAIService 인스턴스를 매번 새로 생성 (상태 격리)
+    chain_service = ChainAIService()
+    
+    # conversation이 리스트인지 딕셔너리인지 확인
+    if isinstance(conversation, dict):
+        messages = conversation.get("messages", [])
+    else:
+        messages = conversation
+    
+    # 시스템 메시지를 제외한 사용자 메시지 수 계산
+    user_message_count = len([msg for msg in messages if isinstance(msg, dict) and msg.get('speaker') != 'system'])
+    
+    # 처리 시작 로그
+    print(f"🔄 SequentialChain 처리 시작 - 메시지 수: {user_message_count}, 청킹 사용: {use_chunking}")
+    
+    if use_chunking and user_message_count > 15:
+        # 대화가 긴 경우 청크로 분할 처리
+        log_processing_stage("SequentialChain 청크 처리 시작", f"총 {user_message_count}개 메시지")
+        result = await chain_service.process_chunked_with_sequential_chain(
+            conversation=conversation,
+            input_prompt=input_prompt,
+            secondary_prompt=secondary_prompt,
+            final_prompt=final_prompt,
+            member_names=member_names,
+            id_to_name=id_to_name,
+            name_to_id=name_to_id
+        )
+    else:
+        # 짧은 대화는 한 번에 처리
+        log_processing_stage("SequentialChain 단일 처리 시작", f"총 {user_message_count}개 메시지")
+        result = await chain_service.process_with_sequential_chain(
+            conversation=conversation,
+            input_prompt=input_prompt,
+            secondary_prompt=secondary_prompt,
+            final_prompt=final_prompt,
+            member_names=member_names,
+            id_to_name=id_to_name,
+            name_to_id=name_to_id
+        )
+    
+    # 처리 완료 로그
+    final_count = len(result.get("final_result", [])) if result else 0
+    print(f"✅ SequentialChain 처리 완료 - 최종 결과: {final_count}개 항목")
+    
+    return result 
