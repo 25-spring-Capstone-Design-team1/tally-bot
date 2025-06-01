@@ -50,14 +50,14 @@ jobs:
             BASE_URL="http://${{ secrets.AWS_HOST }}:8080"
 
             curl -X POST "\$BASE_URL/api/group/create" -H "Content-Type: application/json" -d '{
-              "groupId": 2,
+              "groupId": 3,
               "groupName": "테스트 그룹",
               "member": "지훈"
             }'
             echo
 
             curl -X POST "\$BASE_URL/api/group/create" -H "Content-Type: application/json" -d '{
-              "groupId": 2,
+              "groupId": 3,
               "groupName": "테스트 그룹",
               "member": "준호"
             }'
@@ -65,13 +65,13 @@ jobs:
 
             curl -X POST "\$BASE_URL/api/chat/upload" -H "Content-Type: application/json" -d '[
               {
-                "groupId": 2,
+                "groupId": 3,
                 "timestamp": "2025-05-30 13:20:00",
                 "memberId": 4,
                 "message": "정산 ㄱ"
               },
               {
-                "groupId": 2,
+                "groupId": 3,
                 "timestamp": "2025-05-30 13:21:00",
                 "memberId": 5,
                 "message": "5000원임"
