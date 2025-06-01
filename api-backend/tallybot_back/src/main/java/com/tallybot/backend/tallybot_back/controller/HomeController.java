@@ -10,6 +10,6 @@ public class HomeController {
 
     @GetMapping
     public String checkHealth() {
-        return "내용 수정 반영 테스트3";
+        return "http 추가 반영";
     }
 }

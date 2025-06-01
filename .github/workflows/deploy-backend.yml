@@ -34,7 +34,7 @@ jobs:
 
             echo "🛑 [3] 기존 애플리케이션 종료"
             if [ -f app.pid ]; then
-              kill -9 $(cat app.pid) || true
+              kill -9 \$(cat app.pid) || true
               rm -f app.pid
             fi
             pkill -f 'tallybot_back' || true
@@ -43,11 +43,134 @@ jobs:
             echo "🚀 [4] 새 애플리케이션 실행"
             nohup java -jar ./build/libs/tallybot_back-0.0.1-SNAPSHOT.jar \
               --spring.profiles.active=rds > app.log 2>&1 &
-
             echo \$! > app.pid
             sleep 10
 
             echo "✅ [5] 헬스 체크"
             curl -f http://localhost:8080/app || echo "⚠️ Health check failed"
 
+            echo "🧪 [6] 테스트 시나리오 실행"
+            BASE_URL="http://${{ secrets.AWS_HOST }}:8080"
+
+            curl -X POST "\$BASE_URL/api/group/create" -H "Content-Type: application/json" -d '{
+              "groupId": 2,
+              "groupName": "테스트 그룹",
+              "member": "지훈"
+            }'
+            echo
+
+            curl -X POST "\$BASE_URL/api/group/create" -H "Content-Type: application/json" -d '{
+              "groupId": 2,
+              "groupName": "테스트 그룹",
+              "member": "준호"
+            }'
+            echo
+
+            curl -X POST "\$BASE_URL/api/group/create" -H "Content-Type: application/json" -d '{
+              "groupId": 2,
+              "groupName": "테스트 그룹",
+              "member": "민지"
+            }'
+            echo
+
+            curl -X POST "\$BASE_URL/api/group/create" -H "Content-Type: application/json" -d '{
+              "groupId": 2,
+              "groupName": "테스트 그룹",
+              "member": "수빈"
+            }'
+            echo
+
+            curl -X POST "\$BASE_URL/api/chat/upload" -H "Content-Type: application/json" -d '[
+              {
+                "groupId": 2,
+                "timestamp": "2025-05-30 13:20:00",
+                "memberId": 4,
+                "message": "정산 ㄱ"
+              },
+              {
+                "groupId": 2,
+                "timestamp": "2025-05-30 13:21:00",
+                "memberId": 5,
+                "message": "내가 낼게"
+              }
+            ]'
+            echo
+
+            curl -X POST "\$BASE_URL/api/calculate/start" -H "Content-Type: application/json" -d '{
+              "groupId": 2,
+              "startTime": "2025-05-30 13:00:00",
+              "endTime": "2025-05-30 14:00:00"
+            }'
+            echo
+
+            curl "\$BASE_URL/api/group/2/calculates"
+            echo
+            curl "\$BASE_URL/api/calculate/4/settlements"
+            echo
+            curl "\$BASE_URL/api/calculate/4/transfers"
+            echo
+
+            curl -X POST "\$BASE_URL/api/update/settlement" -H "Content-Type: application/json" -d '{
+              "calculateId": 4,
+              "settlementId": 11,
+              "field": "update",
+              "newValue": {
+                "place": "스타벅스"
+              }
+            }'
+            echo
+
+            curl -X POST "\$BASE_URL/api/update/settlement" -H "Content-Type: application/json" -d '{
+              "calculateId": 4,
+              "settlementId": 10,
+              "field": "update",
+              "newValue": {
+                "amount": 12000
+              }
+            }'
+            echo
+
+            curl -X POST "\$BASE_URL/api/update/settlement" -H "Content-Type: application/json" -d '{
+              "calculateId": 4,
+              "settlementId": 10,
+              "field": "update",
+              "newValue": {
+                "payer": 5
+              }
+            }'
+            echo
+
+            curl -X POST "\$BASE_URL/api/update/settlement" -H "Content-Type: application/json" -d '{
+              "calculateId": 4,
+              "settlementId": 10,
+              "field": "update",
+              "newValue": {
+                "participants": [4, 5, 6]
+              },
+              "constants": {
+                "4": 0,
+                "5": 0,
+                "6": 0
+              },
+              "ratios": {
+                "4": 1,
+                "5": 2,
+                "6": 1
+              },
+              "sum": 4
+            }'
+            echo
+
+            curl -X POST "\$BASE_URL/api/calculate/recalculate" -H "Content-Type: application/json" -d '{
+              "calculateId": 4
+            }'
+            echo
+
+            curl -X POST "\$BASE_URL/api/calculate/complete" -H "Content-Type: application/json" -d '{
+              "calculateId": 4
+            }'
+            echo
+
+            curl "\$BASE_URL/api/calculate/4/brief-result"
+            echo
           EOF
