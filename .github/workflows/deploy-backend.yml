@@ -34,7 +34,7 @@ jobs:
 
             echo "🛑 [3] 기존 애플리케이션 종료"
             if [ -f app.pid ]; then
-              kill -9 \$(cat app.pid) || true
+              kill -9 $(cat app.pid) || true
               rm -f app.pid
             fi
             pkill -f 'tallybot_back' || true
