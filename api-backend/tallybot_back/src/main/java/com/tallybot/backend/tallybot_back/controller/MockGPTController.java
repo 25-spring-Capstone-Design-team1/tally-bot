@@ -26,7 +26,7 @@ public class MockGPTController {
 
         SettlementDto mock2 = new SettlementDto(
                 "카페",             // place
-                5L,                // payerId
+                4L,                // payerId
                 "아메리카노",       // item
                 12000,             // amount
                 List.of(4L, 5L),   // participantIds

@@ -164,19 +164,21 @@ Content-Type: application/json
   "calculateId": 4,
   "field": "add",
   "newValue": {
-    "amount": 3000,
+    "amount": 4000,
     "payer": 5,
-    "participants": [4, 5]
+    "participants": [4, 5, 6]
   },
   "constants": {
     "4": 0,
-    "5": 0
+    "5": 0,
+    "6": 0
   },
   "ratios": {
     "4": 1,
-    "5": 2
+    "5": 2,
+    "6": 1
   },
-  "sum": 3
+  "sum": 4
 }
 
 

@@ -130,7 +130,10 @@ public class SettlementService {
                         .toList();
 
                 participants = memberRepository.findAllById(participantIds);
-                int ratioSum = (sum != null) ? sum : participants.size();  // 참여자 수 기반
+//                int ratioSum = (sum != null) ? sum : participants.size();  // 참여자 수 기반
+                int ratioSum = (ratios != null)
+                        ? ratios.values().stream().mapToInt(Integer::intValue).sum()
+                        : participants.size();
 
                 for (Member member : participants) {
                     Participant.ParticipantKey participantKey = new Participant.ParticipantKey(newSettlement, member);
@@ -236,7 +239,11 @@ public class SettlementService {
 
                                 Integer constant = Optional.ofNullable(request.getConstants().get(memberIdStr)).orElse(0);
                                 Integer ratioValue = Optional.ofNullable(request.getRatios().get(memberIdStr)).orElse(1);
-                                Integer ratioSum = Optional.ofNullable(request.getSum()).orElse(participants.size());
+//                                I
+                                int ratioSum = (request.getRatios() != null)
+                                        ? request.getRatios().values().stream().mapToInt(Integer::intValue).sum()
+                                        : participants.size();
+
 
                                 Ratio ratio = new Ratio(ratioValue, ratioSum);
                                 Participant participant = new Participant(participantKey, constant, ratio);
