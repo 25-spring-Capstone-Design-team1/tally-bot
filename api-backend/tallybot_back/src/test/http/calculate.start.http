@@ -1,0 +1,15 @@
+### 정산 시작 테스트
+POST http://localhost:8080/api/calculate/start
+Content-Type: application/json
+
+{
+  "groupId": 2,
+  "startTime": "2025-05-30 13:00:00",
+  "endTime": "2025-05-30 14:00:00"
+}
+
+### 정산 목록 조회
+GET http://localhost:8080/api/group/2/calculates
+
+### 정산 결과 조회
+GET http://localhost:8080/api/calculate/4/brief-result

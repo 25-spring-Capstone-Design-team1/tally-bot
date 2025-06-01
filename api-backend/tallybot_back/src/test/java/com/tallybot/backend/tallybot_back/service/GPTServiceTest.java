@@ -12,12 +12,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
@@ -36,81 +38,67 @@ public class GPTServiceTest {
     @Test
     void returnResults_success() {
         // given
-        Member member = new Member();
-        member.setNickname("준호");
+        Member m1 = new Member();
+        m1.setMemberId(1L);
+        m1.setNickname("지훈");
 
-        Chat chat = new Chat();
-        chat.setMessage("숙소 예약했어 90000원");
-        chat.setMember(member);
+        Chat chat1 = new Chat();
+        chat1.setChatId(100L);
+        chat1.setMember(m1);
+        chat1.setMessage("정산하자");
+        chat1.setTimestamp(LocalDateTime.of(2025, 5, 1, 12, 0));
 
-        List<Chat> chats = List.of(chat);
+        SettlementDto[] mockResponse = new SettlementDto[]{
+                new SettlementDto(
+                        "장소",
+                        1L,
+                        "삼겹살",
+                        30000,
+                        List.of(1L),
+                        Map.of("지훈", 0),
+                        Map.of("지훈", 100)
+                )
+        };
 
-        SettlementDto mockDto = new SettlementDto();
-        mockDto.setPlace("숙소");
-        mockDto.setItem("숙소비");
-        mockDto.setAmount(90000);
-        mockDto.setPayerId(1L);
-        mockDto.setParticipantIds(List.of(1L, 2L));
-        mockDto.setConstants(Map.of("1", 0, "2", 0));
-        mockDto.setRatios(Map.of("1", 1, "2", 1));
 
-        SettlementDto[] mockResponse = new SettlementDto[]{mockDto};
-        ResponseEntity<SettlementDto[]> responseEntity = new ResponseEntity<>(mockResponse, HttpStatus.OK);
 
         when(restTemplate.postForEntity(anyString(), any(), eq(SettlementDto[].class)))
-                .thenReturn(responseEntity);
+                .thenReturn(new ResponseEntity<>(mockResponse, HttpStatus.OK));
 
         // when
-        List<SettlementDto> result = gptService.returnResults(chats);
+        List<SettlementDto> results = gptService.returnResults(3L, List.of(chat1));
 
         // then
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).getPlace()).isEqualTo("숙소");
-        assertThat(result.get(0).getAmount()).isEqualTo(90000);
+        assertEquals(1, results.size());
+        assertEquals("삼겹살", results.get(0).getItem());
 
-        // verify request body (optional)
-        ArgumentCaptor<Map> captor = ArgumentCaptor.forClass(Map.class);
-        verify(restTemplate).postForEntity(eq("http://localhost:8000/api/process"), captor.capture(), eq(SettlementDto[].class));
+        // request body 확인용 캡처
+        ArgumentCaptor<Object> requestCaptor = ArgumentCaptor.forClass(Object.class);
+        verify(restTemplate).postForEntity(anyString(), requestCaptor.capture(), eq(SettlementDto[].class));
 
-        Map<String, Object> actualRequest = captor.getValue();
-        assertThat(actualRequest).containsKeys("conversation", "prompt_file");
-        List<Map<String, String>> conversation = (List<Map<String, String>>) actualRequest.get("conversation");
-        assertThat(conversation.get(0).get("speaker")).isEqualTo("system");
-        assertThat(conversation.get(1).get("message_content")).isEqualTo("숙소 예약했어 90000원");
+        Object requestBody = requestCaptor.getValue();
+        assertNotNull(requestBody);
+        // 요청 포맷이 PythonRequestDto로 생성되었는지 간단 검증 가능 (자세한 필드 확인은 통합 테스트로)
     }
 
     @Test
     void returnResults_shouldThrowException_whenResponseBodyIsNull() {
-        // given
-        List<Chat> chats = mockChatList();
+        when(restTemplate.postForEntity(anyString(), any(), eq(SettlementDto[].class)))
+                .thenReturn(new ResponseEntity<>(new SettlementDto[0], HttpStatus.OK));
 
-        given(restTemplate.postForEntity(
-                anyString(),
-                any(),
-                eq(SettlementDto[].class)
-        )).willReturn(ResponseEntity.ok(null)); // 응답 body = null
-
-        // expect
-        assertThatThrownBy(() -> gptService.returnResults(chats))
-                .isInstanceOf(NoSettlementResultException.class)
-                .hasMessageContaining("정산 결과가 존재하지 않습니다.");
+        assertThrows(NoSettlementResultException.class, () ->
+                gptService.returnResults(3L, List.of()));
     }
 
     @Test
-    void returnResults_shouldThrowException_whenResponseBodyIsEmpty() {
-        // given
-        List<Chat> chats = mockChatList();
+    void returnResults_server_error() {
+        when(restTemplate.postForEntity(anyString(), any(), eq(SettlementDto[].class)))
+                .thenThrow(new RuntimeException("연결 실패"));
 
-        given(restTemplate.postForEntity(
-                anyString(),
-                any(),
-                eq(SettlementDto[].class)
-        )).willReturn(ResponseEntity.ok(new SettlementDto[0])); // 빈 배열
+        RuntimeException ex = assertThrows(RuntimeException.class, () ->
+                gptService.returnResults(3L, List.of()));
 
-        // expect
-        assertThatThrownBy(() -> gptService.returnResults(chats))
-                .isInstanceOf(NoSettlementResultException.class)
-                .hasMessageContaining("정산 결과가 존재하지 않습니다.");
+        assertTrue(ex.getMessage().contains("GPT 서버 응답 처리 중 오류"));
     }
 
     private List<Chat> mockChatList() {

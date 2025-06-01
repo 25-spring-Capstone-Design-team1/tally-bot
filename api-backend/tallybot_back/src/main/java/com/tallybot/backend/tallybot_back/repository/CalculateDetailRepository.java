@@ -14,4 +14,5 @@ public interface CalculateDetailRepository extends JpaRepository<CalculateDetail
     List<CalculateDetail> findByCalculate(Calculate calculate);
     List<CalculateDetail> findAllByCalculate(Calculate calculate);
     void deleteByCalculate(Calculate calculate);
+
 }

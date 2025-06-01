@@ -13,47 +13,94 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        
+
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.7.0
         with:
           ssh-private-key: ${{ secrets.AWS_SSH_KEY }}
-          
+
       - name: Deploy to EC2
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.AWS_USER }}@${{ secrets.AWS_HOST }} << 'EOF'
             cd /home/ssm-user/app/tally-bot/api-backend/tallybot_back
-            git pull origin dev
-            ./gradlew build -x test
-            
-            # 기존 프로세스 종료 (PID 파일 기반)
+
+            echo "📥 [1] 최신 코드 강제 동기화"
+            git fetch origin
+            git reset --hard origin/dev
+            git clean -fd
+
+            echo "🔨 [2] 빌드 실행"
+            ./gradlew clean build -x test --no-build-cache
+
+            echo "🛑 [3] 기존 애플리케이션 종료"
             if [ -f app.pid ]; then
-              echo "Stopping existing application (PID: $(cat app.pid))"
-              kill $(cat app.pid) || true
-              sleep 5
-              kill -9 $(cat app.pid) 2>/dev/null || true
+              kill -9 $(cat app.pid) || true
               rm -f app.pid
             fi
-            
-            # 백업: 패턴 매칭으로 남은 프로세스 정리
-            pkill -f 'java.*tallybot_back.*jar' || true
-            pkill -f './build/libs/tallybot_back' || true
-            sleep 2
-            
-            # 새 애플리케이션 시작
+            pkill -f 'tallybot_back' || true
+            sleep 3
+
+            echo "🚀 [4] 새 애플리케이션 실행"
             nohup java -jar ./build/libs/tallybot_back-0.0.1-SNAPSHOT.jar \
-              --spring.profiles.active=rds \
-              > app.log 2>&1 &
-            
-            # PID 저장 및 확인
-            echo $! > app.pid
-            echo "Application started with PID: $(cat app.pid)"
-            
-            # 헬스 체크
+              --spring.profiles.active=rds > app.log 2>&1 &
+            echo \$! > app.pid
             sleep 10
-            if curl -f http://localhost:8080/actuator/health; then
-              echo "✅ Deployment successful!"
-            else
-              echo "⚠️ Health check failed, check app.log"
-            fi
+
+            echo "✅ [5] 헬스 체크"
+            curl -f http://localhost:8080/app || echo "⚠️ Health check failed"
+
+            echo "🧪 [6] 테스트 시나리오 실행"
+            BASE_URL="http://${{ secrets.AWS_HOST }}:8080"
+
+            curl -X POST "\$BASE_URL/api/group/create" -H "Content-Type: application/json" -d '{
+              "groupId": 2,
+              "groupName": "테스트 그룹",
+              "member": "지훈"
+            }'
+            echo
+
+            curl -X POST "\$BASE_URL/api/group/create" -H "Content-Type: application/json" -d '{
+              "groupId": 2,
+              "groupName": "테스트 그룹",
+              "member": "준호"
+            }'
+            echo
+
+            curl -X POST "\$BASE_URL/api/group/create" -H "Content-Type: application/json" -d '{
+              "groupId": 2,
+              "groupName": "테스트 그룹",
+              "member": "민지"
+            }'
+            echo
+
+            curl -X POST "\$BASE_URL/api/group/create" -H "Content-Type: application/json" -d '{
+              "groupId": 2,
+              "groupName": "테스트 그룹",
+              "member": "수빈"
+            }'
+            echo
+
+            curl -X POST "\$BASE_URL/api/chat/upload" -H "Content-Type: application/json" -d '[
+              {
+                "groupId": 2,
+                "timestamp": "2025-05-30 13:20:00",
+                "memberId": 4,
+                "message": "정산 ㄱ"
+              },
+              {
+                "groupId": 2,
+                "timestamp": "2025-05-30 13:21:00",
+                "memberId": 5,
+                "message": "내가 낼게"
+              }
+            ]'
+            echo
+
+            curl -X POST "\$BASE_URL/api/calculate/start" -H "Content-Type: application/json" -d '{
+              "groupId": 2,
+              "startTime": "2025-05-30 13:00:00",
+              "endTime": "2025-05-30 14:00:00"
+            }'
+            echo
+
           EOF

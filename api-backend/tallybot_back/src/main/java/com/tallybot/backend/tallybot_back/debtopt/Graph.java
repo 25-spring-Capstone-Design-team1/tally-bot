@@ -53,16 +53,37 @@ public class Graph {
             throw new IllegalArgumentException("Invalid vertex index");
         }
 
-        // 이미 존재하는 간선인지 확인
-        if (getWeight(source, destination) != Integer.MAX_VALUE) {
-            throw new IllegalArgumentException("Edge already exists");
-        }
+        // 기존 가중치 가져오기 (없으면 0으로)
+        int existingForward = adjacencyList.get(source).getOrDefault(destination, 0);
+        int existingBackward = adjacencyList.get(destination).getOrDefault(source, 0);
 
-        // 양방향 간선 추가 (source -> destination: weight, destination -> source: -weight)
-        adjacencyList.get(source).put(destination, weight);
-        adjacencyList.get(destination).put(source, -weight);
-        sz++;
+        // 가중치 누적
+        adjacencyList.get(source).put(destination, existingForward + weight);
+        adjacencyList.get(destination).put(source, existingBackward - weight);
+
+        // edgeCount(sz)는 **신규 간선일 때만 증가**
+        if (existingForward == 0) {
+            sz++;
+        }
     }
+
+//    public void addEdge(int source, int destination, int weight) {
+//        // 입력 검증
+//        if (source < 0 || source >= adjacencyList.size() ||
+//                destination < 0 || destination >= adjacencyList.size()) {
+//            throw new IllegalArgumentException("Invalid vertex index");
+//        }
+//
+//        // 이미 존재하는 간선인지 확인
+//        if (getWeight(source, destination) != Integer.MAX_VALUE) {
+//            throw new IllegalArgumentException("Edge already exists");
+//        }
+//
+//        // 양방향 간선 추가 (source -> destination: weight, destination -> source: -weight)
+//        adjacencyList.get(source).put(destination, weight);
+//        adjacencyList.get(destination).put(source, -weight);
+//        sz++;
+//    }
 
     // 간선 제거 메소드
     public void removeEdge(int source, int destination) {

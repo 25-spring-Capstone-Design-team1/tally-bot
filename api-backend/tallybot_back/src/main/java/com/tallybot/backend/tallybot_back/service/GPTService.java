@@ -1,6 +1,9 @@
 package com.tallybot.backend.tallybot_back.service;
 
 import com.tallybot.backend.tallybot_back.domain.*;
+import com.tallybot.backend.tallybot_back.dto.ChatForGptDto;
+import com.tallybot.backend.tallybot_back.dto.PythonMessageDto;
+import com.tallybot.backend.tallybot_back.dto.PythonRequestDto;
 import com.tallybot.backend.tallybot_back.dto.SettlementDto;
 import com.tallybot.backend.tallybot_back.exception.NoSettlementResultException;
 import org.springframework.http.ResponseEntity;
@@ -20,39 +23,39 @@ public class GPTService {
     }
 
 
-    public List<SettlementDto> returnResults(List<Chat> chats) {
-        List<Map<String, String>> conversation = new ArrayList<>();
 
-        // 시스템 메시지 - 멤버 목록 전송
-        String systemMessage = createSystemMessage(chats);
-        conversation.add(Map.of(
-                "speaker", "system",
-                "message_content", systemMessage
-        ));
+    public List<SettlementDto> returnResults(Long groupId, List<ChatForGptDto> chatDtos) {
+        List<Map<String, String>> members = chatDtos.stream()
+                .map(dto -> Map.of(String.valueOf(dto.getMemberId()), dto.getNickname()))
+                .distinct()
+                .collect(Collectors.toList());
 
-        for (Chat chat : chats) {
-            conversation.add(Map.of(
-                    "speaker", "user",
-                    "message_content", chat.getMessage()
-            ));
-        }
+        List<PythonMessageDto> messages = chatDtos.stream()
+                .map(dto -> new PythonMessageDto(
+                        String.valueOf(dto.getChatId()),
+                        String.valueOf(dto.getMemberId()),
+                        dto.getMessage(),
+                        dto.getTimestamp().toString()
+                ))
+                .collect(Collectors.toList());
 
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("conversation", conversation);
-        requestBody.put("prompt_file", "resources/input_prompt.yaml");
 
-        String url = "http://localhost:8000/api/process";
+        PythonRequestDto requestDto = new PythonRequestDto(groupId, members, messages);
+
+        //실제 gpt 서버 주소
+//        String url = "http://localhost:8000/api/process";
+
+        //테스트용 mock 주소
+        String url = "http://localhost:8080/api/process";
 
         try {
             ResponseEntity<SettlementDto[]> response = restTemplate.postForEntity(
                     url,
-                    requestBody,
+                    requestDto,
                     SettlementDto[].class
             );
 
             SettlementDto[] responseBody = response.getBody();
-
-            // 응답이 null이거나 길이가 0인 경우
             if (responseBody == null || responseBody.length == 0) {
                 throw new NoSettlementResultException("정산 결과가 존재하지 않습니다.");
             }
@@ -60,13 +63,13 @@ public class GPTService {
             return Arrays.asList(responseBody);
 
         } catch (NoSettlementResultException e) {
-            throw e; // 예외 그대로 던지기
+            throw e;
         } catch (Exception e) {
             System.err.println("GPT 요청 실패: " + e.getMessage());
             throw new RuntimeException("GPT 서버 응답 처리 중 오류가 발생했습니다.", e);
         }
-
     }
+
 
 
     private String createSystemMessage(List<Chat> chats) {

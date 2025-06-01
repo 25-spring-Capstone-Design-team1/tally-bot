@@ -84,7 +84,9 @@ public class CalculateController {
         }
 
         Calculate calculate = optionalCalculate.get();
-        List<Settlement> settlements = settlementRepository.findByCalculate(calculate);
+//        List<Settlement> settlements = settlementRepository.findByCalculate(calculate);
+        List<Settlement> settlements = settlementRepository.findWithParticipantsByCalculateId(calculateId);
+
 
         //settlement별 처리
         List<FrontSettlementDto> result = settlements.stream().map(settlement -> {

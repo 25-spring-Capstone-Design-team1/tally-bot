@@ -18,6 +18,9 @@ public class SettlementService {
     private final MemberRepository memberRepository;
     private final CalculateRepository calculateRepository;
     private final GroupRepository groupRepository;
+    private final OptimizationService optimizationService;
+    private final CalculateDetailRepository calculateDetailRepository;
+
 
     public boolean fieldExists(String fieldName, SettlementUpdateRequest request)
     {
@@ -160,7 +163,11 @@ public class SettlementService {
         if ("delete".equals(field))
          {
              settlementRepository.delete(settlement);
+
+
              return settlementId;
+
+
          }else{
             for (Map.Entry<String, Object> entry : newValue.entrySet()) {
                 String key = entry.getKey();
@@ -266,10 +273,23 @@ public class SettlementService {
 //        return members.collect(Collectors.toList());
 //    }
 //
-//    /*
-//     * GPT에서 넘어오는 settlement 관련 정보를
-//     * settlement의 ID, Group 객체, calculate의 ID 등을 사용하여 DB의 Settlement 객체로 변환한다.
-//     */
+
+    public void applyAfterUpdate(Long calculateId) {
+        Calculate calculate = calculateRepository.findById(calculateId)
+                .orElseThrow(() -> new IllegalArgumentException("정산 없음"));
+        List<Settlement> settlementList = settlementRepository.findByCalculate(calculate);
+
+        calculateDetailRepository.deleteByCalculate(calculate);
+        optimizationService.calculateAndOptimize(settlementList);
+
+        calculate.setStatus(CalculateStatus.PENDING);
+        calculateRepository.save(calculate);
+    }
+
+    /*
+     * GPT에서 넘어오는 settlement 관련 정보를
+     * settlement의 ID, Group 객체, calculate의 ID 등을 사용하여 DB의 Settlement 객체로 변환한다.
+     */
     public Settlement toSettlement(SettlementDto settlementDto, Long calculateId) {
         // 정보 채우기
         Settlement settlement = new Settlement();

@@ -1,0 +1,45 @@
+### [1] 그룹 생성 (초기 멤버: 지훈)
+POST http://localhost:8080/api/group/create
+Content-Type: application/json
+
+{
+  "groupId": 2,
+  "groupName": "테스트 그룹",
+  "member": "지훈"
+}
+
+### [2] 그룹에 멤버 추가 - 준호
+POST http://localhost:8080/api/group/create
+Content-Type: application/json
+
+{
+  "groupId": 2,
+  "groupName": "테스트 그룹",
+  "member": "준호"
+}
+
+### [3] 그룹에 멤버 추가 - 민지
+POST http://localhost:8080/api/group/create
+Content-Type: application/json
+
+{
+  "groupId": 2,
+  "groupName": "테스트 그룹",
+  "member": "민지"
+}
+
+### [4] 그룹에 멤버 추가 - 수빈
+POST http://localhost:8080/api/group/create
+Content-Type: application/json
+
+{
+  "groupId": 2,
+  "groupName": "테스트 그룹",
+  "member": "수빈"
+}
+
+### [5] 그룹 정보 조회
+GET http://localhost:8080/api/group/2
+
+### [6] 그룹 멤버 목록 조회
+GET http://localhost:8080/api/group/2/members

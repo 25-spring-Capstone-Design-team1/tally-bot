@@ -1,0 +1,18 @@
+### 채팅 업로드 테스트
+POST http://localhost:8080/api/chat/upload
+Content-Type: application/json
+
+[
+  {
+    "groupId": 2,
+    "timestamp": "2025-05-30 13:00:00",
+    "memberId": 4,
+    "message": "정산 시작하자"
+  },
+  {
+    "groupId": 2,
+    "timestamp": "2025-05-30 13:01:00",
+    "memberId": 5,
+    "message": "콜"
+  }
+]
