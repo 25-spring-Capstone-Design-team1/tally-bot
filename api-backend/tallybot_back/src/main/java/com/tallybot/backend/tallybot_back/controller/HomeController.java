@@ -10,6 +10,6 @@ public class HomeController {
 
     @GetMapping
     public String checkHealth() {
-        return "chat api 추가";
+        return "test.sh 추가";
     }
 }
