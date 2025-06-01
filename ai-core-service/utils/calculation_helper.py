@@ -113,10 +113,41 @@ def generate_standard_calculation(items, member_names, id_to_name=None):
             "payer": payer,  # 추출된 결제자 또는 speaker
             "item": item.get("item", ""),
             "amount": amount,  # 변환된 전체 금액
-            "participants": participants,
+            "participants": participants.copy(),  # 복사본 사용
             "constants": {member: 0 for member in participants},
             "ratios": {member: 1 for member in participants}
         }
+        
+        # n분의1 항목에 대한 hint_phrases 처리
+        if item.get("hint_type") == "n분의1" and hint_phrases:
+            for phrase in hint_phrases:
+                # 1. 제외 처리: "숫자는 제외"
+                exclude_match = re.search(r'(\d+)[은|는]?\s*제외', phrase)
+                if exclude_match:
+                    exclude_id = exclude_match.group(1)
+                    if exclude_id in processed_item["participants"]:
+                        processed_item["participants"].remove(exclude_id)
+                    if exclude_id in processed_item["constants"]:
+                        del processed_item["constants"][exclude_id]
+                    if exclude_id in processed_item["ratios"]:
+                        del processed_item["ratios"][exclude_id]
+                
+                # 2. 고정 금액 처리: "숫자가 X원 지불"
+                payment_match = re.search(r'(\d+)(?:이|가)\s*(\d+)원?\s*지불', phrase)
+                if payment_match:
+                    member_id = payment_match.group(1)
+                    payment_amount = int(payment_match.group(2))
+                    if member_id in processed_item["constants"]:
+                        processed_item["constants"][member_id] = payment_amount
+                        processed_item["ratios"][member_id] = 0  # 고정금액 지불자는 비율 0
+                
+                # 3. 배수 지불 처리: "숫자가 X배 지불"
+                ratio_match = re.search(r'(\d+)(?:이|가)\s*(\d+)배\s*지불', phrase)
+                if ratio_match:
+                    member_id = ratio_match.group(1)
+                    ratio_multiplier = int(ratio_match.group(2))
+                    if member_id in processed_item["ratios"]:
+                        processed_item["ratios"][member_id] = ratio_multiplier
         
         result.append(processed_item)
     

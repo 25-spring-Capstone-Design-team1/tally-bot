@@ -52,8 +52,6 @@ def process_complex_results(complex_results, mapped_complex_items, name_to_id=No
     """복잡한 결과에 place, item, amount 매핑 및 특수 케이스 처리"""
     processed_results = []
     
-    print(f"🔄 복잡한 결과 처리: complex_results={len(complex_results)}개, mapped_complex_items={len(mapped_complex_items)}개")
-    
     for i, result in enumerate(complex_results):
         if i < len(mapped_complex_items):
             original = mapped_complex_items[i]
@@ -62,8 +60,6 @@ def process_complex_results(complex_results, mapped_complex_items, name_to_id=No
             result["item"] = original.get("item", "")
             result["amount"] = original.get("amount", 0)
             
-            print(f"   ✅ 매핑 완료 [{i+1}]: {original.get('item', 'Unknown')} (amount: {original.get('amount', 0)})")
-            
             # 이름을 ID로 변환 처리
             if name_to_id:
                 result = convert_names_to_ids(result, name_to_id)
@@ -71,11 +67,6 @@ def process_complex_results(complex_results, mapped_complex_items, name_to_id=No
             # 필드 순서 재정렬
             ordered_result = reorder_result_fields(result)
             processed_results.append(ordered_result)
-        else:
-            print(f"   ⚠️ 매핑 실패 [{i+1}]: mapped_complex_items 범위 초과")
-    
-    if len(complex_results) > len(mapped_complex_items):
-        print(f"   ⚠️ 경고: complex_results({len(complex_results)})가 mapped_complex_items({len(mapped_complex_items)})보다 많습니다.")
     
     return processed_results
 
@@ -134,10 +125,6 @@ def process_all_results(converted_result, secondary_result, complex_results, mem
     standard_items = prepare_standard_calculation_items(converted_result, secondary_result)
     standard_results = generate_standard_calculation(standard_items, member_names, id_to_name)
     
-    print(f"🔄 최종 결과 합치기:")
-    print(f"   📊 표준 결과 (n분의1): {len(standard_results)}개")
-    print(f"   📊 복잡한 결과: {len(complex_results) if complex_results else 0}개")
-    
     # 이름을 ID로 변환 (복잡한 결과가 아직 변환되지 않은 경우)
     if name_to_id and complex_results:
         for i, result in enumerate(complex_results):
@@ -147,8 +134,6 @@ def process_all_results(converted_result, secondary_result, complex_results, mem
     # 복잡한 결과가 있으면 합치기
     if complex_results:
         final_result = standard_results + complex_results
-        print(f"   ✅ 최종 결과: {len(final_result)}개 (표준 {len(standard_results)}개 + 복잡한 {len(complex_results)}개)")
         return final_result
     else:
-        print(f"   ✅ 최종 결과: {len(standard_results)}개 (표준 결과만)")
         return standard_results 

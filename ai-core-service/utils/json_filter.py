@@ -96,7 +96,7 @@ def validate_json_structure(json_results):
     
     errors = []
     required_fields = ['item', 'amount', 'hint_type']
-    valid_hint_types = ['n분의1', '금액대납', '비율대납', '고정+n분의1']
+    valid_hint_types = ['n분의1', '금액대납', '고정+n분의1']
     
     for i, item in enumerate(json_results):
         if not isinstance(item, dict):

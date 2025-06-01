@@ -6,6 +6,7 @@ from load import load_prompt, load_conversation
 from services.ai_service import process_conversation, process_summary, process_final
 from services.chain_ai_service import ChainAIService
 from utils.logging_utils import log_processing_stage
+from utils.message_merger import merge_conversation_dict
 from services.result_processor import (
     preprocess_conversation_results, 
     extract_items_only,
@@ -199,10 +200,6 @@ async def process_secondary_and_final(
         # 3차 프롬프팅 처리
         complex_results = await process_final(final_conversation, final_prompt, callback=None)
         
-        # 3차 프롬프팅 원시 결과 로깅
-        log_processing_stage("3차 프롬프팅 원시 결과", complex_results)
-        log_processing_stage("3차 프롬프팅 원시 결과 항목 수", f"{len(complex_results) if complex_results else 0}개")
-        
         if complex_results:
             # 복잡한 결과 후처리
             processed_complex_results = process_complex_results(complex_results, mapped_complex_items, name_to_id)
@@ -245,6 +242,23 @@ async def process_conversation_logic(
     use_chunking=True
 ):
     """대화 처리에 필요한 공통 로직을 처리합니다."""
+    
+    # 메시지 결합 전처리 추가
+    original_conversation = conversation
+    if isinstance(conversation, dict):
+        # 딕셔너리 형태인 경우 메시지 결합
+        original_messages = conversation.get("messages", [])
+        conversation = merge_conversation_dict(conversation)
+        merged_messages = conversation.get("messages", [])
+        
+        messages = merged_messages
+    else:
+        # 리스트 형태인 경우 직접 메시지 결합
+        from utils.message_merger import merge_conversation_messages
+        merged_conversation = merge_conversation_messages(conversation)
+        
+        conversation = merged_conversation
+        messages = merged_conversation
     
     # conversation이 리스트인지 딕셔너리인지 확인
     if isinstance(conversation, dict):
@@ -324,6 +338,19 @@ async def process_conversation_with_sequential_chain(
     use_chunking=True
 ):
     """SequentialChain을 사용한 효율적인 대화 처리 (개선된 버전)"""
+    
+    # 메시지 결합 전처리 추가
+    if isinstance(conversation, dict):
+        # 딕셔너리 형태인 경우 메시지 결합
+        original_messages = conversation.get("messages", [])
+        conversation = merge_conversation_dict(conversation)
+        merged_messages = conversation.get("messages", [])
+    else:
+        # 리스트 형태인 경우 직접 메시지 결합
+        from utils.message_merger import merge_conversation_messages
+        merged_conversation = merge_conversation_messages(conversation)
+        
+        conversation = merged_conversation
     
     # ChainAIService 인스턴스를 매번 새로 생성 (상태 격리)
     chain_service = ChainAIService()
