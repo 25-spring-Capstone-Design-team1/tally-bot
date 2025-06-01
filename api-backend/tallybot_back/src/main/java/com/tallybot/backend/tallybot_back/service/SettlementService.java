@@ -216,10 +216,14 @@ public class SettlementService {
                     case "participants" -> {
                         if (value instanceof List<?> rawList) {
                             // 기존 Participant 명시적으로 제거
-                            for (Participant old : new HashSet<>(settlement.getParticipants())) {
-                                old.getParticipantKey().setSettlement(null);  // 혹시 모르니 관계 끊기
-                                settlement.getParticipants().remove(old);     // 리스트에서 제거
-                            }
+//                            for (Participant old : new HashSet<>(settlement.getParticipants())) {
+//                                old.getParticipantKey().setSettlement(null);  // 혹시 모르니 관계 끊기
+//                                settlement.getParticipants().remove(old);     // 리스트에서 제거
+//                            }
+                            settlement.getParticipants().clear();
+
+                            settlementRepository.flush();
+
 
                             // 새 participants 추가
                             List<Long> participantIds = rawList.stream()

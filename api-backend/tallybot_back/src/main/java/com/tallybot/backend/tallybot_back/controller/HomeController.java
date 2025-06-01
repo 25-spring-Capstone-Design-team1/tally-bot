@@ -10,6 +10,6 @@ public class HomeController {
 
     @GetMapping
     public String checkHealth() {
-        return "로직 체크 완료";
+        return "정산대상자 줄이기 체크";
     }
 }
