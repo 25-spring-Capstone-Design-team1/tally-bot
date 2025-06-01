@@ -28,11 +28,30 @@ def create_member_mapping(members_data):
     
     return id_to_name, name_to_id
 
-@app.get("/")
+@app.get("/", 
+         summary="서비스 상태 확인",
+         description="API 서비스의 기본 상태를 확인합니다.",
+         tags=["Health Check"])
 async def root():
     return {"message": "Tally Bot AI Core Service API"}
 
-@app.post("/api/process", response_model=ConversationResponse)
+@app.post("/api/process", 
+          response_model=ConversationResponse,
+          summary="실시간 대화 처리",
+          description="""
+          실시간으로 입력된 대화 데이터에서 정산 항목을 추출합니다.
+          
+          ### 📝 기능
+          - 대화 메시지에서 금액 정보 추출
+          - 정산 방식 자동 분류
+          - 멤버별 정산 계산
+          
+          ### 💡 사용 예시
+          - 단체 여행 정산
+          - 회식비 정산  
+          - 공동 구매 정산
+          """,
+          tags=["Core Processing"])
 async def process_api(request: ConversationRequest, background_tasks: BackgroundTasks):
     try:
         # 프롬프트 로드
@@ -78,7 +97,20 @@ async def process_api(request: ConversationRequest, background_tasks: Background
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
-@app.post("/api/process-file")
+@app.post("/api/process-file",
+          summary="파일 기반 대화 처리",
+          description="""
+          JSON 파일에 저장된 대화 데이터를 처리합니다.
+          
+          ### 📂 파일 형식
+          - sample_conversation.json 형식 지원
+          - 멤버 정보와 대화 내용 포함
+          
+          ### ⚙️ 설정 옵션
+          - 프롬프트 파일 경로 설정
+          - 청킹 처리 활성화/비활성화
+          """,
+          tags=["File Processing"])
 async def process_conversation_from_file(
     background_tasks: BackgroundTasks,
     conversation_file: str = "resources/sample_conversation.json", # 대화 JSON 파일
@@ -150,7 +182,23 @@ async def process_conversation_from_file(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
-@app.post("/api/process-chain", response_model=ConversationResponse)
+@app.post("/api/process-chain", 
+          response_model=ConversationResponse,
+          summary="최적화된 체인 처리",
+          description="""
+          SequentialChain을 사용한 고성능 대화 처리 API입니다.
+          
+          ### 🚀 성능 최적화
+          - 메모리 효율적인 처리
+          - 캐시 관리 자동화
+          - 가비지 컬렉션 최적화
+          
+          ### ✨ 특징
+          - 대용량 대화 데이터 처리 가능
+          - 요청별 상태 격리
+          - 향상된 안정성
+          """,
+          tags=["Advanced Processing"])
 async def process_api_with_chain(request: ConversationRequest, background_tasks: BackgroundTasks):
     """SequentialChain을 사용한 효율적인 대화 처리 API (개선된 버전)"""
     try:
