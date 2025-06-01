@@ -32,17 +32,14 @@ jobs:
             echo "🔨 [2] 빌드 실행"
             ./gradlew clean build -x test --no-build-cache
 
-            echo "🛑 [3] 기존 애플리케이션 종료"
-            if [ -f app.pid ]; then
-              kill -9 $(cat app.pid) || true
-              rm -f app.pid
-            fi
-            pkill -f 'tallybot_back' || true
+            echo "🛑 [3] 기존 모든 Java 프로세스 종료"
+            pkill -f 'java' || true
             sleep 3
 
             echo "🚀 [4] 새 애플리케이션 실행"
             nohup java -jar ./build/libs/tallybot_back-0.0.1-SNAPSHOT.jar \
               --spring.profiles.active=rds > app.log 2>&1 &
+
             echo \$! > app.pid
             sleep 10
 
@@ -66,7 +63,6 @@ jobs:
             }'
             echo
 
-
             curl -X POST "\$BASE_URL/api/chat/upload" -H "Content-Type: application/json" -d '[
               {
                 "groupId": 2,
@@ -89,5 +85,4 @@ jobs:
               "endTime": "2025-05-30 14:00:00"
             }'
             echo
-
           EOF
