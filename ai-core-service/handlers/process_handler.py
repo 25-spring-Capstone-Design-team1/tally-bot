@@ -131,8 +131,6 @@ async def split_and_process_conversation(
     else:
         log_processing_stage("최종 처리 결과 없음", "빈 결과 반환")
         return {
-            "result": [],
-            "secondary_result": [],
             "final_result": []
         }
 
@@ -226,8 +224,6 @@ async def process_secondary_and_final(
     
     # 최종 결과 반환
     return {
-        "result": converted_result,
-        "secondary_result": secondary_result,
         "final_result": final_result
     }
 

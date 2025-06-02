@@ -36,6 +36,4 @@ class EvaluationRequest(BaseModel):
 class ConversationResponse(BaseModel):
     # API 응답 모델 - FastAPI 엔드포인트에서 response_model=ConversationResponse로 사용됩니다.
     # 이 모델을 통해 FastAPI는 응답 데이터의 유효성을 검증하고 JSON으로 직렬화합니다.
-    result: List[Dict[str, Any]] # 1차 결과 필드
-    secondary_result: List[Dict[str, Any]]  # 2차 결과 필드
-    final_result: List[Dict[str, Any]]  # 3차 결과 필드
+    final_result: List[Dict[str, Any]]  # 최종 정산 결과만 반환
