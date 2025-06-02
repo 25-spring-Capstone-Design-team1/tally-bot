@@ -15,6 +15,7 @@ class ChatMessage(BaseModel):
 class ConversationRequest(BaseModel):
     # API 요청 모델 - FastAPI 엔드포인트에서 request: ConversationRequest 형태로 사용됩니다.
     # FastAPI는 수신된 JSON을 자동으로 이 모델로 변환하고 검증합니다.
+    groupId: Optional[int] = None
     chatroom_name: str
     members: List[Dict[str, str]]
     messages: List[ChatMessage]
