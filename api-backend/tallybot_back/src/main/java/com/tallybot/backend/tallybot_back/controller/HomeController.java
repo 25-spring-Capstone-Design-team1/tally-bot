@@ -10,6 +10,6 @@ public class HomeController {
 
     @GetMapping
     public String checkHealth() {
-        return "정산대상자 줄이기 체크";
+        return "gpt 연동 완료";
     }
 }

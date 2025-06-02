@@ -54,13 +54,13 @@ Content-Type: application/json
     "groupId": 2,
     "timestamp": "2025-05-30 13:20:00",
     "memberId": 4,
-    "message": "정산 ㄱ"
+    "message": "준호야 너랑 내 거 합쳐서 커피 만원 나옴"
   },
   {
     "groupId": 2,
     "timestamp": "2025-05-30 13:21:00",
     "memberId": 5,
-    "message": "내가 낼게"
+    "message": "오키 내가 반 보내면 되지?"
   }
 ]
 

@@ -1,26 +1,27 @@
 package com.tallybot.backend.tallybot_back.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tallybot.backend.tallybot_back.domain.*;
-import com.tallybot.backend.tallybot_back.dto.ChatForGptDto;
-import com.tallybot.backend.tallybot_back.dto.PythonMessageDto;
-import com.tallybot.backend.tallybot_back.dto.PythonRequestDto;
-import com.tallybot.backend.tallybot_back.dto.SettlementDto;
+import com.tallybot.backend.tallybot_back.dto.*;
 import com.tallybot.backend.tallybot_back.exception.NoSettlementResultException;
+import com.tallybot.backend.tallybot_back.repository.GroupRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+
+
+import java.util.List;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 
 @Service
+@RequiredArgsConstructor
 public class GPTService {
     private final RestTemplate restTemplate;
-
-    public GPTService(RestTemplate restTemplate) {
-        this.restTemplate = restTemplate;
-    }
+    private final GroupRepository groupRepository;
 
 
 
@@ -40,27 +41,55 @@ public class GPTService {
                 .collect(Collectors.toList());
 
 
-        PythonRequestDto requestDto = new PythonRequestDto(groupId, members, messages);
+        String chatroomName = groupRepository.findById(groupId)
+                .map(UserGroup::getGroupName)
+                .orElse("Unnamed Group");
+
+        PythonRequestDto requestDto = new PythonRequestDto(groupId, chatroomName, members, messages);
 
         //실제 gpt 서버 주소
-//        String url = "http://localhost:8000/api/process";
+        String url = "http://tally-bot-ai-backend-alb-2092930451.ap-northeast-2.elb.amazonaws.com/api/process";
 
         //테스트용 mock 주소
-        String url = "http://localhost:8080/api/process";
+//        String url = "http://localhost:8080/api/process";
 
         try {
-            ResponseEntity<SettlementDto[]> response = restTemplate.postForEntity(
+            ObjectMapper mapper = new ObjectMapper();
+            String requestJson = mapper.writeValueAsString(requestDto);
+            System.out.println("📤 GPT 요청 JSON:\n" + requestJson);
+
+//            ResponseEntity<SettlementDto[]> response = restTemplate.postForEntity(
+//                    url,
+//                    requestDto,
+//                    SettlementDto[].class
+//            );
+//
+//            SettlementDto[] responseBody = response.getBody();
+//            if (responseBody == null || responseBody.length == 0) {
+//                throw new NoSettlementResultException("정산 결과가 존재하지 않습니다.");
+//            }
+//
+//            return Arrays.asList(responseBody);
+
+
+            // 디버깅 시 임시로 응답 확인
+            ResponseEntity<String> rawResponse = restTemplate.postForEntity(url, requestDto, String.class);
+            System.out.println("❤️GPT 응답 (raw):\n" + rawResponse.getBody());
+
+            ResponseEntity<SettlementResponseWrapper> response = restTemplate.postForEntity(
                     url,
                     requestDto,
-                    SettlementDto[].class
+                    SettlementResponseWrapper.class
             );
 
-            SettlementDto[] responseBody = response.getBody();
-            if (responseBody == null || responseBody.length == 0) {
+            SettlementResponseWrapper wrapper = response.getBody();
+
+            if (wrapper == null || wrapper.getFinalResult() == null || wrapper.getFinalResult().isEmpty()) {
                 throw new NoSettlementResultException("정산 결과가 존재하지 않습니다.");
             }
 
-            return Arrays.asList(responseBody);
+            return wrapper.getFinalResult();
+
 
         } catch (NoSettlementResultException e) {
             throw e;
