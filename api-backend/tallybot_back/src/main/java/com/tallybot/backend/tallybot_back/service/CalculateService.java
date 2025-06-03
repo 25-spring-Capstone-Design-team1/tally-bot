@@ -141,11 +141,13 @@ public class CalculateService {
         int endDay = request.getEndTime().getDayOfMonth();
 
         // startTime을 00:00:00으로 설정
-        LocalDateTime startTime = LocalDateTime.of(year, month, day, 0, 0, 0, 0);  // 2025년 6월 3일 00:00
+//        LocalDateTime startTime = LocalDateTime.of(year, month, day, 0, 0, 0, 0);  // 2025년 6월 3일 00:00
 
         // endTime을 23:59:59.999999999으로 설정
-        LocalDateTime endTime = LocalDateTime.of(endYear, endMonth, endDay, 23, 59, 59, 999999999);
+//        LocalDateTime endTime = LocalDateTime.of(endYear, endMonth, endDay, 23, 59, 59, 999999999);
 
+        LocalDateTime startTime = LocalDateTime.of(2025, month, day, 0, 0, 0, 0);  // 2025년 6월 3일 00:00
+        LocalDateTime endTime = LocalDateTime.of(2025, endMonth, endDay, 23, 59, 59, 999999999);
         List<Chat> chats = chatRepository.findByUserGroup_GroupIdAndTimestampBetween(
                 request.getGroupId(),
                 startTime,   // startTime 사용
