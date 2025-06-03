@@ -6,11 +6,15 @@ import com.tallybot.backend.tallybot_back.domain.*;
 import com.tallybot.backend.tallybot_back.dto.*;
 import com.tallybot.backend.tallybot_back.exception.NoSettlementResultException;
 import com.tallybot.backend.tallybot_back.repository.*;
+import com.tallybot.backend.tallybot_back.util.DateUtil;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.h2.value.Transfer;
 import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import java.util.*;
@@ -51,6 +55,24 @@ public class CalculateService {
     public Long startCalculate(CalculateRequestDto request) {
 
         logger.info("🍀정산 시작 정상 동작 확인 로그입니다.");
+        try {
+
+            // LocalDateTime -> String 변환 후 처리
+            String startTimeStr = request.getStartTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"));
+            String endTimeStr = request.getEndTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"));
+
+            // DateUtil.parseDate() 사용 (String -> LocalDateTime 변환)
+            LocalDateTime startDate = DateUtil.parseDate(startTimeStr);
+            LocalDateTime endDate = DateUtil.parseDate(endTimeStr);
+
+
+            // 처리된 날짜로 계산 시작 로직 수행
+            logger.info("🍀 정산 시작 요청: groupId={}, startTime={}, endTime={}",
+                    request.getGroupId(), startDate, endDate);
+
+        } catch (Exception e) {
+            logger.error("❌ 잘못된 입력: {}", e.getMessage());
+        }
         logger.info("🍀 정산 시작 요청 데이터: groupId={}, startTime={}, endTime={}",
                 request.getGroupId(), request.getStartTime(), request.getEndTime());
 
