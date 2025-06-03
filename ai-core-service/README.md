@@ -265,7 +265,6 @@ ai-core-service/
 │   ├── .deepeval            # API 키 설정
 │   ├── .deepeval-cache.json # 캐시 파일
 │   └── .deepeval_telemetry.txt # 텔레메트리 설정
-├── test_*.py                 # DeepEval 테스트 파일들 ⭐
 ├── main.py                   # FastAPI 서버 메인 파일
 ├── requirements.txt          # 의존성 목록 (deepeval 포함)
 └── README.md                 # 프로젝트 설명
@@ -279,7 +278,7 @@ ai-core-service/
 import requests
 
 # 대화 처리 요청
-response = requests.post("http://localhost:8000/api/process", json={
+response = requests.post("http://tally-bot-ai-backend-alb-2092930451.ap-northeast-2.elb.amazonaws.com/api/process", json={
     "chatroom_name": "여행 정산방",
     "members": [{"0":"지훈", "1":"준호", "2":"소연"}],
     "messages": [
@@ -295,7 +294,7 @@ print(result)
 
 ```python
 # 처리와 평가를 동시에 수행
-response = requests.post("http://localhost:8000/api/evaluate-with-processing", json={
+response = requests.post("http://tally-bot-ai-backend-alb-2092930451.ap-northeast-2.elb.amazonaws.com/api/evaluate-with-processing", json={
     "chatroom_name": "여행 정산방",
     "members": [{"0":"지훈", "1":"준호", "2":"소연"}],
     "messages": [
@@ -311,50 +310,9 @@ print(f"처리 결과: {evaluation_result['processing_result']}")
 print(f"평가 결과: {evaluation_result['evaluation_result']}")
 ```
 
-### 3. 커스텀 메트릭으로 평가
-
-```python
-# 정산 정확도와 참여자 식별 메트릭 사용
-response = requests.post("http://localhost:8000/api/evaluate-custom-metrics", json={
-    "conversation": [
-        {"speaker": "준호", "message_content": "택시비 19유로 냈어요."}
-    ],
-    "actual_output": [
-        {"amount": 19, "currency": "EUR", "payer": "준호"}
-    ],
-    "use_settlement_accuracy": True,
-    "use_participant_identification": True
-})
-
-custom_evaluation = response.json()
-print(f"정산 정확도: {custom_evaluation['SettlementAccuracy']['score']}")
-print(f"참여자 식별: {custom_evaluation['ParticipantIdentification']['score']}")
-```
-
-## 성능 모니터링 📈
-
-### 캐시 상태 확인
-
+### 프로덕션 서버
 ```bash
-curl http://localhost:8000/api/cache/status
-```
-
-### 캐시 초기화
-
-```bash
-curl -X POST http://localhost:8000/api/cache/clear
-```
-
-### 평가 메트릭 조회
-
-```bash
-curl http://localhost:8000/api/evaluation-metrics
-```
-
-## 서버 도메인
-
-```bash
-http://tally-bot-ai-backend-alb-2092930451.ap-northeast-2.elb.amazonaws.com/api/process
+http://tally-bot-ai-backend-alb-2092930451.ap-northeast-2.elb.amazonaws.com
 ```
 
 서버는 기본적으로 http://localhost:8000 에서 실행됩니다.
@@ -362,6 +320,8 @@ http://tally-bot-ai-backend-alb-2092930451.ap-northeast-2.elb.amazonaws.com/api/
 ## API 문서
 
 FastAPI는 자동으로 API 문서를 생성합니다:
+
+### 개발 환경 (로컬)
 - Swagger UI: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
 

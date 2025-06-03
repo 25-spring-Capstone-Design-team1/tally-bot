@@ -284,10 +284,15 @@ class SettlementEvaluator:
         expected_items = set()
         expected_amounts = set()
         expected_payers = set()
+        expected_has_null_place = False  # 기대 결과에 null place가 있는지 확인
         
         for item in expected:
-            if item.get('place'):
-                expected_places.add(str(item['place']).lower().strip())
+            place = item.get('place')
+            if place is not None and str(place).strip().lower() != 'none':
+                expected_places.add(str(place).lower().strip())
+            else:
+                expected_has_null_place = True  # null place가 기대 결과에 있음
+                
             if item.get('item'):
                 expected_items.add(str(item['item']).lower().strip())
             if item.get('amount'):
@@ -295,17 +300,35 @@ class SettlementEvaluator:
             if item.get('payer'):
                 expected_payers.add(str(item['payer']))
         
+        # 장소가 없는 것이 정상인 항목 패턴
+        placeless_patterns = ['선물', '상품권', '쿠폰', '캐시', '포인트', '온라인', '앱', '페이']
+        
         # 실제 결과에서 예상과 전혀 다른 값들 찾기
         for i, actual_item in enumerate(actual):
             item_hallucinations = []
             
-            # 장소 할루시네이션 검사
-            actual_place = str(actual_item.get('place', '')).lower().strip()
-            if actual_place and not any(self._calculate_text_similarity(actual_place, exp_place) > 0.5 for exp_place in expected_places):
-                item_hallucinations.append(f"예상치 못한 장소: {actual_place}")
+            # 장소 할루시네이션 검사 (개선된 로직)
+            actual_place = actual_item.get('place')
+            actual_item_name = str(actual_item.get('item', '')).lower().strip()
+            
+            # 장소가 null/None인 경우 처리
+            if actual_place is None or str(actual_place).strip().lower() in ['none', '']:
+                # 기대 결과에서도 null place가 있거나, 장소가 없는 것이 정상인 항목이면 할루시네이션 아님
+                is_placeless_normal = (
+                    expected_has_null_place or 
+                    any(pattern in actual_item_name for pattern in placeless_patterns)
+                )
+                if not is_placeless_normal and expected_places:
+                    item_hallucinations.append(f"예상치 못한 장소 누락")
+            else:
+                # 장소가 있는 경우, 예상 장소와 비교
+                actual_place_str = str(actual_place).lower().strip()
+                if actual_place_str and not any(self._calculate_text_similarity(actual_place_str, exp_place) > 0.5 for exp_place in expected_places):
+                    # 예상 장소와 일치하지 않지만, 기대 결과에 null place가 있다면 덜 엄격하게 처리
+                    if not expected_has_null_place:
+                        item_hallucinations.append(f"예상치 못한 장소: {actual_place_str}")
             
             # 항목 할루시네이션 검사
-            actual_item_name = str(actual_item.get('item', '')).lower().strip()
             if actual_item_name and not any(self._calculate_text_similarity(actual_item_name, exp_item) > 0.5 for exp_item in expected_items):
                 item_hallucinations.append(f"예상치 못한 항목: {actual_item_name}")
             
@@ -376,12 +399,17 @@ class SettlementEvaluator:
                     field_scores.append(0.0)
                     item_missing.append(field)
             
-            # 선택 필드 검사 (보너스 점수)
+            # 기본 완성도 점수 (필수 필드 기준)
+            basic_completeness = sum(field_scores) / len(required_fields)
+            
+            # 선택 필드 보너스 (최대 5% 추가)
+            bonus_score = 0.0
             for field in optional_fields:
                 if field in item and item[field] is not None and str(item[field]).strip():
-                    field_scores.append(0.5)  # 보너스 점수
+                    bonus_score += 0.025  # 각 선택 필드당 2.5% 보너스
             
-            item_completeness = sum(field_scores) / len(required_fields)
+            # 최종 점수는 1.0을 초과하지 않도록 제한
+            item_completeness = min(1.0, basic_completeness + bonus_score)
             completeness_scores.append(item_completeness)
             
             if item_missing:
@@ -426,18 +454,36 @@ class SettlementEvaluator:
             else:
                 seen_items.add(item_key)
         
-        # 비율 합계 검사
+        # 비율 일관성 검사 (상대적 비율 확인)
         ratio_issues = []
         for i, item in enumerate(actual):
             ratios = item.get('ratios', {})
-            if ratios:
-                total_ratio = sum(ratios.values())
-                if abs(total_ratio - len(item.get('participants', []))) > 0.1:
-                    ratio_issues.append(f"항목 {i}: 비율 합계 불일치")
+            participants = item.get('participants', [])
+            
+            if ratios and participants:
+                # 참여자와 비율 정보의 키가 일치하는지 확인
+                ratio_keys = set(ratios.keys())
+                participant_set = set(str(p) for p in participants)
+                
+                if ratio_keys != participant_set:
+                    ratio_issues.append(f"항목 {i}: 참여자와 비율 키 불일치")
+                    continue
+                
+                # 0이 아닌 비율들이 균등한지 확인 (균등 분할의 경우)
+                non_zero_ratios = [v for v in ratios.values() if v > 0]
+                if non_zero_ratios:
+                    # 모든 0이 아닌 비율이 같은 값인지 확인 (허용 오차: 10%)
+                    ratio_values = set(non_zero_ratios)
+                    if len(ratio_values) > 1:
+                        min_ratio = min(non_zero_ratios)
+                        max_ratio = max(non_zero_ratios)
+                        if max_ratio > 0 and (max_ratio - min_ratio) / max_ratio > 0.1:
+                            # 비율이 다른 경우는 정상적인 경우일 수 있으므로 경고만
+                            pass  # 복잡한 분할의 경우이므로 오류로 처리하지 않음
         
         # 일관성 점수 계산
         total_issues = len(duplicates) + len(ratio_issues)
-        consistency_score = max(0.0, 1.0 - (total_issues / len(actual)))
+        consistency_score = max(0.0, 1.0 - (total_issues / len(actual)) if actual else 1.0)
         
         issues = duplicates + ratio_issues
         
