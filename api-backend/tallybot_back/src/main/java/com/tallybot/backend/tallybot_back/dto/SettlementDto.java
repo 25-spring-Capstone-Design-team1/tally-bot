@@ -1,5 +1,6 @@
 package com.tallybot.backend.tallybot_back.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 import java.util.List;
@@ -11,12 +12,17 @@ import java.util.Map;
 @AllArgsConstructor
 @Data
 public class SettlementDto {
-    private String place;     // 결제 장소
-    private Long payerId;     // 결제자
-    private String item;      // 결제 항목
-    private int amount;       // 결제 총액
+    private String place;
 
-    private List<Long> participantIds;
+    private String payer;
+
+    private String item;
+
+    private int amount;
+
+    @JsonProperty("participants")
+    private List<String> participants;
+
     private Map<String, Integer> constants;
     private Map<String, Integer> ratios;
 }

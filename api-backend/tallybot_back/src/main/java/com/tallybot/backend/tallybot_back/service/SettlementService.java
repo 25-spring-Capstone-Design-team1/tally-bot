@@ -318,7 +318,11 @@ public class SettlementService {
         settlement.setUserGroup(userGroup);
 
         // Payer 조회
-        Long payerId = settlementDto.getPayerId();
+        String payerInfo = settlementDto.getPayer(); // ✅ 올바른 접근
+
+        // 필요하면 Long으로 변환
+        Long payerId = Long.parseLong(payerInfo);
+
         Member payer = memberRepository.findByMemberIdAndUserGroup(payerId, userGroup)
                 .orElseThrow(() -> new IllegalArgumentException("Participant member not found in group. ID: " + payerId));
         settlement.setPayer(payer);
@@ -332,7 +336,8 @@ public class SettlementService {
 
         // 비율을 분수의 형태로, 고정금액과 함께 각 멤버로 저장, participant 테이블을 체운다.
         Set<Participant> participants = new HashSet<>();
-        for (Long participantId : settlementDto.getParticipantIds()) {
+        for (String participantIdStr : settlementDto.getParticipants()) {
+            Long participantId = Long.parseLong(participantIdStr);
             Member member = memberRepository.findByMemberIdAndUserGroup(participantId, userGroup)
                     .orElseThrow(() -> new IllegalArgumentException("Participant member not found in group. ID: " + participantId));
 
