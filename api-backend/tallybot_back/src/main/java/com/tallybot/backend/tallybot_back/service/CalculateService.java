@@ -110,15 +110,27 @@ public class CalculateService {
 //                request.getGroupId()  // groupId만 사용하여 조회
 //        );
 
-        // mock 데이터로 startTime과 endTime 설정
-        LocalDateTime startTime = LocalDateTime.of(2025, 6, 3, 0, 0, 0, 0);  // 2025년 6월 3일 00:00
-        LocalDateTime endTime = LocalDateTime.of(2025, 6, 4, 23, 59, 59, 999999999);  // 2025년 6월 4일 24:00
+        // mock 데이터로 startTime과 endTime 설정 -> 성공
+//        LocalDateTime startTime = LocalDateTime.of(2025, 6, 3, 0, 0, 0, 0);  // 2025년 6월 3일 00:00
+//        LocalDateTime endTime = LocalDateTime.of(2025, 6, 4, 23, 59, 59, 999999999);  // 2025년 6월 4일 24:00
+//
+//        List<Chat> chats = chatRepository.findByUserGroup_GroupIdAndTimestampBetween(
+//                request.getGroupId(),
+//                startTime,  // mock startTime
+//                endTime     // mock endTime
+//        );
 
+        // request에서 받은 startTime과 endTime을 LocalDateTime으로 할당
+        LocalDateTime startTime = request.getStartTime(); // request.getStartTime()은 이미 LocalDateTime일 가능성 있음
+        LocalDateTime endTime = request.getEndTime();     // request.getEndTime()도 동일
+
+        // 이제 startTime과 endTime을 쿼리에서 사용
         List<Chat> chats = chatRepository.findByUserGroup_GroupIdAndTimestampBetween(
                 request.getGroupId(),
-                startTime,  // mock startTime
-                endTime     // mock endTime
+                startTime,   // startTime 사용
+                endTime      // endTime 사용
         );
+
 
 
 
