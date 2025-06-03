@@ -146,6 +146,11 @@ public class CalculateService {
         // endTime을 23:59:59.999999999으로 설정
         LocalDateTime endTime = LocalDateTime.of(endYear, endMonth, endDay, 23, 59, 59, 999999999);
 
+        List<Chat> chats = chatRepository.findByUserGroup_GroupIdAndTimestampBetween(
+                request.getGroupId(),
+                startTime,   // startTime 사용
+                endTime      // endTime 사용
+        );
 
 //         Chat 객체 생성 시 필요한 UserGroup 및 Member 객체를 생성하여 전달해야 합니다.
 //        UserGroup userGroup1 = groupRepository.findById(request.getGroupId())
