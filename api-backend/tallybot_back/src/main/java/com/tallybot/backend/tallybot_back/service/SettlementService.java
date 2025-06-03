@@ -130,7 +130,10 @@ public class SettlementService {
                         .toList();
 
                 participants = memberRepository.findAllById(participantIds);
-                int ratioSum = (sum != null) ? sum : participants.size();  // 참여자 수 기반
+//                int ratioSum = (sum != null) ? sum : participants.size();  // 참여자 수 기반
+                int ratioSum = (ratios != null)
+                        ? ratios.values().stream().mapToInt(Integer::intValue).sum()
+                        : participants.size();
 
                 for (Member member : participants) {
                     Participant.ParticipantKey participantKey = new Participant.ParticipantKey(newSettlement, member);
@@ -213,10 +216,14 @@ public class SettlementService {
                     case "participants" -> {
                         if (value instanceof List<?> rawList) {
                             // 기존 Participant 명시적으로 제거
-                            for (Participant old : new HashSet<>(settlement.getParticipants())) {
-                                old.getParticipantKey().setSettlement(null);  // 혹시 모르니 관계 끊기
-                                settlement.getParticipants().remove(old);     // 리스트에서 제거
-                            }
+//                            for (Participant old : new HashSet<>(settlement.getParticipants())) {
+//                                old.getParticipantKey().setSettlement(null);  // 혹시 모르니 관계 끊기
+//                                settlement.getParticipants().remove(old);     // 리스트에서 제거
+//                            }
+                            settlement.getParticipants().clear();
+
+                            settlementRepository.flush();
+
 
                             // 새 participants 추가
                             List<Long> participantIds = rawList.stream()
@@ -236,7 +243,11 @@ public class SettlementService {
 
                                 Integer constant = Optional.ofNullable(request.getConstants().get(memberIdStr)).orElse(0);
                                 Integer ratioValue = Optional.ofNullable(request.getRatios().get(memberIdStr)).orElse(1);
-                                Integer ratioSum = Optional.ofNullable(request.getSum()).orElse(participants.size());
+//                                I
+                                int ratioSum = (request.getRatios() != null)
+                                        ? request.getRatios().values().stream().mapToInt(Integer::intValue).sum()
+                                        : participants.size();
+
 
                                 Ratio ratio = new Ratio(ratioValue, ratioSum);
                                 Participant participant = new Participant(participantKey, constant, ratio);
@@ -307,7 +318,11 @@ public class SettlementService {
         settlement.setUserGroup(userGroup);
 
         // Payer 조회
-        Long payerId = settlementDto.getPayerId();
+        String payerInfo = settlementDto.getPayer(); // ✅ 올바른 접근
+
+        // 필요하면 Long으로 변환
+        Long payerId = Long.parseLong(payerInfo);
+
         Member payer = memberRepository.findByMemberIdAndUserGroup(payerId, userGroup)
                 .orElseThrow(() -> new IllegalArgumentException("Participant member not found in group. ID: " + payerId));
         settlement.setPayer(payer);
@@ -321,7 +336,8 @@ public class SettlementService {
 
         // 비율을 분수의 형태로, 고정금액과 함께 각 멤버로 저장, participant 테이블을 체운다.
         Set<Participant> participants = new HashSet<>();
-        for (Long participantId : settlementDto.getParticipantIds()) {
+        for (String participantIdStr : settlementDto.getParticipants()) {
+            Long participantId = Long.parseLong(participantIdStr);
             Member member = memberRepository.findByMemberIdAndUserGroup(participantId, userGroup)
                     .orElseThrow(() -> new IllegalArgumentException("Participant member not found in group. ID: " + participantId));
 

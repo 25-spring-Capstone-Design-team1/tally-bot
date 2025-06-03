@@ -235,8 +235,6 @@ class ChainAIService:
             if not input_result:
                 print("   ⚠️ 1차 체인 결과가 비어있음")
                 return {
-                    "result": [],
-                    "secondary_result": [],
                     "final_result": []
                 }
             
@@ -333,8 +331,6 @@ class ChainAIService:
             print("=" * 50)
             
             return {
-                "result": converted_result,
-                "secondary_result": secondary_result,
                 "final_result": final_result if final_result else []
             }
                 
@@ -343,8 +339,6 @@ class ChainAIService:
             import traceback
             traceback.print_exc()
             return {
-                "result": [],
-                "secondary_result": [],
                 "final_result": []
             }
     
@@ -489,8 +483,6 @@ class ChainAIService:
         print(f"🎉 모든 청크 처리 완료: 총 {len(combined_final_results)}개 최종 결과")
         
         return {
-            "result": combined_input_results,
-            "secondary_result": combined_secondary_results,
             "final_result": combined_final_results
         }
     
