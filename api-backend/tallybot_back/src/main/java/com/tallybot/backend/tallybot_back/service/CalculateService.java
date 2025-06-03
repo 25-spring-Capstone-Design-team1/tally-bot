@@ -99,11 +99,16 @@ public class CalculateService {
 //                request.getEndTime()
 //        );
 
-        List<Chat> chats = chatRepository.findByUserGroup_GroupIdAndTimestampBetween(
-                request.getGroupId(),  // groupId 대신 userGroup.id 사용
-                request.getStartTime(),
-                request.getEndTime()
+//        List<Chat> chats = chatRepository.findByUserGroup_GroupIdAndTimestampBetween(
+//                request.getGroupId(),  // groupId 대신 userGroup.id 사용
+//                request.getStartTime(),
+//                request.getEndTime()
+//        );
+
+        List<Chat> chats = chatRepository.findByUserGroup_GroupId(
+                request.getGroupId()  // groupId만 사용하여 조회
         );
+
 
 //         Chat 객체 생성 시 필요한 UserGroup 및 Member 객체를 생성하여 전달해야 합니다.
 //        UserGroup userGroup1 = groupRepository.findById(request.getGroupId())
@@ -134,7 +139,6 @@ public class CalculateService {
 
         logger.info("🍀 calculate에서 조회된 채팅 수: {}", chats.size());
 
-        logger.info("🍀 calculate에서 조회된 채팅 수: {}", chats.size());
 
         // 나머지 GPT 처리 로직은 비동기로 실행
         Long finalCalculateId = calculateId; // 비동기에서 접근 가능하도록 final 변수로 복사

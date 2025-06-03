@@ -14,5 +14,5 @@ public interface ChatRepository extends JpaRepository<Chat, Long> {
     List<Chat> findByUserGroupAndTimestampBetween(UserGroup userGroup, LocalDateTime start, LocalDateTime end);
     List<Chat> findByUserGroup_GroupIdOrderByTimestampAsc(Long groupId);
     List<Chat> findByUserGroup_GroupIdAndTimestampBetween(Long groupId, LocalDateTime start, LocalDateTime end);
-
+    List<Chat> findByUserGroup_GroupId(Long groupId);
 }
