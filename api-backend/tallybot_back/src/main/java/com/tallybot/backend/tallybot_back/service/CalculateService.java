@@ -105,9 +105,21 @@ public class CalculateService {
 //                request.getEndTime()
 //        );
 
-        List<Chat> chats = chatRepository.findByUserGroup_GroupId(
-                request.getGroupId()  // groupId만 사용하여 조회
+        //그냥 아이디로 조회 -> 성공 확인함
+//        List<Chat> chats = chatRepository.findByUserGroup_GroupId(
+//                request.getGroupId()  // groupId만 사용하여 조회
+//        );
+
+        // mock 데이터로 startTime과 endTime 설정
+        LocalDateTime startTime = LocalDateTime.of(2025, 6, 3, 0, 0, 0, 0);  // 2025년 6월 3일 00:00
+        LocalDateTime endTime = LocalDateTime.of(2025, 6, 4, 23, 59, 59, 999999999);  // 2025년 6월 4일 24:00
+
+        List<Chat> chats = chatRepository.findByUserGroup_GroupIdAndTimestampBetween(
+                request.getGroupId(),
+                startTime,  // mock startTime
+                endTime     // mock endTime
         );
+
 
 
 //         Chat 객체 생성 시 필요한 UserGroup 및 Member 객체를 생성하여 전달해야 합니다.
