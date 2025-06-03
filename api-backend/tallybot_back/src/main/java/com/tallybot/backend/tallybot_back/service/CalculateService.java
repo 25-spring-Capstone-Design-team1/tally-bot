@@ -51,6 +51,8 @@ public class CalculateService {
     public Long startCalculate(CalculateRequestDto request) {
 
         logger.info("🍀정산 시작 정상 동작 확인 로그입니다.");
+        logger.info("🍀 정산 시작 요청 데이터: groupId={}, startTime={}, endTime={}",
+                request.getGroupId(), request.getStartTime(), request.getEndTime());
 
         UserGroup userGroup = groupRepository.findById(request.getGroupId())
                 .orElseThrow(() -> new IllegalArgumentException("Group not found"));
