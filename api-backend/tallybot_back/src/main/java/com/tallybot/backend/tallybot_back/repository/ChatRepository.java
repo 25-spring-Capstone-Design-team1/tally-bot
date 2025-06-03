@@ -13,6 +13,6 @@ public interface ChatRepository extends JpaRepository<Chat, Long> {
     // 채팅 내역 db 저장 - 기본 CRUD 사용
     List<Chat> findByUserGroupAndTimestampBetween(UserGroup userGroup, LocalDateTime start, LocalDateTime end);
     List<Chat> findByUserGroup_GroupIdOrderByTimestampAsc(Long groupId);
-    List<Chat> findByUserGroup_IdAndTimestampBetween(Long groupId, LocalDateTime start, LocalDateTime end);
+    List<Chat> findByUserGroup_GroupIdAndTimestampBetween(Long groupId, LocalDateTime start, LocalDateTime end);
 
 }

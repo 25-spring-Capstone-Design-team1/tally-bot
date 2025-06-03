@@ -99,7 +99,7 @@ public class CalculateService {
 //                request.getEndTime()
 //        );
 
-        List<Chat> chats = chatRepository.findByUserGroup_IdAndTimestampBetween(
+        List<Chat> chats = chatRepository.findByUserGroup_GroupIdAndTimestampBetween(
                 request.getGroupId(),  // groupId 대신 userGroup.id 사용
                 request.getStartTime(),
                 request.getEndTime()
