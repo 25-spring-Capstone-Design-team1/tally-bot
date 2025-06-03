@@ -8,6 +8,8 @@ import com.tallybot.backend.tallybot_back.dto.ChatForGptDto;
 import com.tallybot.backend.tallybot_back.dto.ChatResponseDto;
 import com.tallybot.backend.tallybot_back.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +23,7 @@ public class ChatService {
     private final GroupRepository groupRepository;
     private final MemberRepository memberRepository;
     private final ChatRepository chatRepository;
+    private static final Logger logger = LoggerFactory.getLogger(ChatService.class);
 
     public boolean groupAndMembersExist(List<ChatDto> chatDtos) {
         for (ChatDto chat : chatDtos) {
@@ -41,6 +44,7 @@ public class ChatService {
 
 
     public void saveChats(List<ChatDto> dtoList) {
+        logger.info("🍀채팅 저장 완료");
         List<Chat> chatList = new ArrayList<>();
 
         for (ChatDto dto : dtoList) {
