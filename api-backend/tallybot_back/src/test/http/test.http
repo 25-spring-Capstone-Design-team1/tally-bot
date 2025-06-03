@@ -1,0 +1,159 @@
+### [1] 그룹 생성 (초기 멤버: 이다빈)
+POST http://localhost:8080/api/group/create
+Content-Type: application/json
+
+{
+  "groupId": 3,
+  "groupName": "이다빈 팀",
+  "member": "이다빈"
+}
+
+### [2] 그룹에 멤버 추가 - 임재민
+POST http://localhost:8080/api/group/create
+Content-Type: application/json
+
+{
+  "groupId": 3,
+  "groupName": "이다빈 팀",
+  "member": "임재민"
+}
+
+### [3] 그룹에 멤버 추가 - 정혜윤
+POST http://localhost:8080/api/group/create
+Content-Type: application/json
+
+{
+  "groupId": 3,
+  "groupName": "이다빈 팀",
+  "member": "정혜윤"
+}
+
+### [4] 그룹에 멤버 추가 - 허원혁
+POST http://localhost:8080/api/group/create
+Content-Type: application/json
+
+{
+  "groupId": 3,
+  "groupName": "이다빈 팀",
+  "member": "허원혁"
+}
+
+### [5] 그룹에 멤버 추가 - 김준서
+POST http://localhost:8080/api/group/create
+Content-Type: application/json
+
+{
+  "groupId": 3,
+  "groupName": "이다빈 팀",
+  "member": "김준서"
+}
+
+### [6] 그룹 정보 조회
+GET http://localhost:8080/api/group/3
+
+### [7] 그룹 멤버 목록 조회
+GET http://localhost:8080/api/group/3/members
+
+### [8] 채팅 업로드
+POST http://localhost:8080/api/chat/upload
+Content-Type: application/json
+
+[
+  {
+    "groupId": 3,
+    "timestamp": "2025-05-30 18:00:00",
+    "memberId": 4,
+    "message": "오늘 재밌었다!!!"
+  },
+  {
+    "groupId": 3,
+    "timestamp": "2025-05-30 18:01:00",
+    "memberId": 4,
+    "message": "삼겹살 진짜 맛있었당"
+  },
+  {
+    "groupId": 3,
+    "timestamp": "2025-05-30 18:02:00",
+    "memberId": 5,
+    "message": "그니까 조심히 들어가~~"
+  },
+  {
+    "groupId": 3,
+    "timestamp": "2025-05-30 18:03:00",
+    "memberId": 6,
+    "message": "카페도 커피랑 케잌 다 맛있더라"
+  },
+  {
+    "groupId": 3,
+    "timestamp": "2025-05-30 18:04:00",
+    "memberId": 4,
+    "message": "그니까! 삼겹살 내가 이따 정산할게"
+  },
+  {
+    "groupId": 3,
+    "timestamp": "2025-05-30 18:05:00",
+    "memberId": 7,
+    "message": "카페는 정산 잠시만..."
+  },
+  {
+    "groupId": 3,
+    "timestamp": "2025-05-30 18:06:00",
+    "memberId": 7,
+    "message": "카페 2만 3천원"
+  },
+  {
+    "groupId": 3,
+    "timestamp": "2025-05-30 18:07:00",
+    "memberId": 6,
+    "message": "어 생각보다 별로 안 나왔네"
+  },
+  {
+    "groupId": 3,
+    "timestamp": "2025-05-30 18:08:00",
+    "memberId": 7,
+    "message": "어어 이다빈 빼고 1/3씩 보내줘"
+  },
+  {
+    "groupId": 3,
+    "timestamp": "2025-05-30 18:09:00",
+    "memberId": 4,
+    "message": "삼겹살 총 8만 천원!"
+  },
+  {
+    "groupId": 3,
+    "timestamp": "2025-05-30 18:10:00",
+    "memberId": 4,
+    "message": "내가 2만 천원 낸 걸로 하고 2만원씩 보내줘!"
+  },
+  {
+    "groupId": 3,
+    "timestamp": "2025-05-30 18:11:00",
+    "memberId": 6,
+    "message": "멘토님 선물은 2만 2천인데"
+  },
+  {
+    "groupId": 3,
+    "timestamp": "2025-05-30 18:12:00",
+    "memberId": 6,
+    "message": "내가 만원 상품권으로 냈고 나머지는 n분의 1 하자!"
+  }
+]
+
+### [9] 정산 시작
+POST http://localhost:8080/api/calculate/start
+Content-Type: application/json
+
+{
+  "groupId": 3,
+  "startTime": "2025-05-30 18:00:00",
+  "endTime": "2025-05-30 18:20:00"
+}
+
+### [10] calculate 리스트 조회
+GET http://localhost:8080/api/group/3/calculates
+
+### [11] 특정 calculate의 settlement 리스트
+GET http://localhost:8080/api/calculate/1/settlements
+
+### [12] 특정 calculate의 transfer 리스트
+GET http://localhost:8080/api/calculate/1/transfers
