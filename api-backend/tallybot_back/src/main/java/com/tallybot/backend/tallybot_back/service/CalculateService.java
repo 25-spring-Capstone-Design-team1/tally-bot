@@ -99,6 +99,12 @@ public class CalculateService {
 //                request.getEndTime()
 //        );
 
+        List<Chat> chats = chatRepository.findByUserGroup_IdAndTimestampBetween(
+                request.getGroupId(),  // groupId 대신 userGroup.id 사용
+                request.getStartTime(),
+                request.getEndTime()
+        );
+
 //         Chat 객체 생성 시 필요한 UserGroup 및 Member 객체를 생성하여 전달해야 합니다.
         UserGroup userGroup1 = groupRepository.findById(request.getGroupId())
                 .orElseThrow(() -> new IllegalArgumentException("Group not found"));
