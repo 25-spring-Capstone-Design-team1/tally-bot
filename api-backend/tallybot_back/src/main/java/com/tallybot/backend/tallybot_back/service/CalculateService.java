@@ -36,6 +36,7 @@ public class CalculateService {
     private final SettlementService settlementService;
     private final ParticipantRepository participantRepository;
     private final OptimizationService optimizationService;
+    private final MemberRepository memberRepository;
 
     private static final Logger logger = LoggerFactory.getLogger(CalculateService.class);
 
@@ -87,11 +88,39 @@ public class CalculateService {
         calculate = calculateRepository.save(calculate);
         Long calculateId = calculate.getCalculateId();
 
-        List<Chat> chats = chatRepository.findByUserGroupAndTimestampBetween(
-                userGroup,
-                request.getStartTime(),
-                request.getEndTime()
-        );
+//        List<Chat> chats = chatRepository.findByUserGroupAndTimestampBetween(
+//                userGroup,
+//                request.getStartTime(),
+//                request.getEndTime()
+//        );
+        // Chat 객체 생성 시 필요한 UserGroup 및 Member 객체를 생성하여 전달해야 합니다.
+        UserGroup userGroup1 = groupRepository.findById(request.getGroupId())
+                .orElseThrow(() -> new IllegalArgumentException("Group not found"));
+
+        Member member9 = memberRepository.findById(9L).orElseThrow(() -> new IllegalArgumentException("Member not found"));
+        Member member10 = memberRepository.findById(10L).orElseThrow(() -> new IllegalArgumentException("Member not found"));
+        Member member11 = memberRepository.findById(11L).orElseThrow(() -> new IllegalArgumentException("Member not found"));
+        Member member12 = memberRepository.findById(12L).orElseThrow(() -> new IllegalArgumentException("Member not found"));
+
+        List<Chat> chats = new ArrayList<>();
+
+        // 예시로 setter를 사용하여 설정
+
+        chats.add(new Chat(1L, userGroup, LocalDateTime.of(2025, 6, 3, 18, 0, 0), member9, "오늘 재밌었다!!!"));
+        chats.add(new Chat(2L, userGroup, LocalDateTime.of(2025, 6, 3, 18, 1, 0), member9, "삼겹살 진짜 맛있었당"));
+        chats.add(new Chat(3L, userGroup, LocalDateTime.of(2025, 6, 3, 18, 2, 0), member10, "그니까 조심히 들어가~~"));
+        chats.add(new Chat(4L, userGroup, LocalDateTime.of(2025, 6, 3, 18, 3, 0), member11, "카페도 커피랑 케잌 다 맛있더라"));
+        chats.add(new Chat(5L, userGroup, LocalDateTime.of(2025, 6, 3, 18, 4, 0), member9, "그니까! 삼겹살 내가 이따 정산할게"));
+        chats.add(new Chat(6L, userGroup, LocalDateTime.of(2025, 6, 3, 18, 5, 0), member12, "카페는 정산 잠시만..."));
+        chats.add(new Chat(7L, userGroup, LocalDateTime.of(2025, 6, 3, 18, 6, 0), member12, "카페 2만 3천원"));
+        chats.add(new Chat(8L, userGroup, LocalDateTime.of(2025, 6, 3, 18, 7, 0), member11, "어 생각보다 별로 안 나왔네"));
+        chats.add(new Chat(9L, userGroup, LocalDateTime.of(2025, 6, 3, 18, 8, 0), member12, "어어 이다빈 빼고 1/3씩 보내줘"));
+        chats.add(new Chat(10L, userGroup, LocalDateTime.of(2025, 6, 3, 18, 9, 0), member9, "삼겹살 총 8만 천원!"));
+        chats.add(new Chat(11L, userGroup, LocalDateTime.of(2025, 6, 3, 18, 10, 0), member9, "내가 2만 천원 낸 걸로 하고 2만원씩 보내줘!"));
+        chats.add(new Chat(12L, userGroup, LocalDateTime.of(2025, 6, 3, 18, 11, 0), member11, "멘토님 선물은 2만 2천인데"));
+        chats.add(new Chat(13L, userGroup, LocalDateTime.of(2025, 6, 3, 18, 12, 0), member11, "내가 만원 상품권으로 냈고 나머지는 n분의 1 하자!"));
+
+        logger.info("🍀 calculate에서 조회된 채팅 수: {}", chats.size());
 
         logger.info("🍀 calculate에서 조회된 채팅 수: {}", chats.size());
 
