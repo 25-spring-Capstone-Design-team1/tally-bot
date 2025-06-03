@@ -24,10 +24,11 @@ class AdvancedSettlementMetrics:
     """고급 정산 평가 메트릭"""
     
     def __init__(self):
-        self.korean_currency_patterns = [
-            r'(\d+)원', r'(\d+)만원', r'(\d+)천원',
-            r'(\d{1,3}(?:,\d{3})*)원'
-        ]
+        # 한국어 금액 패턴 제거 - 직접 비교 방식 사용
+        # self.korean_currency_patterns = [
+        #     r'(\d+)원', r'(\d+)만원', r'(\d+)천원',
+        #     r'(\d{1,3}(?:,\d{3})*)원'
+        # ]
         self.common_places = {
             '카페', '커피숍', '스타벅스', '이디야', '투썸',
             '식당', '음식점', '맛집', '치킨집', '피자집',
@@ -187,16 +188,6 @@ class AdvancedSettlementMetrics:
                 if place in text:
                     content["mentioned_places"].add(place)
             
-            # 금액 추출
-            for pattern in self.korean_currency_patterns:
-                matches = re.findall(pattern, text)
-                for match in matches:
-                    try:
-                        amount = int(match.replace(',', ''))
-                        content["mentioned_amounts"].append(amount)
-                    except:
-                        pass
-            
             # 결제 관련 키워드
             for keyword in payment_patterns:
                 if keyword in text:
@@ -217,12 +208,26 @@ class AdvancedSettlementMetrics:
     ) -> Dict[str, Any]:
         """의미론적 매칭 분석"""
         
-        # 대화에서 언급된 금액과 추출된 금액 비교
-        mentioned_amounts = set(conversation_content["mentioned_amounts"])
-        extracted_amounts = set(item.get('amount', 0) for item in actual_items)
+        # 실제 추출된 금액과 기대 금액 직접 비교 (대화 파싱 대신)
+        actual_amounts = sorted([item.get('amount', 0) for item in actual_items])
+        expected_amounts = sorted([item.get('amount', 0) for item in expected_items]) if expected_items else []
         
-        amount_overlap = len(mentioned_amounts & extracted_amounts)
-        amount_score = amount_overlap / len(mentioned_amounts) if mentioned_amounts else 1.0
+        # 금액 정확도 계산
+        if expected_amounts:
+            # 완전 일치 확인
+            if actual_amounts == expected_amounts:
+                amount_score = 1.0
+                amount_overlap = len(actual_amounts)
+            else:
+                # 부분 일치 계산
+                actual_set = set(actual_amounts)
+                expected_set = set(expected_amounts)
+                overlap = len(actual_set & expected_set)
+                amount_score = overlap / len(expected_set)
+                amount_overlap = overlap
+        else:
+            amount_score = 1.0 if not actual_amounts else 0.0
+            amount_overlap = 0
         
         # 장소 매칭
         mentioned_places = conversation_content["mentioned_places"]
@@ -235,15 +240,15 @@ class AdvancedSettlementMetrics:
         
         place_score = place_matches / len(mentioned_places) if mentioned_places else 1.0
         
-        # 종합 점수
-        overall_score = (amount_score * 0.6 + place_score * 0.4)
+        # 종합 점수 (금액 비중을 높임)
+        overall_score = (amount_score * 0.8 + place_score * 0.2)
         
         return {
             "score": overall_score,
             "amount_score": amount_score,
             "place_score": place_score,
-            "mentioned_amounts": list(mentioned_amounts),
-            "extracted_amounts": list(extracted_amounts),
+            "mentioned_amounts": [],  # 더 이상 대화에서 파싱하지 않음
+            "extracted_amounts": actual_amounts,
             "amount_overlap": amount_overlap
         }
     
@@ -509,11 +514,14 @@ class AdvancedSettlementMetrics:
             if payer and participants and payer not in participants:
                 issues.append(f"항목 {i}: 결제자가 참여자 목록에 없음")
             
-            # 비율과 참여자 수 일치 확인
+            # 비율 키와 참여자 일치 확인 (합계는 중요하지 않음)
             ratios = item.get('ratios', {})
             if ratios and participants:
-                if len(ratios) != len(participants):
-                    issues.append(f"항목 {i}: 비율 정보와 참여자 수 불일치")
+                ratio_keys = set(str(k) for k in ratios.keys())
+                participant_set = set(str(p) for p in participants)
+                
+                if ratio_keys != participant_set:
+                    issues.append(f"항목 {i}: 비율 키와 참여자 목록 불일치")
         
         score = max(0.0, 1.0 - len(issues) * 0.15)
         
