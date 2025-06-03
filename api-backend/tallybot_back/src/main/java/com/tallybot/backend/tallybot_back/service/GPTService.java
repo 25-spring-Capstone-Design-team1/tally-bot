@@ -55,7 +55,7 @@ public class GPTService {
         //테스트용 mock 주소
 //        String url = "http://localhost:8080/api/process";
 
-        logger.info("🍀 조회된 채팅 수: {}", chatDtos.size());
+        logger.info("🍀 gptservice에서 조회된 채팅 수: {}", chatDtos.size());
         try {
             ObjectMapper mapper = new ObjectMapper();
             String requestJson = mapper.writeValueAsString(requestDto);

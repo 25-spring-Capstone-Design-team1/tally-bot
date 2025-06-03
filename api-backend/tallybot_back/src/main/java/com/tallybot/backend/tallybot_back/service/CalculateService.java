@@ -55,24 +55,24 @@ public class CalculateService {
     public Long startCalculate(CalculateRequestDto request) {
 
         logger.info("🍀정산 시작 정상 동작 확인 로그입니다.");
-        try {
-
-            // LocalDateTime -> String 변환 후 처리
-            String startTimeStr = request.getStartTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"));
-            String endTimeStr = request.getEndTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"));
-
-            // DateUtil.parseDate() 사용 (String -> LocalDateTime 변환)
-            LocalDateTime startDate = DateUtil.parseDate(startTimeStr);
-            LocalDateTime endDate = DateUtil.parseDate(endTimeStr);
-
-
-            // 처리된 날짜로 계산 시작 로직 수행
-            logger.info("🍀 정산 시작 요청: groupId={}, startTime={}, endTime={}",
-                    request.getGroupId(), startDate, endDate);
-
-        } catch (Exception e) {
-            logger.error("❌ 잘못된 입력: {}", e.getMessage());
-        }
+//        try {
+//
+//            // LocalDateTime -> String 변환 후 처리
+//            String startTimeStr = request.getStartTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"));
+//            String endTimeStr = request.getEndTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"));
+//
+//            // DateUtil.parseDate() 사용 (String -> LocalDateTime 변환)
+//            LocalDateTime startDate = DateUtil.parseDate(startTimeStr);
+//            LocalDateTime endDate = DateUtil.parseDate(endTimeStr);
+//
+//
+//            // 처리된 날짜로 계산 시작 로직 수행
+//            logger.info("🍀 정산 시작 요청: groupId={}, startTime={}, endTime={}",
+//                    request.getGroupId(), startDate, endDate);
+//
+//        } catch (Exception e) {
+//            logger.error("❌ 잘못된 입력: {}", e.getMessage());
+//        }
         logger.info("🍀 정산 시작 요청 데이터: groupId={}, startTime={}, endTime={}",
                 request.getGroupId(), request.getStartTime(), request.getEndTime());
 
@@ -93,6 +93,8 @@ public class CalculateService {
                 request.getEndTime()
         );
 
+        logger.info("🍀 calculate에서 조회된 채팅 수: {}", chats.size());
+
         // 나머지 GPT 처리 로직은 비동기로 실행
         Long finalCalculateId = calculateId; // 비동기에서 접근 가능하도록 final 변수로 복사
 
@@ -108,6 +110,7 @@ public class CalculateService {
                 ))
                 .toList();
 
+        logger.info("🍀 calculate 채팅 수: {}", chatDtos.size());
 
         CompletableFuture.runAsync(() -> {
             try {
