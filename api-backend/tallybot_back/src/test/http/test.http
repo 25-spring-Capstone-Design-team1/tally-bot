@@ -153,7 +153,11 @@ Content-Type: application/json
 GET http://localhost:8080/api/group/3/calculates
 
 ### [11] 특정 calculate의 settlement 리스트
-GET http://localhost:8080/api/calculate/1/settlements
+GET http://localhost:8080/api/calculate/4/settlements
 
 ### [12] 특정 calculate의 transfer 리스트
-GET http://localhost:8080/api/calculate/1/transfers
+GET http://localhost:8080/api/calculate/4/transfers
+
+
+### [12] 특정 calculate의 transfer 리스트
+GET http://localhost:8080/api/calculate/4/brief-result

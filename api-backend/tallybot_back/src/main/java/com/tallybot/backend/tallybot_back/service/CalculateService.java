@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +33,7 @@ public class CalculateService {
     private final ParticipantRepository participantRepository;
     private final OptimizationService optimizationService;
 
+    private static final Logger logger = LoggerFactory.getLogger(CalculateService.class);
 
     public boolean groupExists(Long groupId) {
         return groupRepository.existsById(groupId);
@@ -46,6 +49,9 @@ public class CalculateService {
      */
     @Transactional
     public Long startCalculate(CalculateRequestDto request) {
+
+        logger.info("🍀정산 시작 정상 동작 확인 로그입니다.");
+
         UserGroup userGroup = groupRepository.findById(request.getGroupId())
                 .orElseThrow(() -> new IllegalArgumentException("Group not found"));
 
