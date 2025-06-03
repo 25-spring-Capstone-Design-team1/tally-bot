@@ -120,18 +120,31 @@ public class CalculateService {
 //                endTime     // mock endTime
 //        );
 
-        // request에서 받은 startTime과 endTime을 LocalDateTime으로 할당
-        LocalDateTime startTime = request.getStartTime(); // request.getStartTime()은 이미 LocalDateTime일 가능성 있음
-        LocalDateTime endTime = request.getEndTime();     // request.getEndTime()도 동일
+        // request에서 받은 startTime과 endTime을 LocalDateTime으로 할당 -> 실패
+//        LocalDateTime startTime = request.getStartTime(); // request.getStartTime()은 이미 LocalDateTime일 가능성 있음
+//        LocalDateTime endTime = request.getEndTime();     // request.getEndTime()도 동일
+//
+//        // 이제 startTime과 endTime을 쿼리에서 사용
+//        List<Chat> chats = chatRepository.findByUserGroup_GroupIdAndTimestampBetween(
+//                request.getGroupId(),
+//                startTime,   // startTime 사용
+//                endTime      // endTime 사용
+//        );
 
-        // 이제 startTime과 endTime을 쿼리에서 사용
-        List<Chat> chats = chatRepository.findByUserGroup_GroupIdAndTimestampBetween(
-                request.getGroupId(),
-                startTime,   // startTime 사용
-                endTime      // endTime 사용
-        );
+        int year = request.getStartTime().getYear();
+        int month = request.getStartTime().getMonthValue();
+        int day = request.getStartTime().getDayOfMonth();
 
+        // endTime에서 연, 월, 일 추출
+        int endYear = request.getEndTime().getYear();
+        int endMonth = request.getEndTime().getMonthValue();
+        int endDay = request.getEndTime().getDayOfMonth();
 
+        // startTime을 00:00:00으로 설정
+        LocalDateTime startTime = LocalDateTime.of(year, month, day, 0, 0, 0, 0);  // 2025년 6월 3일 00:00
+
+        // endTime을 23:59:59.999999999으로 설정
+        LocalDateTime endTime = LocalDateTime.of(endYear, endMonth, endDay, 23, 59, 59, 999999999);
 
 
 //         Chat 객체 생성 시 필요한 UserGroup 및 Member 객체를 생성하여 전달해야 합니다.
