@@ -20,9 +20,9 @@ from utils.advanced_metrics import evaluate_advanced_metrics
 # FastAPI 앱 생성
 app = create_app()
 
-# 중복 요청 방지를 위한 캐시 (간단한 메모리 캐시)
-request_cache: Dict[str, Dict[str, Any]] = {}
-CACHE_TIMEOUT = 30  # 30초 동안 캐시 유지
+# 중복 요청 방지를 위한 진행중 요청 추적
+in_progress_requests: Dict[str, float] = {}
+REQUEST_TIMEOUT = 60  # 60초 후 진행중 요청 만료
 
 def generate_request_hash(request: ConversationRequest) -> str:
     """요청의 고유 해시를 생성합니다"""
@@ -35,13 +35,17 @@ def generate_request_hash(request: ConversationRequest) -> str:
     hash_string = json.dumps(hash_data, sort_keys=True, ensure_ascii=False)
     return hashlib.md5(hash_string.encode()).hexdigest()
 
-def cleanup_expired_cache():
-    """만료된 캐시 항목들을 정리합니다"""
+def cleanup_expired_requests():
+    """만료된 진행중 요청들을 정리합니다"""
     current_time = time.time()
-    expired_keys = [key for key, value in request_cache.items() 
-                   if current_time - value["timestamp"] > CACHE_TIMEOUT]
+    expired_keys = [key for key, timestamp in in_progress_requests.items() 
+                   if current_time - timestamp > REQUEST_TIMEOUT]
     for key in expired_keys:
-        del request_cache[key]
+        del in_progress_requests[key]
+    
+    # 진행중 요청 상태 로깅
+    if expired_keys:
+        print(f"🗑️ 만료된 진행중 요청 {len(expired_keys)}개 삭제, 현재 진행중: {len(in_progress_requests)}")
 
 def create_member_mapping(members_data):
     """멤버 데이터에서 ID-이름 매핑을 생성합니다"""
@@ -102,37 +106,46 @@ async def root():
           """,
           tags=["Core Processing"])
 async def process_api(request: ConversationRequest, background_tasks: BackgroundTasks):
-    # 중복 요청 체크
+    # 중복 요청 체크 (진행중 요청만 방지, 매번 새로 처리)
     request_hash = generate_request_hash(request)
     current_time = time.time()
     
-    # 만료된 캐시 정리
-    cleanup_expired_cache()
+    # 만료된 진행중 요청 정리
+    cleanup_expired_requests()
     
-    # 중복 요청 확인
-    if request_hash in request_cache:
-        cached_result = request_cache[request_hash]
-        if current_time - cached_result["timestamp"] < CACHE_TIMEOUT:
-            print(f"🔄 중복 요청 감지! 캐시된 결과 반환 (해시: {request_hash[:8]})")
-            return cached_result["response"]
+    # 중복 요청 확인 (동시에 같은 요청이 처리중이면 거부)
+    duplicate_prevention_enabled = True  # 중복 방지 활성화
     
-    # ===== 입력 JSON 검증 =====
-    print("🔍 === 단순화된 체인 입력 JSON 검증 ===")
-    print(f"요청 해시: {request_hash[:8]}")
-    print(f"채팅방 이름: {request.chatroom_name}")
-    print(f"원본 멤버 수: {len(request.members)}")
-    print(f"원본 멤버 데이터: {request.members}")
+    if duplicate_prevention_enabled and request_hash in in_progress_requests:
+        elapsed_time = current_time - in_progress_requests[request_hash]
+        print(f"🔄 중복 요청 감지! 진행중 요청 처리 중 (해시: {request_hash[:8]}, 경과: {elapsed_time:.1f}초)")
+        raise HTTPException(
+            status_code=429,
+            detail=f"동일한 요청이 처리 중입니다. {elapsed_time:.1f}초 경과, 잠시 대기해주세요."
+        )
     
-    # 멤버 데이터 형식 변환: 분리된 객체들 → 단일 객체
-    converted_members = convert_members_to_single_object(request.members)
-    print(f"변환된 멤버 데이터: {converted_members}")
-    
-    print(f"메시지 수: {len(request.messages)}")
-    print(f"첫 번째 메시지: speaker={request.messages[0].speaker}, content='{request.messages[0].message_content}'")
-    print(f"마지막 메시지: speaker={request.messages[-1].speaker}, content='{request.messages[-1].message_content}'")
-    print("🔍 =======================================\n")
+    # 진행중 요청으로 등록
+    if duplicate_prevention_enabled:
+        in_progress_requests[request_hash] = current_time
+        print(f"🚀 새 요청 처리 시작 (해시: {request_hash[:8]})")
     
     try:
+        # ===== 입력 JSON 검증 =====
+        print("🔍 === 단순화된 체인 입력 JSON 검증 ===")
+        print(f"요청 해시: {request_hash[:8]} (중복방지: {'활성화' if duplicate_prevention_enabled else '비활성화'})")
+        print(f"채팅방 이름: {request.chatroom_name}")
+        print(f"원본 멤버 수: {len(request.members)}")
+        print(f"원본 멤버 데이터: {request.members}")
+        
+        # 멤버 데이터 형식 변환: 분리된 객체들 → 단일 객체
+        converted_members = convert_members_to_single_object(request.members)
+        print(f"변환된 멤버 데이터: {converted_members}")
+        
+        print(f"메시지 수: {len(request.messages)}")
+        print(f"첫 번째 메시지: speaker={request.messages[0].speaker}, content='{request.messages[0].message_content}'")
+        print(f"마지막 메시지: speaker={request.messages[-1].speaker}, content='{request.messages[-1].message_content}'")
+        print("🔍 =======================================\n")
+        
         # 프롬프트 로드 (final_prompt는 사용하지 않지만 호환성을 위해 로드)
         input_prompt, secondary_prompt, final_prompt, _ = await load_resources(
             request.prompt_file,
@@ -181,16 +194,18 @@ async def process_api(request: ConversationRequest, background_tasks: Background
             use_chunking=use_chunking
         )
         
-        # 결과를 캐시에 저장
-        request_cache[request_hash] = {
-            "response": result,
-            "timestamp": current_time
-        }
-        
+        print(f"✅ 요청 처리 완료 (해시: {request_hash[:8]})")
         return result
     
     except Exception as e:
+        print(f"❌ 요청 처리 실패 (해시: {request_hash[:8]}): {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+    
+    finally:
+        # 처리 완료 후 진행중 요청에서 제거
+        if duplicate_prevention_enabled and request_hash in in_progress_requests:
+            del in_progress_requests[request_hash]
+            print(f"🏁 요청 완료, 진행중 목록에서 제거 (해시: {request_hash[:8]})")
 
 @app.post("/api/process-file",
           summary="파일 기반 대화 처리",
@@ -297,7 +312,7 @@ async def process_conversation_from_file(
 async def process_api_with_chain(request: ConversationRequest, background_tasks: BackgroundTasks):
     """SequentialChain을 사용한 효율적인 대화 처리 API (개선된 버전)"""
     try:
-        # 강화된 캐시 클리어 및 상태 초기화 (이전 요청의 데이터 오염 방지)
+        # 강화된 진행중 요청 클리어 및 상태 초기화 (이전 요청의 데이터 오염 방지)
         from load.conversation_loader import conversation_cache
         from load.prompt_loader import prompt_cache
         import gc
@@ -310,15 +325,15 @@ async def process_api_with_chain(request: ConversationRequest, background_tasks:
         request_hash = hashlib.md5(request_data.encode()).hexdigest()[:8]
         timestamp = int(time.time() * 1000)
         
-        # 기존 캐시 정보 로깅
+        # 기존 진행중 요청 정보 로깅
         cached_conversations = list(conversation_cache.keys())
         cached_prompts = list(prompt_cache.keys())
         
-        # 1. 모든 캐시 클리어
+        # 1. 모든 진행중 요청 클리어
         conversation_cache.clear()
         prompt_cache.clear()
         
-        # 2. 모듈 캐시에서 관련 모듈 제거 (완전한 상태 격리)
+        # 2. 모듈 진행중 요청에서 관련 모듈 제거 (완전한 상태 격리)
         modules_to_clear = [
             'config.service_config',
             'services.chain_ai_service',
@@ -333,7 +348,7 @@ async def process_api_with_chain(request: ConversationRequest, background_tasks:
             if module_name in sys.modules:
                 del sys.modules[module_name]
         
-        # 3. Python 내부 캐시 클리어
+        # 3. Python 내부 진행중 요청 클리어
         if hasattr(sys, '_clear_type_cache'):
             sys._clear_type_cache()
         
@@ -419,7 +434,7 @@ async def process_conversation_from_file_with_chain(
 ):
     """SequentialChain을 사용한 파일 기반 대화 처리 API (개선된 버전)"""
     try:
-        # 강화된 캐시 클리어 및 상태 초기화 (이전 요청의 데이터 오염 방지)
+        # 강화된 진행중 요청 클리어 및 상태 초기화 (이전 요청의 데이터 오염 방지)
         from load.conversation_loader import conversation_cache
         from load.prompt_loader import prompt_cache
         import gc
@@ -431,15 +446,15 @@ async def process_conversation_from_file_with_chain(
         file_hash = hashlib.md5(conversation_file.encode()).hexdigest()[:8]
         timestamp = int(time.time() * 1000)
         
-        # 기존 캐시 정보 로깅
+        # 기존 진행중 요청 정보 로깅
         cached_conversations = list(conversation_cache.keys())
         cached_prompts = list(prompt_cache.keys())
         
-        # 1. 모든 캐시 클리어
+        # 1. 모든 진행중 요청 클리어
         conversation_cache.clear()
         prompt_cache.clear()
         
-        # 2. 모듈 캐시에서 관련 모듈 제거 (완전한 상태 격리)
+        # 2. 모듈 진행중 요청에서 관련 모듈 제거 (완전한 상태 격리)
         modules_to_clear = [
             'config.service_config',
             'services.chain_ai_service',
@@ -454,7 +469,7 @@ async def process_conversation_from_file_with_chain(
             if module_name in sys.modules:
                 del sys.modules[module_name]
         
-        # 3. Python 내부 캐시 클리어
+        # 3. Python 내부 진행중 요청 클리어
         if hasattr(sys, '_clear_type_cache'):
             sys._clear_type_cache()
         
