@@ -25,15 +25,23 @@ in_progress_requests: Dict[str, float] = {}
 REQUEST_TIMEOUT = 60  # 60초 후 진행중 요청 만료
 
 def generate_request_hash(request: ConversationRequest) -> str:
-    """요청의 고유 해시를 생성합니다"""
+    """요청의 고유 해시를 생성합니다 (테스트용: 매번 다른 해시 생성)"""
+    import random
+    
     # 중요한 필드들만 사용해서 해시 생성
     hash_data = {
         "chatroom_name": request.chatroom_name,
         "members": request.members,
-        "messages": [{"speaker": msg.speaker, "content": msg.message_content} for msg in request.messages[-5:]]  # 마지막 5개 메시지만
+        "messages": [{"speaker": msg.speaker, "content": msg.message_content} for msg in request.messages[-5:]],  # 마지막 5개 메시지만
+        # 🧪 테스트용: 매번 다른 해시 생성을 위한 추가 데이터
+        "timestamp": time.time(),
+        "random": random.randint(1000, 9999)
     }
     hash_string = json.dumps(hash_data, sort_keys=True, ensure_ascii=False)
-    return hashlib.md5(hash_string.encode()).hexdigest()
+    generated_hash = hashlib.md5(hash_string.encode()).hexdigest()
+    
+    print(f"🔑 해시 생성: {generated_hash[:8]} (타임스탬프: {hash_data['timestamp']}, 랜덤: {hash_data['random']})")
+    return generated_hash
 
 def cleanup_expired_requests():
     """만료된 진행중 요청들을 정리합니다"""
@@ -114,7 +122,7 @@ async def process_api(request: ConversationRequest, background_tasks: Background
     cleanup_expired_requests()
     
     # 중복 요청 확인 (동시에 같은 요청이 처리중이면 거부)
-    duplicate_prevention_enabled = True  # 중복 방지 활성화
+    duplicate_prevention_enabled = False  # 🧪 테스트용: 중복 방지 비활성화
     
     if duplicate_prevention_enabled and request_hash in in_progress_requests:
         elapsed_time = current_time - in_progress_requests[request_hash]
@@ -128,6 +136,8 @@ async def process_api(request: ConversationRequest, background_tasks: Background
     if duplicate_prevention_enabled:
         in_progress_requests[request_hash] = current_time
         print(f"🚀 새 요청 처리 시작 (해시: {request_hash[:8]})")
+    else:
+        print(f"🚀 새 요청 처리 시작 (해시: {request_hash[:8]}) - 중복방지 비활성화")
     
     try:
         # ===== 입력 JSON 검증 =====
