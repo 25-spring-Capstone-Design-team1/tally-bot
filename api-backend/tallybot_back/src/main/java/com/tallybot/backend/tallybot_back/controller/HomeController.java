@@ -10,6 +10,6 @@ public class HomeController {
 
     @GetMapping
     public String checkHealth() {
-        return "gpt 연동 완료";
+        return "memberId";
     }
 }
