@@ -131,6 +131,7 @@ public class CalculateService {
 //                endTime      // endTime 사용
 //        );
 
+        //최종 버전!
         int year = request.getStartTime().getYear();
         int month = request.getStartTime().getMonthValue();
         int day = request.getStartTime().getDayOfMonth();
@@ -363,7 +364,7 @@ public class CalculateService {
         Long calculateId = calculate.getCalculateId();
 
         String groupUrl = "https://tallybot.vercel.app/" + groupId;
-        String calculateUrl = groupUrl + "/" + calculateId;
+        String calculateUrl = groupUrl + "/settlements/" + calculateId;
 
         // 실제 정산 결과 리스트 생성
         List<TransferDto> transfers = calculateDetailRepository.findAllByCalculate(calculate)
