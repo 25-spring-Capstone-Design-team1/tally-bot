@@ -362,7 +362,7 @@ public class CalculateService {
         Long groupId = calculate.getUserGroup().getGroupId();
         Long calculateId = calculate.getCalculateId();
 
-        String groupUrl = "https://tallybot.me/" + groupId;
+        String groupUrl = "https://tallybot.vercel.app/" + groupId;
         String calculateUrl = groupUrl + "/" + calculateId;
 
         // 실제 정산 결과 리스트 생성
