@@ -205,18 +205,9 @@ class ChainAIService:
                 for msg in conversation
             ])
             
-            # 입력 데이터 상세 로깅
-            print(f"🔍 입력 데이터 분석:")
-            print(f"   📝 대화 메시지 수: {len(conversation)}개")
-            print(f"   👥 멤버 정보: {id_to_name}")
-            print(f"   📄 첫 번째 메시지: {conversation[0] if conversation else 'None'}")
-            if len(conversation) > 1:
-                print(f"   📄 두 번째 메시지: {conversation[1]['speaker']}: {conversation[1]['message_content'][:50]}...")
-            
             member_info = f"member_count: {len(id_to_name)}\nmember_mapping: {json.dumps(id_to_name, ensure_ascii=False)}"
             
             # 2. 1차 체인 실행
-            print(f"🔄 1차 체인 실행 시작")
             input_chain = self._create_input_chain(input_prompt)
             input_result_raw = await input_chain.ainvoke({"conversation": conversation_text})
             
@@ -226,14 +217,9 @@ class ChainAIService:
             else:
                 input_result_content = str(input_result_raw)
             
-            print(f"   📊 1차 체인 원시 응답 길이: {len(input_result_content)}자")
-            print(f"   📊 1차 체인 원시 응답 시작: {input_result_content[:100]}...")
-            
             input_result = parse_json_response(input_result_content)
-            print(f"   ✅ 1차 체인 파싱 결과: {len(input_result)}개 항목")
             
             if not input_result:
-                print("   ⚠️ 1차 체인 결과가 비어있음")
                 return {
                     "final_result": []
                 }
@@ -243,12 +229,13 @@ class ChainAIService:
             converted_result = await preprocess_conversation_results(input_result)
             converted_result = filter_invalid_amounts(converted_result)
             
-            print(f"   📊 통화 변환 후: {len(converted_result)}개 항목")
+            # === 통화 변환 후 결과 상세 로그 ===
+            print(f"\n=== 통화 변환 후 결과 ===")
+            print(self._format_json_array(converted_result))
             
             # 4. 2차 체인 실행 (place 추출)
             items_only = extract_items_only(converted_result)
             if items_only:
-                print(f"🔄 2차 체인 실행 시작 ({len(items_only)}개 항목)")
                 secondary_chain = self._create_secondary_chain(secondary_prompt)
                 secondary_result_raw = await secondary_chain.ainvoke({
                     "items_data": json.dumps(items_only, ensure_ascii=False)
@@ -261,16 +248,16 @@ class ChainAIService:
                     secondary_result_content = str(secondary_result_raw)
                 
                 secondary_result = parse_json_response(secondary_result_content)
-                print(f"   ✅ 2차 체인 결과: {len(secondary_result)}개 항목")
+                
+                # === 2차 처리 결과 상세 로그 ===
+                print(f"\n=== 2차 처리 결과 ===")
+                print(self._format_json_array(secondary_result))
             else:
                 secondary_result = []
-                print("   ⚠️ 2차 체인 입력 데이터 없음")
             
             # 5. 3차 체인 실행 (복잡한 항목 처리)
             complex_items = extract_complex_items(converted_result)
             final_result = []
-            
-            print(f"🔄 복잡한 항목 분석: {len(complex_items)}개")
             
             if complex_items:
                 from services.result_processor import map_place_to_complex_items, process_complex_results, process_all_results
@@ -284,13 +271,11 @@ class ChainAIService:
                     final_input = {
                         "speaker": item["speaker"],
                         "amount": item["amount"],
-                        "hint_type": item["hint_type"],
                         "hint_phrases": item.get("hint_phrases", [])
                     }
                     final_input_data.append(final_input)
                 
                 if final_input_data:
-                    print(f"🔄 3차 체인 실행 시작 ({len(final_input_data)}개 항목)")
                     final_chain = self._create_final_chain(final_prompt)
                     final_result_raw = await final_chain.ainvoke({
                         "final_data": json.dumps(final_input_data, ensure_ascii=False),
@@ -320,15 +305,11 @@ class ChainAIService:
                 from services.result_processor import process_all_results
                 final_result = process_all_results(converted_result, secondary_result, None, member_names, id_to_name, name_to_id)
             
-            # 디버깅: 최종 결과 확인
-            print(f"=== 최종 결과 ===")
-            print(f"1차 결과 (converted_result): {len(converted_result)}개 항목")
-            print(f"2차 결과 (secondary_result): {len(secondary_result)}개 항목")
-            print(f"최종 결과 (final_result): {len(final_result if final_result else [])}개 항목")
-            print("최종 정산 결과:")
-            for i, item in enumerate(final_result if final_result else []):
-                print(f"  [{i+1}] {json.dumps(item, ensure_ascii=False, indent=2)}")
-            print("=" * 50)
+            # === 최종 처리 결과 상세 로그 ===
+            print(f"\n=== 최종 처리 결과 ===")
+            print(f"객체 갯수: {len(final_result if final_result else [])}")
+            print(f"\n=== 최종 처리 결과 ===")
+            print(self._format_json_array(final_result if final_result else []))
             
             return {
                 "final_result": final_result if final_result else []
@@ -399,29 +380,9 @@ class ChainAIService:
         combined_secondary_results = []
         combined_final_results = []
         
-        for i, chunk in enumerate(chunks):
-            print(f"📦 청크 {i+1}/{len(chunks)} 처리 중... ({len(chunk)}개 메시지)")
-            
-            # 청크 내용 미리보기
-            if chunk:
-                print(f"   📄 청크 첫 메시지: {chunk[0]['speaker']}: {chunk[0]['message_content'][:50]}...")
-                if len(chunk) > 1:
-                    print(f"   📄 청크 마지막 메시지: {chunk[-1]['speaker']}: {chunk[-1]['message_content'][:50]}...")
-            
-            # 청크별 고유 식별자 생성
-            chunk_text = "\n".join([msg.get('message_content', '') for msg in chunk])
-            chunk_hash = hashlib.md5(chunk_text.encode()).hexdigest()[:8]
-            
-            # 각 청크마다 완전히 새로운 대화 구성 (모든 청크에 시스템 메시지 포함)
-            chunk_conversation = []
-            if preserved_system_message:
-                # 모든 청크에 시스템 메시지 포함하여 완전한 컨텍스트 제공
-                chunk_conversation.append(preserved_system_message)
-                print(f"   🔧 시스템 메시지 포함 (청크 {i+1})")
-            
-            chunk_conversation.extend(chunk)
-            print(f"   📝 청크 대화 구성: {len(chunk_conversation)}개 메시지")
-            print(f"   🔐 청크 고유 식별자: {chunk_hash}")
+        for i, chunk_conversation in enumerate(chunks):
+            # 청크별 고유 식별자 생성 (해시값 사용)
+            chunk_hash = hashlib.md5(json.dumps(chunk_conversation, sort_keys=True).encode()).hexdigest()[:8]
             
             # 청크별 격리 강화를 위한 추가 지시사항
             enhanced_input_prompt = input_prompt.copy()
@@ -460,9 +421,6 @@ class ChainAIService:
                     new_secondary_results = chunk_result.get("secondary_result", [])
                     new_final_results = chunk_result.get("final_result", [])
                     
-                    # 중복 제거 전 항목 수 로깅
-                    print(f"   📊 청크 {i+1} 원시 결과: 1차={len(new_input_results)}개, 2차={len(new_secondary_results)}개, 최종={len(new_final_results)}개")
-                    
                     # 개선된 중복 제거 로직 적용
                     deduplicated_input = self._deduplicate_results_strict(new_input_results, combined_input_results)
                     deduplicated_secondary = self._deduplicate_results_strict(new_secondary_results, combined_secondary_results)
@@ -471,16 +429,10 @@ class ChainAIService:
                     combined_input_results.extend(deduplicated_input)
                     combined_secondary_results.extend(deduplicated_secondary)
                     combined_final_results.extend(deduplicated_final)
-                    
-                    # 중복 제거 후 항목 수 로깅
-                    print(f"   ✅ 청크 {i+1} 중복제거 후: 1차={len(deduplicated_input)}개, 2차={len(deduplicated_secondary)}개, 최종={len(deduplicated_final)}개 추가")
-                    print(f"   📈 누적 결과: 1차={len(combined_input_results)}개, 2차={len(combined_secondary_results)}개, 최종={len(combined_final_results)}개")
                 
             except Exception as e:
-                print(f"❌ 청크 {i+1} 처리 중 오류: {str(e)}")
+                print(f"청크 {i+1} 처리 중 오류: {str(e)}")
                 continue
-        
-        print(f"🎉 모든 청크 처리 완료: 총 {len(combined_final_results)}개 최종 결과")
         
         return {
             "final_result": combined_final_results
@@ -512,16 +464,120 @@ class ChainAIService:
                 
                 # item이나 amount가 비어있는 경우 스킵 (잘못된 데이터)
                 if not item or not amount:
-                    print(f"🔄 빈 값으로 인한 스킵: item='{item}', amount='{amount}'")
                     continue
                 
                 key = (item, amount)
                 if key not in existing_keys:
                     deduplicated.append(result)
                     existing_keys.add(key)
-                    print(f"✅ 새 항목 추가: {item} ({amount})")
-                else:
-                    # 실제 중복 제거된 항목 로깅
-                    print(f"🔄 중복 제거: {item} ({amount})")
         
-        return deduplicated 
+        return deduplicated
+    
+    async def process_with_simplified_chain(
+        self,
+        conversation: List[Dict[str, str]],
+        input_prompt: Dict[str, Any],
+        secondary_prompt: Dict[str, Any],
+        member_names: List[str],
+        id_to_name: Dict[str, str],
+        name_to_id: Dict[str, str]
+    ) -> Dict[str, Any]:
+        """단순화된 체인으로 처리 (final_prompt 없이 hint_phrases 직접 파싱)"""
+        
+        try:
+            # 1. 입력 데이터 준비
+            conversation_text = "\n".join([
+                f"{msg['speaker']}: {msg['message_content']}"
+                for msg in conversation
+            ])
+            
+            member_info = f"member_count: {len(id_to_name)}\nmember_mapping: {json.dumps(id_to_name, ensure_ascii=False)}"
+            
+            # 2. 1차 체인 실행
+            input_chain = self._create_input_chain(input_prompt)
+            input_result_raw = await input_chain.ainvoke({"conversation": conversation_text})
+            
+            # AIMessage에서 content 추출
+            if hasattr(input_result_raw, 'content'):
+                input_result_content = input_result_raw.content
+            else:
+                input_result_content = str(input_result_raw)
+            
+            input_result = parse_json_response(input_result_content)
+            
+            if not input_result:
+                return {
+                    "final_result": []
+                }
+            
+            # 3. 통화 변환 및 필터링
+            from services.result_processor import preprocess_conversation_results, extract_items_only, process_all_results_without_final_prompt
+            converted_result = await preprocess_conversation_results(input_result)
+            converted_result = filter_invalid_amounts(converted_result)
+            
+            # === 통화 변환 후 결과 상세 로그 ===
+            print(f"\n=== 통화 변환 후 결과 ===")
+            print(self._format_json_array(converted_result))
+            
+            # 4. 2차 체인 실행 (place 추출)
+            items_only = extract_items_only(converted_result)
+            if items_only:
+                secondary_chain = self._create_secondary_chain(secondary_prompt)
+                secondary_result_raw = await secondary_chain.ainvoke({
+                    "items_data": json.dumps(items_only, ensure_ascii=False)
+                })
+                
+                # AIMessage에서 content 추출
+                if hasattr(secondary_result_raw, 'content'):
+                    secondary_result_content = secondary_result_raw.content
+                else:
+                    secondary_result_content = str(secondary_result_raw)
+                
+                secondary_result = parse_json_response(secondary_result_content)
+                
+                # === 2차 처리 결과 상세 로그 ===
+                print(f"\n=== 2차 처리 결과 ===")
+                print(self._format_json_array(secondary_result))
+            else:
+                secondary_result = []
+            
+            # 5. hint_phrases 직접 파싱으로 모든 결과 처리 (final_prompt 없이)
+            final_result = process_all_results_without_final_prompt(
+                converted_result, 
+                secondary_result, 
+                member_names, 
+                id_to_name, 
+                name_to_id
+            )
+            
+            # === 최종 처리 결과 상세 로그 ===
+            print(f"\n=== 최종 처리 결과 ===")
+            print(f"객체 갯수: {len(final_result if final_result else [])}")
+            print(f"\n=== 최종 처리 결과 ===")
+            print(self._format_json_array(final_result if final_result else []))
+            
+            return {
+                "final_result": final_result if final_result else []
+            }
+                
+        except Exception as e:
+            print(f"단순화된 체인 처리 중 오류 발생: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {
+                "final_result": []
+            }
+
+    def _format_json_array(self, data):
+        """JSON 배열을 각 객체마다 한 줄씩 출력하는 형식으로 변환"""
+        if isinstance(data, list):
+            if not data:
+                return "[]"
+            lines = ["["]
+            for i, item in enumerate(data):
+                comma = "," if i < len(data) - 1 else ""
+                lines.append(f"  {json.dumps(item, ensure_ascii=False)}{comma}")
+            lines.append("]")
+            return "\n".join(lines)
+        else:
+            return json.dumps(data, ensure_ascii=False) 

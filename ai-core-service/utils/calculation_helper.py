@@ -50,7 +50,7 @@ def extract_payer_from_hint(hint_phrases):
 def generate_standard_calculation(items, member_names, id_to_name=None):
     """
     표준 계산 로직을 처리하는 함수입니다.
-    hint_type이 'n분의1'인 항목은 프로그래밍 방식으로 처리합니다.
+    복잡하지 않은 정산 항목들을 프로그래밍 방식으로 처리합니다.
     
     Args:
         items (list): 계산할 항목 목록
@@ -100,7 +100,7 @@ def generate_standard_calculation(items, member_names, id_to_name=None):
                     continue
                 break
         
-        # hint_phrases에서 실제 결제자 추출 (n분의1 항목의 경우)
+        # hint_phrases에서 실제 결제자 추출
         payer = speaker
         if hint_phrases:
             extracted_payer = extract_payer_from_hint(hint_phrases)
@@ -118,8 +118,8 @@ def generate_standard_calculation(items, member_names, id_to_name=None):
             "ratios": {member: 1 for member in participants}
         }
         
-        # n분의1 항목에 대한 hint_phrases 처리
-        if item.get("hint_type") == "n분의1" and hint_phrases:
+        # 일반 정산 항목에 대한 hint_phrases 처리 (hint_type 제거)
+        if hint_phrases:
             for phrase in hint_phrases:
                 # 1. 제외 처리: "숫자는 제외"
                 exclude_match = re.search(r'(\d+)[은|는]?\s*제외', phrase)

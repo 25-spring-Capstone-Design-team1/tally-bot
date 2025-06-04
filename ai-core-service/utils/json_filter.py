@@ -10,15 +10,15 @@ def filter_invalid_amounts(json_results):
         
     Examples:
         >>> results = [
-        ...     {"item": "식당", "amount": 15000, "hint_type": "n분의1"},
-        ...     {"item": "영화", "amount": 0, "hint_type": "n분의1"},
-        ...     {"item": "택시", "amount": -5000, "hint_type": "금액대납"},
-        ...     {"item": "커피", "amount": 8000, "hint_type": "n분의1"}
+        ...     {"item": "식당", "amount": 15000},
+        ...     {"item": "영화", "amount": 0},
+        ...     {"item": "택시", "amount": -5000, "hint_phrases": ["4 → 2"]},
+        ...     {"item": "커피", "amount": 8000}
         ... ]
         >>> filter_invalid_amounts(results)
         [
-            {"item": "식당", "amount": 15000, "hint_type": "n분의1"},
-            {"item": "커피", "amount": 8000, "hint_type": "n분의1"}
+            {"item": "식당", "amount": 15000},
+            {"item": "커피", "amount": 8000}
         ]
     """
     if not isinstance(json_results, list):
@@ -95,8 +95,7 @@ def validate_json_structure(json_results):
         return False, ["결과가 배열 형태가 아닙니다."]
     
     errors = []
-    required_fields = ['item', 'amount', 'hint_type']
-    valid_hint_types = ['n분의1', '금액대납', '고정+n분의1']
+    required_fields = ['item', 'amount']
     
     for i, item in enumerate(json_results):
         if not isinstance(item, dict):
@@ -114,11 +113,11 @@ def validate_json_structure(json_results):
             if not isinstance(amount, (int, float)) or amount <= 0:
                 errors.append(f"항목 {i}: amount가 유효하지 않습니다. ({amount})")
         
-        # hint_type 검증
-        if 'hint_type' in item:
-            hint_type = item['hint_type']
-            if hint_type not in valid_hint_types:
-                errors.append(f"항목 {i}: hint_type이 유효하지 않습니다. ({hint_type})")
+        # hint_phrases 검증 (선택적)
+        if 'hint_phrases' in item:
+            hint_phrases = item['hint_phrases']
+            if not isinstance(hint_phrases, list):
+                errors.append(f"항목 {i}: hint_phrases가 배열 형태가 아닙니다.")
         
         # item 검증
         if 'item' in item:
@@ -132,11 +131,11 @@ def validate_json_structure(json_results):
 if __name__ == "__main__":
     # 테스트 데이터
     test_results = [
-        {"item": "식당", "amount": 15000, "hint_type": "n분의1"},
-        {"item": "영화", "amount": 0, "hint_type": "n분의1"},
-        {"item": "택시", "amount": -5000, "hint_type": "금액대납"},
-        {"item": "커피", "amount": 8000, "hint_type": "n분의1"},
-        {"item": "잘못된항목", "hint_type": "n분의1"}  # amount 없음
+        {"item": "식당", "amount": 15000},
+        {"item": "영화", "amount": 0},
+        {"item": "택시", "amount": -5000, "hint_phrases": ["4 → 2"]},
+        {"item": "커피", "amount": 8000},
+        {"item": "잘못된항목"}  # amount 없음
     ]
     
     print("=== 원본 데이터 ===")

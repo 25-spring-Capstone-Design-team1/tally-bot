@@ -1,5 +1,5 @@
 import json
-from fastapi import HTTPException, BackgroundTasks
+from fastapi import HTTPException, BackgroundTasks, Request
 
 from config.app_config import create_app
 from config.service_config import ensure_api_key, get_api_keys
@@ -7,7 +7,8 @@ from models.conversation import ConversationRequest, ConversationResponse, Evalu
 from handlers.process_handler import (
     process_conversation_logic,
     load_resources,
-    process_conversation_with_sequential_chain
+    process_conversation_with_sequential_chain,
+    process_conversation_with_simplified_chain
 )
 # 새로운 평가 유틸리티 import
 from utils.settlement_evaluator import evaluate_settlement_results
@@ -37,34 +38,39 @@ async def root():
 
 @app.post("/api/process", 
           response_model=ConversationResponse,
-          summary="실시간 대화 처리",
+          summary="실시간 대화 처리 (단순화된 체인)",
           description="""
-          실시간으로 입력된 대화 데이터에서 정산 항목을 추출합니다.
+          hint_phrases를 직접 파싱하는 단순화된 처리 API입니다.
           
-          ### 📝 기능
-          - 대화 메시지에서 금액 정보 추출
-          - 정산 방식 자동 분류
-          - 멤버별 정산 계산
+          ### 🚀 개선사항
+          - final_prompt 제거로 처리 속도 향상
+          - LLM 호출 3회 → 2회로 감소
+          - hint_phrases 규칙 기반 파싱으로 일관성 향상
           
-          ### 💡 사용 예시
-          - 단체 여행 정산
-          - 회식비 정산  
-          - 공동 구매 정산
+          ### ⚡ 처리 과정
+          1. 1차: 정산 항목 추출 (hint_phrases 포함)
+          2. 2차: 장소 정보 추출
+          3. 3차: hint_phrases 직접 파싱 → 정산 JSON 생성
+          
+          ### ✨ 특징
+          - 더 빠른 처리 속도
+          - 더 일관된 결과
+          - 규칙 기반 안정성
           """,
           tags=["Core Processing"])
 async def process_api(request: ConversationRequest, background_tasks: BackgroundTasks):
     # ===== 입력 JSON 검증 =====
-    print("🔍 === 입력 JSON 검증 ===")
+    print("🔍 === 단순화된 체인 입력 JSON 검증 ===")
     print(f"채팅방 이름: {request.chatroom_name}")
     print(f"멤버 수: {len(request.members)}")
     print(f"멤버 데이터: {request.members}")
     print(f"메시지 수: {len(request.messages)}")
     print(f"첫 번째 메시지: speaker={request.messages[0].speaker}, content='{request.messages[0].message_content}'")
     print(f"마지막 메시지: speaker={request.messages[-1].speaker}, content='{request.messages[-1].message_content}'")
-    print("🔍 ========================\n")
+    print("🔍 =======================================\n")
     
     try:
-        # 프롬프트 로드
+        # 프롬프트 로드 (final_prompt는 사용하지 않지만 호환성을 위해 로드)
         input_prompt, secondary_prompt, final_prompt, _ = await load_resources(
             request.prompt_file,
             request.secondary_prompt_file,
@@ -92,12 +98,11 @@ async def process_api(request: ConversationRequest, background_tasks: Background
         # 대화 길이 확인 및 청크 처리 옵션 설정
         use_chunking = len(request.messages) > 15
         
-        # 공통 대화 처리 로직 호출
-        return await process_conversation_logic(
+        # 단순화된 체인 처리 로직 호출 (final_prompt 사용 안함)
+        return await process_conversation_with_simplified_chain(
             conversation=conversation,
             input_prompt=input_prompt,
             secondary_prompt=secondary_prompt,
-            final_prompt=final_prompt,
             member_names=list(id_to_name.values()),
             id_to_name=id_to_name,
             name_to_id=name_to_id,
