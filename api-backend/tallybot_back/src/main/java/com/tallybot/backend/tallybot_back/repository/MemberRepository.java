@@ -20,7 +20,6 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     List<Member> findByUserGroup(UserGroup userGroup);
 
     boolean existsByUserGroupAndNickname(UserGroup userGroup, String nickname);
-    Optional<Member> findByUserGroupAndNickname(UserGroup userGroup, String nickname);
     List<Member> findByMemberIdIn(List<Long> ids);
 
 }
