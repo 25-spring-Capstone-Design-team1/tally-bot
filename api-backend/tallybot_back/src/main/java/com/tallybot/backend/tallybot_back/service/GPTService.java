@@ -6,6 +6,8 @@ import com.tallybot.backend.tallybot_back.dto.*;
 import com.tallybot.backend.tallybot_back.exception.NoSettlementResultException;
 import com.tallybot.backend.tallybot_back.repository.GroupRepository;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -22,7 +24,7 @@ import java.util.stream.Collectors;
 public class GPTService {
     private final RestTemplate restTemplate;
     private final GroupRepository groupRepository;
-
+    private static final Logger logger = LoggerFactory.getLogger(GPTService.class);
 
 
     public List<SettlementDto> returnResults(Long groupId, List<ChatForGptDto> chatDtos) {
@@ -53,10 +55,12 @@ public class GPTService {
         //테스트용 mock 주소
 //        String url = "http://localhost:8080/api/process";
 
+        logger.info("🍀 gptservice에서 조회된 채팅 수: {}", chatDtos.size());
         try {
             ObjectMapper mapper = new ObjectMapper();
             String requestJson = mapper.writeValueAsString(requestDto);
             System.out.println("📤 GPT 요청 JSON:\n" + requestJson);
+            logger.info("🍀 GPT 요청 JSON:\n" + requestJson);
 
 //            ResponseEntity<SettlementDto[]> response = restTemplate.postForEntity(
 //                    url,
@@ -75,6 +79,7 @@ public class GPTService {
             // 디버깅 시 임시로 응답 확인
             ResponseEntity<String> rawResponse = restTemplate.postForEntity(url, requestDto, String.class);
             System.out.println("❤️GPT 응답 (raw):\n" + rawResponse.getBody());
+            logger.info("🍀GPT 응답 (raw):\n" + rawResponse.getBody());
 
             ResponseEntity<SettlementResponseWrapper> response = restTemplate.postForEntity(
                     url,
