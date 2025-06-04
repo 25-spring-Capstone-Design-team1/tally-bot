@@ -77,9 +77,9 @@ public class GPTService {
 
 
             // 디버깅 시 임시로 응답 확인
-            ResponseEntity<String> rawResponse = restTemplate.postForEntity(url, requestDto, String.class);
-            System.out.println("❤️GPT 응답 (raw):\n" + rawResponse.getBody());
-            logger.info("🍀GPT 응답 (raw):\n" + rawResponse.getBody());
+//            ResponseEntity<String> rawResponse = restTemplate.postForEntity(url, requestDto, String.class);
+//            System.out.println("❤️GPT 응답 (raw):\n" + rawResponse.getBody());
+//            logger.info("🍀GPT 응답 (raw):\n" + rawResponse.getBody());
 
             ResponseEntity<SettlementResponseWrapper> response = restTemplate.postForEntity(
                     url,
