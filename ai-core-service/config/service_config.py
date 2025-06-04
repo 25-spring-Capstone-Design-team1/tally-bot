@@ -103,11 +103,17 @@ fast_llm = ChatOpenAI(
     temperature=0.0
 )
 
+# 실험용 모델(GPT-4o-mini) - 새로운 실험용
+experimental_llm = ChatOpenAI(
+    model="gpt-4o-mini",
+    temperature=0.0
+)
+
 # 정확한 모델(GPT-4) - 복잡한 추론 작업용
 accurate_llm = ChatOpenAI(
     model="gpt-4",
     temperature=0.0
 )
 
-# 기본 모델은 빠른 처리를 위해 GPT-3.5 사용
-llm = fast_llm 
+# 기본 모델은 실험을 위해 GPT-4o-mini 사용
+llm = experimental_llm 
