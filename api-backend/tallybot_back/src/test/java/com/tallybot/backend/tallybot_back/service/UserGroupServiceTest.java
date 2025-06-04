@@ -23,12 +23,13 @@ class UserGroupServiceTest {
     private GroupRepository groupRepository;
     private MemberRepository memberRepository;
     private GroupService groupService;
+    private MemberService memberService;
 
     @BeforeEach
     void setUp() {
         groupRepository = mock(GroupRepository.class);
         memberRepository = mock(MemberRepository.class);
-        groupService = new GroupService(groupRepository, memberRepository);
+        groupService = new GroupService(groupRepository, memberRepository, memberService);
     }
 
     @Test
