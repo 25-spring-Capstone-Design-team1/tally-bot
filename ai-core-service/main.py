@@ -1,5 +1,8 @@
 import json
 from fastapi import HTTPException, BackgroundTasks, Request
+import hashlib
+import time
+from typing import Dict, Any
 
 from config.app_config import create_app
 from config.service_config import ensure_api_key, get_api_keys
@@ -16,6 +19,29 @@ from utils.advanced_metrics import evaluate_advanced_metrics
 
 # FastAPI 앱 생성
 app = create_app()
+
+# 중복 요청 방지를 위한 캐시 (간단한 메모리 캐시)
+request_cache: Dict[str, Dict[str, Any]] = {}
+CACHE_TIMEOUT = 30  # 30초 동안 캐시 유지
+
+def generate_request_hash(request: ConversationRequest) -> str:
+    """요청의 고유 해시를 생성합니다"""
+    # 중요한 필드들만 사용해서 해시 생성
+    hash_data = {
+        "chatroom_name": request.chatroom_name,
+        "members": request.members,
+        "messages": [{"speaker": msg.speaker, "content": msg.message_content} for msg in request.messages[-5:]]  # 마지막 5개 메시지만
+    }
+    hash_string = json.dumps(hash_data, sort_keys=True, ensure_ascii=False)
+    return hashlib.md5(hash_string.encode()).hexdigest()
+
+def cleanup_expired_cache():
+    """만료된 캐시 항목들을 정리합니다"""
+    current_time = time.time()
+    expired_keys = [key for key, value in request_cache.items() 
+                   if current_time - value["timestamp"] > CACHE_TIMEOUT]
+    for key in expired_keys:
+        del request_cache[key]
 
 def create_member_mapping(members_data):
     """멤버 데이터에서 ID-이름 매핑을 생성합니다"""
@@ -76,8 +102,23 @@ async def root():
           """,
           tags=["Core Processing"])
 async def process_api(request: ConversationRequest, background_tasks: BackgroundTasks):
+    # 중복 요청 체크
+    request_hash = generate_request_hash(request)
+    current_time = time.time()
+    
+    # 만료된 캐시 정리
+    cleanup_expired_cache()
+    
+    # 중복 요청 확인
+    if request_hash in request_cache:
+        cached_result = request_cache[request_hash]
+        if current_time - cached_result["timestamp"] < CACHE_TIMEOUT:
+            print(f"🔄 중복 요청 감지! 캐시된 결과 반환 (해시: {request_hash[:8]})")
+            return cached_result["response"]
+    
     # ===== 입력 JSON 검증 =====
     print("🔍 === 단순화된 체인 입력 JSON 검증 ===")
+    print(f"요청 해시: {request_hash[:8]}")
     print(f"채팅방 이름: {request.chatroom_name}")
     print(f"원본 멤버 수: {len(request.members)}")
     print(f"원본 멤버 데이터: {request.members}")
@@ -117,11 +158,20 @@ async def process_api(request: ConversationRequest, background_tasks: Background
             for msg in request.messages
         ])
         
+        # ===== AI에게 전달되는 최종 대화 데이터 로깅 =====
+        print("🤖 === AI에게 전달되는 최종 대화 데이터 ===")
+        print(f"전체 대화 길이: {len(conversation)}")
+        print(f"시스템 메시지: {conversation[0]}")
+        print("실제 대화 내용:")
+        for i, msg in enumerate(conversation[1:], 1):
+            print(f"  [{i}] {msg['speaker']}: {msg['message_content']}")
+        print("🤖 ============================================\n")
+        
         # 대화 길이 확인 및 청크 처리 옵션 설정
         use_chunking = len(request.messages) > 15
         
         # 단순화된 체인 처리 로직 호출 (final_prompt 사용 안함)
-        return await process_conversation_with_simplified_chain(
+        result = await process_conversation_with_simplified_chain(
             conversation=conversation,
             input_prompt=input_prompt,
             secondary_prompt=secondary_prompt,
@@ -130,6 +180,14 @@ async def process_api(request: ConversationRequest, background_tasks: Background
             name_to_id=name_to_id,
             use_chunking=use_chunking
         )
+        
+        # 결과를 캐시에 저장
+        request_cache[request_hash] = {
+            "response": result,
+            "timestamp": current_time
+        }
+        
+        return result
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
@@ -320,6 +378,15 @@ member_mapping: {json.dumps(id_to_name, ensure_ascii=False)}
             }
             for msg in request.messages
         ])
+        
+        # ===== AI에게 전달되는 최종 대화 데이터 로깅 =====
+        print("🤖 === AI에게 전달되는 최종 대화 데이터 ===")
+        print(f"전체 대화 길이: {len(conversation)}")
+        print(f"시스템 메시지: {conversation[0]}")
+        print("실제 대화 내용:")
+        for i, msg in enumerate(conversation[1:], 1):
+            print(f"  [{i}] {msg['speaker']}: {msg['message_content']}")
+        print("🤖 ============================================\n")
         
         # 대화 길이 확인 및 청크 처리 옵션 설정
         use_chunking = len(request.messages) > 15
