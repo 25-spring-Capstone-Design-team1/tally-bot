@@ -112,19 +112,25 @@ export async function getSettlement(calculateId: string): Promise<Settlement> {
   const data = await res.json();
 
   const participants = data.settlements
-    .flatMap((s: any) => s.participantIds)
-    .filter((v: any, i: number, arr: any[]) => arr.indexOf(v) === i)
-    .map((id: number) => id.toString());
+  .flatMap((s: any) => s.participantIds)
+  .filter((v: any, i: number, arr: any[]) => arr.indexOf(v) === i)
+  .map((id: number) => id.toString());
 
-  const payments = data.settlements.map((s: any) => ({
+  const payments = data.settlements.map((s: any) => {
+  const target = s.participantIds.map((id: number) => id.toString());
+
+  return {
     id: s.settlementId,
     payer: s.payerId.toString(),
-    target: s.participantIds.map((id: number) => id.toString()),
-    ratio: Object.values(s.ratios),
-    constant: Object.values(s.constants),
+    target,
+    ratio: participants.map((id: string) => target.includes(id) ? s.ratios?.[id] ?? 0 : 0),
+    constant: target.map((id: string) =>
+      s.constants?.hasOwnProperty(id) ? s.constants[id] : undefined
+    ),
     amount: s.amount,
     item: s.item,
-  }));
+  };
+});
 
   const transferRes = await fetch(`/api/proxy/transfer-result?id=${calculateId}`);
   if (!transferRes.ok) throw new Error('송금 결과 불러오기 실패');
@@ -162,7 +168,7 @@ export async function getGroupMembers(groupId: string): Promise<GroupMember[]> {
  */
 export async function updateSettlement(id: string, settlement: Settlement): Promise<Settlement> {
   const res = await fetch(`http://tally-bot-web-backend-alb-243058276.ap-northeast-2.elb.amazonaws.com/api/settlements/${id}`, {
-    method: 'PUT',
+    method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(settlement),
   });
@@ -178,7 +184,7 @@ export async function updateSettlement(id: string, settlement: Settlement): Prom
  */
 export async function updateSettlementField(payload: any): Promise<Settlement> {
   const res = await fetch('/api/proxy/settlement-update', {
-    method: 'PUT',
+    method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });

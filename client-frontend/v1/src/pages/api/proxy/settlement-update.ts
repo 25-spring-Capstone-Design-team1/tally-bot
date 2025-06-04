@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-  if (req.method !== 'PUT') {
+  if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
@@ -13,7 +13,7 @@ export default async function handler(req, res) {
 
   try {
     const backendRes = await fetch(url, {
-      method: 'PUT',
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });

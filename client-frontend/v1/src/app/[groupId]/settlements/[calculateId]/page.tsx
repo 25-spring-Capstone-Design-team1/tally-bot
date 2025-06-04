@@ -107,16 +107,13 @@ export default function SettlementPage(): ReactElement {
    * @param updatedPayments - 변경된 결제 항목 목록
    */
   const handlePaymentsChange = async (updatedPayments: Settlement['payments']) => {
-    if (!settlement || settlement.isCompleted) return; // 상태 비어있거나 완료면 무시
+    if (!settlement || settlement.isCompleted) return;
   
+    // ✅ 이 줄부터 아래 블록을 주석 처리하거나 조건 추가
+    /*
     const updatedSettlement: Settlement = {
-      settlementId: settlement.settlementId,
-      title: settlement.title,
-      createdAt: settlement.createdAt,
-      participants: settlement.participants,
+      ...settlement,
       payments: updatedPayments,
-      optimizedTransfers: settlement.optimizedTransfers,
-      isCompleted: settlement.isCompleted,
     };
   
     try {
@@ -131,6 +128,10 @@ export default function SettlementPage(): ReactElement {
         variant: "destructive",
       });
     }
+    */
+    
+    // ✅ 대신 그냥 payments만 상태 반영
+    setSettlement(prev => prev ? { ...prev, payments: updatedPayments } : prev);
   };
 
   /**
@@ -188,6 +189,7 @@ export default function SettlementPage(): ReactElement {
       if (showToast) {
         toast({ title: '성공', description: '정산이 재계산되었습니다.' });
       }
+      window.location.reload();
       setIsSettlementCompleted(false);
     } catch (err) {
       console.error(err);
