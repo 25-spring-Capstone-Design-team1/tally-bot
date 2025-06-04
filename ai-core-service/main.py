@@ -29,6 +29,23 @@ def create_member_mapping(members_data):
     
     return id_to_name, name_to_id
 
+def convert_members_to_single_object(members_data):
+    """
+    분리된 멤버 객체들을 하나의 객체로 합칩니다
+    입력: [{'8': '이다빈'}, {'9': '임재민'}, {'10': '정혜윤'}, {'11': '허원혁'}]
+    출력: [{'8': '이다빈', '9': '임재민', '10': '정혜윤', '11': '허원혁'}]
+    """
+    if not members_data:
+        return []
+    
+    # 모든 멤버 딕셔너리를 하나로 합치기
+    merged_dict = {}
+    for member_dict in members_data:
+        merged_dict.update(member_dict)
+    
+    # 합쳐진 딕셔너리를 배열에 넣어서 반환
+    return [merged_dict]
+
 @app.get("/", 
          summary="서비스 상태 확인",
          description="API 서비스의 기본 상태를 확인합니다.",
@@ -62,8 +79,13 @@ async def process_api(request: ConversationRequest, background_tasks: Background
     # ===== 입력 JSON 검증 =====
     print("🔍 === 단순화된 체인 입력 JSON 검증 ===")
     print(f"채팅방 이름: {request.chatroom_name}")
-    print(f"멤버 수: {len(request.members)}")
-    print(f"멤버 데이터: {request.members}")
+    print(f"원본 멤버 수: {len(request.members)}")
+    print(f"원본 멤버 데이터: {request.members}")
+    
+    # 멤버 데이터 형식 변환: 분리된 객체들 → 단일 객체
+    converted_members = convert_members_to_single_object(request.members)
+    print(f"변환된 멤버 데이터: {converted_members}")
+    
     print(f"메시지 수: {len(request.messages)}")
     print(f"첫 번째 메시지: speaker={request.messages[0].speaker}, content='{request.messages[0].message_content}'")
     print(f"마지막 메시지: speaker={request.messages[-1].speaker}, content='{request.messages[-1].message_content}'")
@@ -77,8 +99,8 @@ async def process_api(request: ConversationRequest, background_tasks: Background
             request.final_prompt_file
         )
         
-        # ID-이름 매핑 생성
-        id_to_name, name_to_id = create_member_mapping(request.members)
+        # 변환된 멤버 데이터로 ID-이름 매핑 생성
+        id_to_name, name_to_id = create_member_mapping(converted_members)
         
         # sample_conversation.json 형식에서 필요한 대화 형식으로 변환
         conversation = [{
