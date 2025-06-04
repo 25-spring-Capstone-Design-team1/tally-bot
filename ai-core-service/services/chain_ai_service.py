@@ -485,11 +485,24 @@ class ChainAIService:
         """단순화된 체인으로 처리 (final_prompt 없이 hint_phrases 직접 파싱)"""
         
         try:
+            # === 1차 프롬프트 처리 전 전체 메시지 JSON 디버깅 출력 ===
+            print(f"\n🔍 === 1차 프롬프트 처리 전 전체 메시지 JSON ===")
+            print(f"📊 메시지 수: {len(conversation)}개")
+            print(f"📋 전체 대화 JSON:")
+            print(json.dumps(conversation, ensure_ascii=False, indent=2))
+            print(f"🔍 ============================================\n")
+            
             # 1. 입력 데이터 준비
             conversation_text = "\n".join([
                 f"{msg['speaker']}: {msg['message_content']}"
                 for msg in conversation
             ])
+            
+            # === 1차 프롬프트로 전달될 최종 텍스트 디버깅 출력 ===
+            print(f"\n🔍 === 1차 프롬프트로 전달될 최종 텍스트 ===")
+            print(f"📝 변환된 대화 텍스트:")
+            print(conversation_text)
+            print(f"🔍 ======================================\n")
             
             member_info = f"member_count: {len(id_to_name)}\nmember_mapping: {json.dumps(id_to_name, ensure_ascii=False)}"
             
