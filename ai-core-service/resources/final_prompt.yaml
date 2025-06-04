@@ -119,8 +119,7 @@ A: |
        - hint_phrases에서 "1인당" 지정이 없는 경우:
          - 나머지 사람들의 constants = 0 (n분의1 참여)
      - ratios 처리:
-       - hint_phrases에서 "1인당" 지정이 있는 경우:
-        - 모든 사람들의 ratios = 1 (n분의1)
+       - 모든 사람들의 ratios = 1 (n분의1)
 
   3. **기타 경우**:
      - payer = speaker
