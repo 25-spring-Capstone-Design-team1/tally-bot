@@ -23,3 +23,7 @@ AI 모델을 활용한 추론 엔진과 관련 서비스를 제공합니다.
 ### [Client Frontend](./client-frontend/README.md)
 
 사용자 인터페이스와 클라이언트 측 로직을 구현합니다.
+
+### [Chatbot Frontend](./chatbot-frontend/README.md)
+
+사용자와 직접 소통하는 챗봇 로직을 구현합니다.
