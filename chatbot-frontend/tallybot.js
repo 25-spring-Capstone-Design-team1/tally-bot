@@ -19,22 +19,6 @@ function makeTimestamp() {
 // 끝에 슬래시 없어야 함!
 const domain = "http://tally-bot-web-backend-alb-243058276.ap-northeast-2.elb.amazonaws.com";
 
-// 연결 테스트 함수
-function testConnection() {
-  try {
-    const res = org.jsoup.Jsoup.connect(domain + "/test")
-      .header("Accept", "application/json")
-      .method(org.jsoup.Connection.Method.GET)
-      .ignoreContentType(true)
-      .timeout(10000)
-      .execute();
-    
-    return "연결 성공! 상태코드: " + res.statusCode() + ", 응답: " + res.body();
-  } catch (e) {
-    return "연결 실패: " + e.toString();
-  }
-}
-
 /**
 * json을 받아 api path로 전송하고 JSON을 받아와 객체로 변환해 돌려준다.
 **/
