@@ -24,7 +24,7 @@ GPT를 통한 대화 분석, 정산 항목 추출, 정산 대상자 간 금전�
 
 * **🤖 GPT 연동 처리** : 정산 항목 추출은 별도의 AI Core 서버와 연동하여 수행하며, 응답은 RestTemplate을 통해 처리됩니다.
 
-##설치 및 실행 방법 🚀
+## 설치 및 실행 방법 🚀
 ### 환경 구성
 * Java 17
 
@@ -41,29 +41,23 @@ GPT를 통한 대화 분석, 정산 항목 추출, 정산 대상자 간 금전�
 AWS RDS를 사용할 경우 application.yml 대신 SecretsManagerConfig가 활성화되도록 --spring.profiles.active=rds 설정 필요
 
 ### 사용하는 API 엔드포인트 📡
-* 그룹 및 멤버 생성
-` POST /api/group/create ` : 채팅방 ID 및 사용자 이름을 기반으로 고유 그룹 및 멤버 ID를 생성
+* ` POST /api/group/create ` : 채팅방 ID 및 사용자 이름을 기반으로 고유 그룹 및 멤버 ID를 생성
 
-* 채팅 업로드
-` POST /api/chat/upload ` : 메시지 내용과 발신자 정보를 리스트 형태로 전송 → 채팅 DB에 저장
+* ` POST /api/chat/upload ` : 메시지 내용과 발신자 정보를 리스트 형태로 전송 → 채팅 DB에 저장
 
-* 정산 시작
-`POST /api/calculate/start` : groupId, startTime, endTime을 전달하여 정산 시작 요청 → 비동기 처리 진행
+* `POST /api/calculate/start` : groupId, startTime, endTime을 전달하여 정산 시작 요청 → 비동기 처리 진행
 
-* 정산 결과 조회
-`GET /api/calculate/{id}/brief-result` : 요약 결과
+* `GET /api/calculate/{id}/brief-result` : 요약 결과
 
-`GET /api/calculate/{id}/settlements`: 항목별 내역
+* `GET /api/calculate/{id}/settlements`: 항목별 내역
 
-`GET /api/calculate/{id}/transfers`: 송금 대상자 리스트
+* `GET /api/calculate/{id}/transfers`: 송금 대상자 리스트
 
-* 정산 상태 변경
-`POST /api/calculate/complete` : 상태를 COMPLETED로 표시
+* `POST /api/calculate/complete` : 상태를 COMPLETED로 표시
 
-`POST /api/calculate/recalculate` : 정산 내역 변경 시 재계산 수행
+* `POST /api/calculate/recalculate` : 정산 내역 변경 시 재계산 수행
 
-* 정산 항목 업데이트
-`POST /api/update/settlement` : add, update, delete 기능 지원
+* `POST /api/update/settlement` : add, update, delete 기능 지원
 
 ## 프로젝트 구조 🏗️
 
@@ -100,16 +94,17 @@ AWS RDS를 사용할 경우 application.yml 대신 SecretsManagerConfig가 활�
 ### 정산 요청 시
 
 
-```json
+`json
 POST /api/calculate/start
 {
   "groupId": 1,
   "startTime": "2025-06-23T00:00:00",
   "endTime": "2025-06-24T23:59:59"
-} ```
+} `
+
 ### 정산 완료 후
 
-```json
+`json
 {
   "groupUrl": "https://tallybot.vercel.app/1",
   "calculateUrl": "https://tallybot.vercel.app/1/settlements/42",
@@ -118,7 +113,7 @@ POST /api/calculate/start
     { "payerId": 3, "payeeId": 2, "amount": 22000 }
   ]
 }
-```
+`
 
 ## 의존성 📦
 * Spring Boot (Web, JPA, Validation)
@@ -135,7 +130,7 @@ POST /api/calculate/start
 
 ## 문제 해결 🔧
 ### 문제	해결 방법
-* DB 연결 실패	SecretsManagerConfig에서 로그 확인
-* 정산이 동작하지 않음	calculate/start에 보낸 startTime, endTime 범위 내 채팅이 존재하는지 확인
-* GPT 응답 없음	GPT 서버 URL 확인 및 로그 추적
-* 정산 결과가 이상함	/calculate/{id}/settlements, /transfers 비교로 검증 가능
+* DB 연결 실패 : SecretsManagerConfig에서 로그 확인
+* 정산이 동작하지 않음 :	calculate/start에 보낸 startTime, endTime 범위 내 채팅이 존재하는지 확인
+* GPT 응답 없음 :	GPT 서버 URL 확인 및 로그 추적
+* 정산 결과가 이상함 :	/calculate/{id}/settlements, /transfers 비교로 검증 가능
