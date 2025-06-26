@@ -49,4 +49,6 @@ AI 모델을 활용하여 카카오톡 대화에서 정산 관련 내용을 추�
 사용자와 직접 소통하는 챗봇 로직입니다.
 
 ## ▶️ 시연 영상
-https://www.youtube.com/watch?v=scUuIBDw6cU
+아래 영상을 통해 Tally Bot의 작동 흐름을 확인할 수 있습니다.
+[Youtube 영상 보기] ([링크](https://www.youtube.com/watch?v=scUuIBDw6cU))
+
